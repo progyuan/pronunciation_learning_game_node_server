@@ -186,20 +186,20 @@ var festival_unilex_to_ipa= {
     "@" : "ə",
     "a" : "æ",
     "aa" : "ɑː",
-    "aa" : "ɑr",
     "ai" : "aɪ",
     "b" : "b",
     "ch" : "tʃ",
     "d" : "d",
     "dh" : "ð",
     "e" : "ɛ",
+    "e" : "e", // added by Heini
     "ei" : "eɪ",
-    "eir" : "ɛər",
+    "eir" : "eə", // corrected by Heini
     "f" : "f",
     "g" : "ɡ",
     "h" : "h",
     "i" : "ɪ",
-    "i@" : "ɪər",
+    "i@" : "ɪə", // corrected by Heini
     "ii" : "iː",
     "jh" : "dʒ",
     "k" : "k",
@@ -210,8 +210,9 @@ var festival_unilex_to_ipa= {
     "ng" : "ŋ",
     "o" : "ɒ",
     "oo" : "ɔː",
-    "oi" : "oɪ", // Guessed by Reima
-    "ou" : "oʊ",
+    "oo" : "ɔə", // added by Heini
+    "oi" : "ɔɪ", // corrected by Heini
+    "ou" : "əʊ", // corrected by Heini
     "ow" : "aʊ",
     "p" : "p",
     "r" : "r",
@@ -223,6 +224,8 @@ var festival_unilex_to_ipa= {
     "u" : "ʊ",
     "uh" : "ʌ",
     "uu" : "uː",
+    "uu" : "əʊ", // added by Heini
+    "uhr" : "ʊə" // guessed by Heini
     "v" : "v",
     "w" : "w",
     "y" : "j",
