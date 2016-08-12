@@ -226,6 +226,7 @@ var festival_unilex_to_ipa= {
     "uu" : "uː",
     "uu" : "əʊ", // added by Heini
     "uhr" : "ʊə" // guessed by Heini
+    "uhr" : "ʊɔ" // added by Heini
     "v" : "v",
     "w" : "w",
     "y" : "j",
