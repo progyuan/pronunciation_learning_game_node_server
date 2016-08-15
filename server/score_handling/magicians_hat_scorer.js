@@ -131,6 +131,7 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
 	debugout(user,  "Ref: "+ref_phone +"->" + ref_ipa + " Guess: "+ guess_class +"->" + class_definitions.classes_to_aalto [ guess_class ] +"->"+guess_ipa);
 	if (guess_ipa == ref_ipa) {
 	    scores.push(100);
+	    total_score+=100;
 	}
 
 	else {
@@ -146,6 +147,7 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
 
 	    if ( second_guess_ipa == ref_ipa ) {
 		scores.push(75);
+		total_score+=75;
 	    }
 	    else {
 
@@ -204,10 +206,13 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
 
 		}
 	    scores.push(score);
-	    total_score += score/ 20.0 / segmentation.length;
+	    total_score += score;
 	    }	
 	}
     }
+
+
+
 
     debugout(user, "user: "+user);
     debugout(user, "word: "+word);
@@ -215,6 +220,7 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
     debugout(user, "Scores: "+scores);
     debugout(user, "Total score: "+ total_score + " --> " + Math.ceil( total_score  ));
 
+    total_score =  Math.ceil(total_score  / 20.0 / segmentation.length );
 
     // Here some processing could be made
 
@@ -224,7 +230,7 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
     /* phoneme scoring results should be stored in an array that can
        be passed to a logging module. */
 
-    total_score =  Math.ceil( total_score  );
+
 
 
     /* When ready, return the score by emitting an event.

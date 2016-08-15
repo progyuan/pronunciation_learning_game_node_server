@@ -35,7 +35,7 @@ var outputbuffer = Buffer.concat([]);
 
 function compute_features(audioconf, inputbuffer, targetbuffer, user, word_id, packetcode, maxpoint) {
 
-    print_debug("== EXCITING!!! user: "+user+" word_id: "+word_id+" packetcode: "+ packetcode +" maxpoint: " +maxpoint +"======");
+    //print_debug("== EXCITING!!! user: "+user+" word_id: "+word_id+" packetcode: "+ packetcode +" maxpoint: " +maxpoint +"======");
 
     var tmpdir = "/dev/shm/siak-"+process.pid+"-"+user+"_"+word_id+"_"+packetcode+"_"+Date.now();
 
@@ -52,7 +52,8 @@ function compute_features(audioconf, inputbuffer, targetbuffer, user, word_id, p
 	    
 	    print_debug( user, "Starting the shell script now:");
 	    
-	    
+	    process.emit('user_event', user, word_id, 'timestamp',{name: 'feat_start' }); 			
+
 	    var featext_args = [tmpinput, tmpoutput];
 	    
 	    var featext = spawn(featext_command, featext_args);
@@ -67,7 +68,8 @@ function compute_features(audioconf, inputbuffer, targetbuffer, user, word_id, p
 	    featext.on('close',  function(exit_code)  { 
 		print_debug( user, "Shell script exit: "+exit_code.toString());
 		if (exit_code == 0) {
-		    
+		    process.emit('user_event', user, word_id, 'timestamp',{name: 'feat_stop' }); 			
+
 		    // Copy the features for debug purposes:
 		    fs.createReadStream( tmpoutput ).pipe(fs.createWriteStream('/tmp/feat'));
 		    
@@ -97,9 +99,11 @@ function compute_features(audioconf, inputbuffer, targetbuffer, user, word_id, p
 				if(err) {
 				    show_error(err);
 				}  
-				fs.unlink(tmpinput);
-				fs.unlink(tmpoutput);
-				fs.rmdir(tmpdir);
+				fs.unlink(tmpinput, function() { 
+				    fs.unlink(tmpoutput , function() { 
+					fs.rmdir(tmpdir);
+				    });
+				});				
 			    });
 			});
 			

@@ -1,4 +1,7 @@
 { "foo": "bar",
   "bar": "foo",
   "two": "far",
-  "far": "two" }
+  "far": "two",
+  "S9" : "bar", 
+  "S10" : "bar",
+  "SN" : "bar" }

@@ -14,6 +14,7 @@ var util = require('util');
 var url = require('url');
 var fs = require('fs');
 
+var spawn = require('child_process').spawn;
 
 var conf = require('./config');
 
@@ -52,6 +53,14 @@ function debugout(format, msg) {
     }
 }
 
+/*
+ *   GET READY!
+ */
+
+var cp_command="cp"
+var cpmodels = spawn(cp_command, [conf.recogconf.model_source, conf.recogconf.model_cache]);
+cpmodels.stderr.on('exit',  function(data)  { print_debug("models copied and ready"); 
+					      } );
 
 
 
@@ -129,12 +138,16 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 
     debugout(colorcodes.event, user + ': EVENT: wordid '+wordid +" eventname "+eventname); 
 
+    if (eventname == 'timestamp') {
+	userdata[user].timestamps[eventdata.name] =   new Date().getTime();
+    }
+
     /*if (eventname == 'segmenter_loaded') {
     	userdata[user].segmenter_loaded = true;
     	userdata[user].currentword.reference = eventdata.word;
     	initialisation_reply(user);
-    }
-    else*/ if (eventname == 'segmenter_ready') 
+    }*/
+    else  if (eventname == 'segmenter_ready') 
     {
 	userdata[user].segmenter_ready = true;
 	userdata[user].currentword.reference = eventdata.word;	    
@@ -289,6 +302,10 @@ function send_score_and_clear(user, score_object) {
     score_object.speech_end = speech_end;
     score_object.speech_dur = speech_dur;
 
+    if (userdata[user].profiling) {
+	score_object.timestamps = userdata[user].timestamps;
+    }
+
     userdata[user].lastPacketRes.end( JSON.stringify( score_object ) );
 
     logging.log_scoring({user: user,
@@ -331,6 +348,11 @@ var operate_recognition = function (req,res) {
 	debugout("Init userdata!");
 	init_userdata(user);
     }
+
+    if (req.headers.hasOwnProperty('x-siak-profiler')) {
+	userdata[user].profiling = req.headers['x-siak-profiler'];
+    }
+    
 
     // TODO: Implement user authentication and logging!!!
 
@@ -506,6 +528,9 @@ function init_userdata(user) {
 
 	userdata[user].segmentation_handler = new segmentation_handler(user);
 
+	userdata[user].profiling = false;
+	userdata[user].timestamps = {};
+
     }
     clearUpload(user);
 }
@@ -555,6 +580,7 @@ function clearUpload(user) {
 
     userdata[user].currentword = word;
 
+    userdata[user].timestamps = {};
 
 
 }

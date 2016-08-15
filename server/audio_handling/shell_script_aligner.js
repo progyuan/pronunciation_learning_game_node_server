@@ -16,7 +16,7 @@ var spawn = require('child_process').spawn;
 //var exec = require('child_process').exec;
 
 var feature_timeout_ms = 15000; // 15s 
-var DEBUG_TEXTS = true;
+var DEBUG_TEXTS = false;
 
 var sptk_path='/usr/local/bin/';
 
@@ -121,7 +121,9 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
     featext_args.forEach(function(arg){ comm += " "+arg });
 
     print_debug("Starting the shell script now: "+comm);
-    
+
+    process.emit('user_event', user, word_id, 'timestamp',{name: 'recog_start' }); 			
+
     var featext = spawn(featext_command, featext_args);
     
     featext.stderr.on('data',  function(data)  { print_debug(data); 
@@ -134,6 +136,7 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
     
     featext.on('close',  function(exit_code)  { 
 	print_debug("Shell script exit: "+exit_code.toString());
+
 	if (exit_code == 0) {
 	    
 	    fs.readFile(segmentoutput, function (err, segmentation) {
@@ -142,7 +145,8 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
 		print_debug('Segmentation done: '+ segmentation);	   
 		
 		process.emit('user_event', user, word_id, 'segmented',{word:word_reference, segmentation:segmentation}); 			
-		
+		process.emit('user_event', user, word_id, 'timestamp',{name: 'recog_stop' }); 			
+
 		fs.unlink(wavinput);
 		fs.unlink(labelinput);
 
@@ -182,6 +186,7 @@ function show_exit(exit_code, source) {
 
 
 function print_debug(text) {
+    // Did you set DEBUG_TEXTS == true there at the top?
     if (DEBUG_TEXTS) 
     {
 	var cyan="\x1b[36m";

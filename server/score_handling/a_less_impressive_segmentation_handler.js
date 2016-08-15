@@ -72,15 +72,22 @@ function SegmentationHandler(user) {
     
     SegmentationHandler.prototype.shell_segmentation_to_state_list = function(segmentation_string) {
 	/* Input string like this:
+	   0 128 __.0 
+	   128 256 __.1 
+	   256 384 __.2 
+	   384 1408 _-C+u.0 
+	   1408 1920 _-C+u.1 
+	   1920 2432 _-C+u.2 
+	   2432 8832 C-u+z.0 
+	   8832 9344 C-u+z.1 
+	   9344 9472 C-u+z.2 
+	   9472 11648 u-z+_.0 
+	   11648 12160 u-z+_.1 
+	   12160 12288 u-z+_.2 
+	   12288 12416 __.0 
+	   12416 12544 __.1 
+	   12544 12800 __.2 
 
-	1408 2048 _-C+u.1 
-	2048 2432 _-C+u.2 
-	2432 8832 C-u+z.0 
-	8832 9344 C-u+z.1 
-	9344 9472 C-u+z.2 
-	9472 11648 u-z+_.0 
-	11648 12544 u-z+_.1 
-	12544 13952 u-z+_.2 
 	
 
 	and output:
@@ -106,19 +113,24 @@ function SegmentationHandler(user) {
 	    var start = 0;
 
 	    segmentation_string.toString().split("\n").forEach( function(line, index) {
-		
-		begin_end_and_model = line.split(" ");
 
-		start = begin_end_and_model[0];
-		end = begin_end_and_model[1];//-1;
-		length = Math.round((end-start)/conf.audioconf.frame_step_samples) + " frames"
-		state = begin_end_and_model[2]
-		
-		states.push({ 'state':state, 'start':start, 'end': end , 'length': length  })
-		
-		if ( (index+1) %3 == 0) {		    
-		    segmentation_array.push( states );
-		    states = [];
+		if (line) {
+		    begin_end_and_model = line.split(" ");
+		    
+		    if (begin_end_and_model[2].substr(0,2) != '__') {
+			
+			start = begin_end_and_model[0];
+			end = begin_end_and_model[1];//-1;
+			length = Math.round((end-start)/conf.audioconf.frame_step_samples) + " frames"
+			state = begin_end_and_model[2]
+			
+			states.push({ 'state':state, 'start':start, 'end': end , 'length': length  })
+			
+			if ( (index+1) %3 == 0) {		    
+			    segmentation_array.push( states );
+			    states = [];
+			}
+		    }
 		}
 
 
@@ -140,6 +152,7 @@ function SegmentationHandler(user) {
 	// "1:459;37:460;41:30;51:32;55:36;58:1325;95:1334;98:1347;102:1431;115:1448;120:1463;123:458;"
 	// and output:
 	// [ [state0start,state0end], [state1start,state1end],... ]
+
 
 	if (segmentation_string != null) {
 
@@ -219,20 +232,24 @@ function SegmentationHandler(user) {
 	    segmentstartpoint = segment[0]['start'] / conf.audioconf.frame_step_samples * this.datadim * this.datasize;
 	    segmentendpoint = segment[2]['end'] / conf.audioconf.frame_step_samples * this.datadim * this.datasize;
 
-	    debugout(this.user, "Copying bytes "+ segmentstartpoint +"-"+segmentendpoint + " of features to the buffer");
-	    debugout(this.user, "Copying "+ Math.min(segmentendpoint-segmentstartpoint, this.datadim * this.timesteps * 4) + " bytes of features to the buffer");
+	    //debugout(this.user, "Copying bytes "+ segmentstartpoint +"-"+segmentendpoint + " of features to the buffer");
+	    //debugout(this.user, "Copying "+ Math.min(segmentendpoint-segmentstartpoint, this.datadim * this.timesteps * 4) + " bytes of features to the buffer");
 
 	    payloadstartpoint =  i *  this.datadim * this.timesteps * this.datasize;
 
-	    debugout(this.user, "Put that data in the payload buffer starting at " + payloadstartpoint );
+	    //debugout(this.user, "Put that data in the payload buffer starting at " + payloadstartpoint );
 
-	    debugout(this.user, "And end at Math.min("+segmentendpoint+", "+segmentstartpoint+" + "+this.datadim +" * "+ this.timesteps + " * " +this.datasize +" ) --> " + (Math.min(segmentendpoint, segmentstartpoint + this.datadim * this.timesteps * this.datasize  ) ) );
+	    //debugout(this.user, "And end at Math.min("+segmentendpoint+", "+segmentstartpoint+" + "+this.datadim +" * "+ this.timesteps + " * " +this.datasize +" ) --> " + (Math.min(segmentendpoint, segmentstartpoint + this.datadim * this.timesteps * this.datasize  ) ) );
 
 	    features.copy(payloadbuffer, 			 
 			  payloadstartpoint,
 			  segmentstartpoint,
 			  Math.min(segmentendpoint, segmentstartpoint + this.datadim * this.timesteps * this.datasize ) );
 	    
+
+	    // Tested if there was something wrong in transferring the features to the python script; - No, there's no problem there!
+	    //var this_works_buffer = fs.readFileSync('/tmp/working_features.float');
+	    //this_works_buffer.copy(payloadbuffer, 0, 0);
 
 	    //for (var n=0; n<30; n+=4) {
 	    //debugout(user, "n="+n);
@@ -241,6 +258,8 @@ function SegmentationHandler(user) {
 	    //}
 	    
 	} 
+
+	
 
 	var sizebuffer = new Buffer(4);
 	sizebuffer.writeInt32LE(payloadbuffer.length/4); // 'Cause this the bad programming is! We'll send the number of data points,
@@ -255,7 +274,9 @@ function SegmentationHandler(user) {
 	    
 
 	    debugout( user, "Connecting to port >"+port+"<");
-	    
+
+	    process.emit('user_event', that.user, that.word_id, 'timestamp',{name: 'dnn_start' }); 			
+
 	    var client = net.connect({port: ""+port},
 				     function() { //'connect' listener
 					 debugout(this.user, 'connected to server!');
@@ -290,6 +311,7 @@ function SegmentationHandler(user) {
 		    for (var i =0; i< returneddata.length; i+=4) {
 			classes.push(returneddata.readFloatLE(i))
 		    }
+		    process.emit('user_event', that.user, that.word_id, 'timestamp',{name: 'dnn_stop' }); 			
 		    process.emit('user_event', 
 				 that.user, 
 				 that.word_id,
@@ -298,6 +320,7 @@ function SegmentationHandler(user) {
 				 });		
 		    state = "done"; 
 		    client.end();
+
 		    
 		}
 	    });

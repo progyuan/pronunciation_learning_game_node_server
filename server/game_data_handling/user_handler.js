@@ -6,6 +6,9 @@
 
 var fs=require('fs');
 
+var DEBUG_TEXTS=true;
+
+var logging = require('../game_data_handling/logging.js');
 
 /*
  * Extremely lazy user control!
@@ -26,7 +29,7 @@ function authenticate(req, res, callback) {
     //debugout("Authenticating >"+username + "< >" + password +"<!");    
 
     if (!passwords.hasOwnProperty(username)) {
-	debugout('users does not contain >'+user+'<');
+	debugout('users does not contain >'+username+'<');
 	err= { error: 101,
 		 msg: "unknown username"
 	       }
@@ -44,6 +47,17 @@ function authenticate(req, res, callback) {
 
 }
 
+
+
+function debugout(text) {
+    // Did you set DEBUG_TEXTS == true there at the top?
+    if (DEBUG_TEXTS) 
+    {
+	var cyan="\x1b[36m";
+	var bright=  "\x1b[1m" ;
+	console.log(cyan + "userha " + logging.get_date_time().datetime + " " + text);
+    }
+}
 
 
 

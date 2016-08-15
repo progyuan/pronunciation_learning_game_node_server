@@ -35,7 +35,10 @@ module.exports = {
 	'packet_size' : 2048,
 	'pause_between_packets' : 20,
 	'lexicon' : '/home/backend/models-clean-am/train.lex',
-	'model' : '/home/backend/models/siak_clean_b/siak_clean_b'
+	//'model' : '/home/backend/models/siak_clean_b/siak_clean_b'
+	'model_source' : '/home/backend/models/siak_clean_a/siak_clean_a',
+	'model_cache' : '/dev/shm/siak_models/siak_clean_a/',
+	'model' : '/dev/shm/siak_models/siak_clean_a/siak_clean_a'
 	//'model' : '/home/backend/models/mc-am_2016-06-11/siak_mc_a'
     },
     dnnconf : {
