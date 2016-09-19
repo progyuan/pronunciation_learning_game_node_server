@@ -10,7 +10,7 @@ var HOST = 'localhost'; // The remote host
 var PORT = 50007;       // The same port as used by the server
 var ack  = -1;
 var ackbuffer;
-
+var dnn_server_timeout = 2000; // in ms
 
 var payload_length = 270;
 var pause_between_packets = 20;
@@ -241,6 +241,8 @@ function SegmentationHandler(user) {
 
 	    //debugout(this.user, "And end at Math.min("+segmentendpoint+", "+segmentstartpoint+" + "+this.datadim +" * "+ this.timesteps + " * " +this.datasize +" ) --> " + (Math.min(segmentendpoint, segmentstartpoint + this.datadim * this.timesteps * this.datasize  ) ) );
 
+	    debugout(this.user, "payloadstartpoint: "+payloadstartpoint + "  segmentstartpoint: "+ segmentstartpoint + " important thing: "+ Math.min(segmentendpoint, segmentstartpoint + this.datadim * this.timesteps * this.datasize ) );
+
 	    features.copy(payloadbuffer, 			 
 			  payloadstartpoint,
 			  segmentstartpoint,
@@ -283,6 +285,8 @@ function SegmentationHandler(user) {
 					 client.write( sizebuffer );
 					 state ="waitforacc";
 				     });
+
+	    client.setTimeout(dnn_server_timeout);
 	    
 	    
 	    client.on('data', function(data) {
@@ -326,7 +330,23 @@ function SegmentationHandler(user) {
 	    });
 
 	    client.on('end', function() {
+		client.destroy();
 		debugout(that.user, 'disconnected from classification server');
+	    });
+	    
+	    client.on('timeout', function() {
+		var classes = [-2];
+
+		process.emit('user_event', that.user, that.word_id, 'timestamp',{name: 'dnn_stop' }); 			
+
+		process.emit('user_event', 
+			     that.user, 
+			     that.word_id,
+			     'classification_done', {
+				 'guessed_classes' : classes 
+			     });		
+		client.end();
+		client.destroy();
 	    });
 	});
     }

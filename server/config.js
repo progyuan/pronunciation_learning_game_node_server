@@ -36,10 +36,12 @@ module.exports = {
 	'pause_between_packets' : 20,
 	'lexicon' : '/home/backend/models-clean-am/train.lex',
 	//'model' : '/home/backend/models/siak_clean_b/siak_clean_b'
-	'model_source' : '/home/backend/models/siak_clean_a/siak_clean_a',
-	'model_cache' : '/dev/shm/siak_models/siak_clean_a/',
-	'model' : '/dev/shm/siak_models/siak_clean_a/siak_clean_a'
-	//'model' : '/home/backend/models/mc-am_2016-06-11/siak_mc_a'
+	'model_source' : '/home/backend/models/siak_clean_a',
+	'model_cache' : '/dev/shm/siak_models/',
+	'model' : '/dev/shm/siak_models/siak_clean_a/siak_clean_a',
+	'flag_use_adaptation': 0,
+	//'model' : '/home/backend/models/mc-am_2016-06-11/siak_mc_a',
+	'word_modeldir' : '/l/data/siak-server-devel/models/clean-am/'
     },
     dnnconf : {
 	'port' : 16054,

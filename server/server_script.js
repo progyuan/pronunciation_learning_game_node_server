@@ -14,7 +14,15 @@ var util = require('util');
 var url = require('url');
 var fs = require('fs');
 
+reply_codes = { 'package_received' : 0,
+		'audio_end': -1,
+		'segmentation_failure' : -2,
+		'segmentation_error' : -3 }
+
 var spawn = require('child_process').spawn;
+
+var flag_ada_running=0;
+
 
 var conf = require('./config');
 
@@ -27,10 +35,10 @@ var userdata = {};
 //var recogniser_client = require('./audio_handling/recogniser_client');
 var vad = require('./audio_handling/vad_stolen_from_sphinx');
 
-
 var segmentation_handler  = new require('./score_handling/a_less_impressive_segmentation_handler.js');
 
 var scorer =  require('./score_handling/magicians_hat_scorer.js');
+var fur_hat_scorer =  require('./score_handling/fur_hat_scorer.js');
 
 var audioconf = conf.audioconf;
 var recogconf = conf.recogconf;
@@ -58,8 +66,8 @@ function debugout(format, msg) {
  */
 
 var cp_command="cp"
-var cpmodels = spawn(cp_command, [conf.recogconf.model_source, conf.recogconf.model_cache]);
-cpmodels.stderr.on('exit',  function(data)  { print_debug("models copied and ready"); 
+var cpmodels = spawn(cp_command, ['-r',conf.recogconf.model_source, conf.recogconf.model_cache]);
+cpmodels.stderr.on('close',  function(exit_code)  { console.log("models copied with exit code "+exit_code); 
 					      } );
 
 
@@ -199,7 +207,7 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 
 		    
 		    //var likelihood = -100.0*Math.random();
-		    // scorer.fur_hat_scorer(user, userdata[user].currentword.reference, wordid, userdata[user].currentword.segmentation);
+		    // 
 		}
 		else 
 		{
@@ -208,18 +216,29 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 		    userdata[user].currentword.segmentation_complete = true;
 
 		    // Segmentation failed, let's send a zero score to the client:
-		    send_score_and_clear(user, {"total_score" : -1, "error" : "Segmentation failed"});
+		    send_score_and_clear(user, {"total_score" :  reply_codes.segmentation_failure, "error" : "Segmentation failed"});
 		}
 		    
 		//check_feature_progress(user);
 
 	    }
-	    else if (eventname ==  'segmentation_error') {
+	    else if (eventname == 'kalle_dbg') {
+		debugout(colorcodes.event, 'kalle_dbg: ' + eventdata.toString());
+
+		fur_hat_scorer.fur_hat_scorer(user, 
+					      userdata[user].currentword.reference, 
+					      wordid, 
+					      userdata[user].currentword,
+					      eventdata);
+		
+	    }
+
+	    else if (eventname == 'segmentation_error') {
 		userdata[user].currentword.segmentation = null;
 		userdata[user].currentword.segmentation_complete = true;
 	
 		debugout(colorcodes.event, user +": SEGMENTATION FAILED!");
-		send_score_and_clear(user, {"total_score" : -2, "error" : "Segmentation error"});
+		send_score_and_clear(user, {"total_score" : reply_codes.segmentation_error, "error" : "Segmentation error"});
 		
 		//check_feature_progress(user);
 	    }	
@@ -237,8 +256,31 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 					    userdata[user].currentword.segmentation);
 		
 	    }
-	    else if (eventname == 'scoring_done') {
-		send_score_and_clear(user, eventdata);
+	    else if (eventname == 'kalles_scoring_done') {
+		userdata[user].currentword.kalles_score = eventdata;
+		if (userdata[user].currentword.dnn_score > -100) {
+		    send_score(user);		
+		}
+		else {
+		    debugout(colorcodes.event, user + ": Waiting for DNN score event! "+
+			     "Kalles score: "+ userdata[user].currentword.kalles_score +
+			     "DNN score: " +  userdata[user].currentword.dnn_score
+			    );
+		}
+
+	    }
+	    else if (eventname == 'dnn_scoring_done') {
+		userdata[user].currentword.dnn_score = eventdata;
+		
+		if (userdata[user].currentword.kalles_score) {
+		    send_score(user);		
+		}
+		else {
+		    debugout(colorcodes.event, user + ": Waiting for Kalle's score event!"+
+			     " Kalles score: "+ userdata[user].currentword.kalles_score +
+			     " DNN score: " +  userdata[user].currentword.dnn_score
+			    );
+		}
 	    }
 	    else  {
 		debugout(colorcodes.event, user + ": Don't know what to do with this event!");
@@ -291,9 +333,23 @@ function audio_packet_reply(user,res, packetnr, usevad) {
 }
 
 // Reply to the last packer call:
+function send_score(user) {
+
+    var score_object = userdata[user].currentword.dnn_score;
+    score_object.dnn_score = score_object.total_score
+    score_object.kalles_score = userdata[user].currentword.kalles_score.total_score;
+
+    score_object.total_score = Math.ceil( (score_object.dnn_score + score_object.kalles_score) / 2 );
+
+    send_score_and_clear(user, score_object)
+
+}
+
+
+// Reply to the last packer call:
 function send_score_and_clear(user, score_object) {
 
-    
+
     var speech_start =  userdata[user].currentword.vad.speechstart / conf.audioconf.fs / 4;
     var speech_end =  userdata[user].currentword.vad.speechend / conf.audioconf.fs / 4;
     var speech_dur =  speech_end - speech_start;
@@ -304,9 +360,12 @@ function send_score_and_clear(user, score_object) {
 
     if (userdata[user].profiling) {
 	score_object.timestamps = userdata[user].timestamps;
+	userdata[user].lastPacketRes.end( JSON.stringify( score_object ) );
     }
-
-    userdata[user].lastPacketRes.end( JSON.stringify( score_object ) );
+    else {
+	debugout("Sending score to player: " + score_object.total_score );
+	userdata[user].lastPacketRes.end( "" + score_object.total_score );
+    }
 
     logging.log_scoring({user: user,
 			 packetcount: userdata[user].currentword.lastpacketnr,
@@ -342,7 +401,7 @@ var operate_recognition = function (req,res) {
 
     debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Received packet for ASR! user: "+user + " packetnr: "+packetnr +" lastpacket? "+finalpacket);
 
-    debugout("Should I init userdata?");
+    
     // If recovering from a server crash or otherwise lost:
     if (!userdata.hasOwnProperty(user)) {	
 	debugout("Init userdata!");
@@ -352,6 +411,8 @@ var operate_recognition = function (req,res) {
     if (req.headers.hasOwnProperty('x-siak-profiler')) {
 	userdata[user].profiling = req.headers['x-siak-profiler'];
     }
+    else
+	userdata[user].profiling = false;
     
 
     // TODO: Implement user authentication and logging!!!
@@ -440,10 +501,10 @@ var operate_recognition = function (req,res) {
 		decodedchunks=new Buffer(postdata, 'base64');
 		
 		// Announce our honorable intentions to do a copy from buffer to buffer:
-		debugout( user + ":Copying from index " + 0 + "-"+  decodedchunks.length +
-			  " in source to "+ (arraystart*audioconf.datatype_length) + "-"+   + 
-			  ( (arraystart*audioconf.datatype_length) + decodedchunks.length ) +
-			  " in target buffer (length "+decodedchunks.length+")" );
+		//debugout( user + ":Copying from index " + 0 + "-"+  decodedchunks.length +
+		//	  " in source to "+ (arraystart*audioconf.datatype_length) + "-"+   + 
+		//	  ( (arraystart*audioconf.datatype_length) + decodedchunks.length ) +
+		//	  " in target buffer (length "+decodedchunks.length+")" );
 		
 		decodedchunks.copy( // src buffer
 		    userdata[user].audiobinarydata, // targetbuffer
@@ -453,9 +514,9 @@ var operate_recognition = function (req,res) {
 		
 
 		// What was my idea here?
-		debugout(user + ": userdata[user].bufferend = Math.max( "+
-			 (arrayend)*audioconf.datatype_length+","+
-			 userdata[user].currentword.bufferend+")");
+		//debugout(user + ": userdata[user].bufferend = Math.max( "+
+		//	 (arrayend)*audioconf.datatype_length+","+
+		//	 userdata[user].currentword.bufferend+")");
 
 
 		userdata[user].currentword.bufferend = Math.max( (arrayend)*audioconf.datatype_length, 
@@ -576,6 +637,9 @@ function clearUpload(user) {
     vad.numsil = 0;
     vad.numspeech = 0;
 
+    word.kalles_score = -101;
+    word.dnn_score = -101;
+
     word.vad = vad;
 
     userdata[user].currentword = word;
@@ -636,7 +700,7 @@ function processDataChunks(user, wordid, res, packetnr) {
 
 	// Add the current packetnr to the list of processed packets:
 	userdata[user].currentword.analysedpackets.push(packetnr);
-	debugout(user + ': Processing packet '+packetnr);
+	//debugout(user + ': Processing packet '+packetnr);
 
 	// Call the asyncAudioAnalysis function (asynchronous processing of new audio data)
 	process.emit('user_event', user, wordid,'send_audio_for_analysis', null);
@@ -688,11 +752,11 @@ function check_last_packet(user) {
 
 	    if (userdata[user].currentword.vad.speechend > -1 && userdata[user].currentword.vad.speechend <= userdata[user].currentword.bufferend )
 		debugout(user + ": check_last_packet all good - VAD says we're done : Calling Finish_audio");
-	    if (chunkcount == userdata[user].currentword.lastpacketnr)
-		debugout(user + ": check_last_packet all good - All chunks in : Calling Finish_audio");
-
+	    else if (chunkcount == userdata[user].currentword.lastpacketnr) {
+		debugout(user + ": check_last_packet all good - All chunks in : Let's tell our VAD that!");
+		userdata[user].currentword.vad.speechend = userdata[user].currentword.bufferend;
+	    }
 	    userdata[user].currentword.finishing_segmenter = true;
-
 
 	    //userdata[user].segmenter.finish_audio();
 	    // Let's send the speech segmnents to the aligner:
@@ -713,6 +777,8 @@ function check_last_packet(user) {
 				      userdata[user].audiobinarydata); 			 
 		   }
 	    
+	    /* Kalle commented out the audio analyzer */
+
 	    var sh_feat_ext = require('./audio_handling/audio_analyser');
 
 	    sh_feat_ext.compute_features( audioconf,
@@ -986,5 +1052,10 @@ function get_current_word_id(user) {
     return userdata[user].currentword.id;
 }
 
+function getFilesizeInBytes(filename) {
+ var stats = fs.statSync(filename)
+ var fileSizeInBytes = stats["size"]
+ return fileSizeInBytes
+}
 
 

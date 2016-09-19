@@ -8,8 +8,10 @@
   "dependencies": {
     "bson": "^0.4.22",
     "fs-extra": "^0.30.0",
+    "fs-sync": "^1.0.2",
     "longjohn": "^0.2.11",
     "mathjs": "^3.2.1",
+    "mkdirp": "^0.5.1",
     "mongodb": "~2.0.33",
     "monk": "~1.0.1",
     "wav": "^1.0.0"

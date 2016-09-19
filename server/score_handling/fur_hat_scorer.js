@@ -1,7 +1,15 @@
 
+var conf = require('../config');
+
+var fs = require('fs');
+var colorcodes =  {'event' : '\x1b[36mserver %s\x1b[0m' };
+
+
+var fsSync = require("fs-sync");
+
+
 
 /* Module for calculating score for a pronunciation: */
-
 
 /*
 
@@ -63,60 +71,80 @@ Output should be a score between 1 and 5.
 var logging = require('../game_data_handling/logging.js');
 
 
-var fur_hat_scorer = function(user, word, wordid, segmentation, likelihood) {
+var fur_hat_scorer = function(user, word, wordid, currentword, eventdata) {
+	
+    currentword.wavfilename = eventdata.target_wavfile;
+    currentword.adawavfilename = eventdata.adaptation_wavfile; 
+    currentword.target_dir = eventdata.target_dir; 
+    currentword.adaptation_matrix_name = eventdata.adaptation_matrix_name
 
-    debugout(user, "user: "+user);
-    debugout(user, "word: "+word);
-    debugout(user, "wordid: "+wordid);    
-    debugout(user, "Segmentation:");
-    Object.keys(segmentation).forEach(function(key) {
-	if (typeof(segmentation[key]) === 'object') {
-	    debugout(user, key+":");	    
-	    Object.keys(segmentation[key]).forEach(function(key2) {
-		if (typeof(segmentation[key][key2]) === 'object') {
-		    debugout(user,"  " +key2+":");
-		    Object.keys(segmentation[key][key2]).forEach(function(key3) {
-			debugout(user,"    " +key3+": "+segmentation[key][key2][key3]);
-		    });				
+    cmd="./audio_handling/word_cross_likelihood_score.py " + eventdata.word + " " + eventdata.target_wavfile + " " + eventdata.target_dir + " " + eventdata.adaptation_matrix_name + " " + conf.recogconf.flag_use_adaptation + " " + conf.recogconf.lexicon;
+    debugout("word_cross_likelihood scoring command: " + cmd)	
+    var process2 = require("child_process");
+    ls = process2.execSync(cmd);
+
+    cmd ="./audio_handling/audio_cross_likelihood_score.py " + eventdata.word + " " + eventdata.target_wavfile + " " + eventdata.target_dir + " " + eventdata.adaptation_matrix_name + " " + conf.recogconf.flag_use_adaptation + " " + conf.recogconf.lexicon;
+    debugout("audio_cross_likelihood scoring command: " + cmd)	
+    //var process3 = require("child_process");
+    //ls = process3.execSync(cmd);
+    var score_file_name = eventdata.target_dir + '/score_out.txt'
+    var score_string = fs.readFileSync(score_file_name).toString();
+    debugout('score string' + score_string)
+    score_event_object = { 'total_score' :  parseInt(score_string), 'error': null};
+    //score_event_object = { 'total_score' :  5};// parseInt(score_string)};
+
+    process.emit('user_event', user, currentword.id, 'kalles_scoring_done',score_event_object);
+
+
+    //debugout(colorcodes.event,'kalle score: ' + eventdata.total_score)
+    //debugout(colorcodes.event,'kalle wav: ' + currentword.wavfilename);
+    //debugout(colorcodes.event,'kalle ada wav: ' + currentword.adawavfilename);
+
+    if (eventdata.total_score>4 && conf.recogconf.flag_use_adaptation) {
+	var from_file=currentword.wavfilename;
+	var to_file=currentword.adawavfilename;
+	var temp_file=currentword.adawavfilename + "temp";
+	var adaptation_matrix_name=currentword.adaptation_matrix_name;
+	var target_dir=currentword.target_dir;
+	debugout('adptation_matrix_name ' + adaptation_matrix_name);
+	var fileSize = getFilesizeInBytes(from_file)
+	debugout("File size: " + fileSize)
+	debugout("target_dir: " + target_dir)
+
+	fsSync.copy(from_file, temp_file)
+	fs.renameSync(temp_file, to_file); // is this atomic i.e. does it produce full file immediatedly?
+	if (flag_ada_running ==0) {
+	    //var target_dir=currentword.target_dir;
+	    //var adaptation = require('./audio_handling/adaptation_dbg.js');
+	    var process3 = require('child_process');
+	    var lexicon = conf.recogconf.lexicon;
+    	    var model = conf.recogconf.model
+	    flag_ada_running=1;
+	    debugout("adaptation running " + target_dir);
+	    cmd = 'node ./audio_handling/adaptation_dbg.js ' + target_dir + ' ' + lexicon + ' ' + model + ' ' + adaptation_matrix_name;
+	    debugout(cmd);
+	    ls = process3.exec(cmd, function (error, stdout, stderr) {
+		//console.log('stdout: ' + stdout);
+		//console.log('stderr: ' + stderr);
+		
+		if (error==null) {
+		    debugout("no error in ada"); 
 		}
-		else { 
-		    debugout(user,"  " +key2+": "+segmentation[key][key2]);
-		}
+		if (error !== null) {
+    		    console.log('exec error: ' + error);
+  		}
 	    });
+
+ 	    ls.on('exit', function (code) {
+   		debugout('Child process exited with exit code '+code);
+		debugout('kekkonen '+ flag_ada_running.toString());
+		flag_ada_running=0;
+ 	    });
 	}
-	else {
-	    debugout(user,key+": "+segmentation[key]);
-	}
-    });
-    debugout(user,"Likelihood: "+likelihood);
-
-
-    // Here some processing could be made
-
-
-    
-
-    /* phoneme scoring results should be stored in an array that can
-       be passed to a logging module. */
-
-    phoneme_scores = [];       
-    //total_score =  Math.ceil(5.0*Math.random());
-
-    total_score = 4;
-
-    /* When ready, return the score by emitting an event.
-       The event call should include an object with score field
-       and some classification info to be logged (ie. which phonemes 
-       were good, which ones bad etc. */
-
-    score_event_object = { 'total_score' :  total_score,
-			   'phoneme_scores' : phoneme_scores }
+    }
 
 
 
-
-    process.emit('user_event', user, wordid,'scoring_done', score_event_object );
-   
 
 }
 

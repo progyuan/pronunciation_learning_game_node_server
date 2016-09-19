@@ -100,154 +100,170 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
 
     reference_phones=[];
     guess_phones=[];
+    
+    if (Math.min.apply(Math, guess_phones) < 0 ) {
+	score_event_object = { 'total_score' :  -2,
+			       'phoneme_scores' : [-2],
+			       'reference_phones' : reference_phones,
+			       'guess_phones' : [-1],
+			       'error': 'DNN classifier error' };
+    }
+    else {
 
-    total_score=0;
+	total_score=0;
 
-    for (var i = 0; i < segmentation.length; i++) {
-	ref=segmentation[i];
-	ref_phone = ref[0].state.replace(/.*\-([^+]+)\+.*/g, '$1');
+	for (var i = 0; i < segmentation.length; i++) {
+	    ref=segmentation[i];
+	    ref_phone = ref[0].state.replace(/.*\-([^+]+)\+.*/g, '$1');
 
-	ref_ipa =  class_definitions.festival_unilex_to_ipa [
-                                class_definitions.arpa_to_festival_unilex [
-                                       class_definitions.aalto_to_arpa[ ref_phone] ] ];
+	    ref_ipa =  class_definitions.festival_unilex_to_ipa [
+                class_definitions.arpa_to_festival_unilex [
+                    class_definitions.aalto_to_arpa[ ref_phone] ] ];
 
 
-	reference_phones.push(ref_ipa)
+	    reference_phones.push(ref_ipa)
 
-	classcount = Object.keys(class_definitions.classes_to_aalto).length;
+	    classcount = Object.keys(class_definitions.classes_to_aalto).length;
 
-	// A deep copy of the guess class values:
-	target_guesses = guesses.slice( i * classcount, (i+1)*classcount-1);
-	//debugout(user, "guess.slice from " +(i * classcount) + " to "+ ((i+1)*classcount) + ":  "+target_guesses.toString())
-	guess_class = indexOfMax(target_guesses);
-	//debugout(user, " Guess class "+guess_class);
-	guess_ipa = class_definitions.festival_unilex_to_ipa [
-                                class_definitions.arpa_to_festival_unilex [
-                                       class_definitions.aalto_to_arpa[
-                                             class_definitions.classes_to_aalto [ guess_class ] ] ] ];
+	    // A deep copy of the guess class values:
+	    target_guesses = guesses.slice( i * classcount, (i+1)*classcount-1);
+	    //debugout(user, "guess.slice from " +(i * classcount) + " to "+ ((i+1)*classcount) + ":  "+target_guesses.toString())
+	    guess_class = indexOfMax(target_guesses);
 
-	guess_phones.push(guess_ipa)
-
-	debugout(user,  "Ref: "+ref_phone +"->" + ref_ipa + " Guess: "+ guess_class +"->" + class_definitions.classes_to_aalto [ guess_class ] +"->"+guess_ipa);
-	if (guess_ipa == ref_ipa) {
-	    scores.push(100);
-	    total_score+=100;
-	}
-
-	else {
-	    target_guesses[ indexOfMax(target_guesses) ] = -1;
-	    second_guess_class = indexOfMax(target_guesses);
-
-	    second_guess_ipa = class_definitions.festival_unilex_to_ipa [
-                                  class_definitions.arpa_to_festival_unilex [
-                                      class_definitions.aalto_to_arpa[
-                                           class_definitions.classes_to_aalto [ second_guess_class ] ] ] ];
-
-	    debugout(user,  "Second guess: " +second_guess_class + "->" +second_guess_ipa);
-
-	    if ( second_guess_ipa == ref_ipa ) {
-		scores.push(75);
-		total_score+=75;
+	    if (guess_class < 0 ) {
+		scores.push(-1);
+		total_score =0;
+		break;
 	    }
+
+	    //debugout(user, " Guess class "+guess_class);
+	    guess_ipa = class_definitions.festival_unilex_to_ipa [
+                class_definitions.arpa_to_festival_unilex [
+                    class_definitions.aalto_to_arpa[
+                        class_definitions.classes_to_aalto [ guess_class ] ] ] ];
+
+	    guess_phones.push(guess_ipa)
+
+	    debugout(user,  "Ref: "+ref_phone +"->" + ref_ipa + " Guess: "+ guess_class +"->" + class_definitions.classes_to_aalto [ guess_class ] +"->"+guess_ipa);
+	    if (guess_ipa == ref_ipa) {
+		scores.push(100);
+		total_score+=100;
+	    }
+
 	    else {
+		target_guesses[ indexOfMax(target_guesses) ] = -1;
+		second_guess_class = indexOfMax(target_guesses);
 
-		guess = class_definitions.phone_properties[guess_ipa];
-		ref = class_definitions.phone_properties[ref_ipa];
+		second_guess_ipa = class_definitions.festival_unilex_to_ipa [
+                    class_definitions.arpa_to_festival_unilex [
+                        class_definitions.aalto_to_arpa[
+                            class_definitions.classes_to_aalto [ second_guess_class ] ] ] ];
 
-		//console.log(  parseInt(guess.frontness.value) +  parseInt(ref.frontness.value)  );
+		debugout(user,  "Second guess: " +second_guess_class + "->" +second_guess_ipa);
 
-		var score = 0.0;
-
-		if ( guess.type.name == 'consonant' && ref.type.name == 'consonant') {
-		    score += 25;
-		    
-		    if (guess.voiced == ref.voiced)
-			score += 25;
-		    if (guess.place == ref.place)
-			score += 25;
-		    if (guess.manner == ref.manner)
-			score += 25;
-		}	    
-		
-		else if (guess.type.name === 'vowel' && ref.type.name === 'vowel' ) {
-
-		    score += 20;
-		    
-		    if (parseInt(guess.vowel_length.value) == parseInt(ref.vowel_length.value) ) 
-			score += 10;
-		    
-		    if (parseInt(guess.frontness.value) == parseInt(ref.frontness.value) ) 
-			score += 10;
-
-		    else 
-			if ( Math.abs( parseInt(guess.frontness.value) - parseInt(ref.frontness.value) )<2 ) 
-			    score +=5;
-
-		    if (guess.openness == ref.openness ) 
-			score += 10;
-		    else 
-			if ( Math.abs(guess.openness.value - ref.openness.value)<2 ) 
-			    score +=5;
-		    
-		    if (guess.diphtong_frontness == ref.diphtong_frontness ) 
-			score += 10;
-		    else 
-			if ( Math.abs(guess.diphtong_frontness.value - ref.diphtong_frontness.value)<2 ) 
-			    score +=5;
-
-		    if (guess.diphtong_openness == ref.diphtong_openness ) 
-			score += 10;		
-		    else 
-			if ( Math.abs(guess.diphtong_openness.value - ref.diphtong_openness.value)<2 ) 
-			    score +=5;
-
-		    if (guess.roundness == ref.roundness ) 
-			score += 20;		
-
+		if ( second_guess_ipa == ref_ipa ) {
+		    scores.push(75);
+		    total_score+=75;
 		}
-	    scores.push(score);
-	    total_score += score;
-	    }	
+		else {
+
+		    guess = class_definitions.phone_properties[guess_ipa];
+		    ref = class_definitions.phone_properties[ref_ipa];
+
+		    //console.log(  parseInt(guess.frontness.value) +  parseInt(ref.frontness.value)  );
+
+		    var score = 0.0;
+
+		    if ( guess.type.name == 'consonant' && ref.type.name == 'consonant') {
+			score += 25;
+			
+			if (guess.voiced == ref.voiced)
+			    score += 25;
+			if (guess.place == ref.place)
+			    score += 25;
+			if (guess.manner == ref.manner)
+			    score += 25;
+		    }	    
+		    
+		    else if (guess.type.name === 'vowel' && ref.type.name === 'vowel' ) {
+
+			score += 20;
+			
+			if (parseInt(guess.vowel_length.value) == parseInt(ref.vowel_length.value) ) 
+			    score += 10;
+			
+			if (parseInt(guess.frontness.value) == parseInt(ref.frontness.value) ) 
+			    score += 10;
+
+			else 
+			    if ( Math.abs( parseInt(guess.frontness.value) - parseInt(ref.frontness.value) )<2 ) 
+				score +=5;
+
+			if (guess.openness == ref.openness ) 
+			    score += 10;
+			else 
+			    if ( Math.abs(guess.openness.value - ref.openness.value)<2 ) 
+				score +=5;
+			
+			if (guess.diphtong_frontness == ref.diphtong_frontness ) 
+			    score += 10;
+			else 
+			    if ( Math.abs(guess.diphtong_frontness.value - ref.diphtong_frontness.value)<2 ) 
+				score +=5;
+
+			if (guess.diphtong_openness == ref.diphtong_openness ) 
+			    score += 10;		
+			else 
+			    if ( Math.abs(guess.diphtong_openness.value - ref.diphtong_openness.value)<2 ) 
+				score +=5;
+
+			if (guess.roundness == ref.roundness ) 
+			    score += 20;		
+
+		    }
+		    scores.push(score);
+		    total_score += score;
+		}	
+	    }
 	}
+
+
+
+
+	debugout(user, "user: "+user);
+	debugout(user, "word: "+word);
+	debugout(user, "wordid: "+wordid);    
+	debugout(user, "Scores: "+scores);
+	debugout(user, "Total score: "+ total_score + " --> " + Math.ceil( total_score   / 20.0 / segmentation.length  ));
+
+	total_score =  Math.ceil(total_score  / 20.0 / segmentation.length );
+
+	// Here some processing could be made
+
+
+	
+
+	/* phoneme scoring results should be stored in an array that can
+	   be passed to a logging module. */
+
+
+
+
+	/* When ready, return the score by emitting an event.
+	   The event call should include an object with score field
+	   and some classification info to be logged (ie. which phonemes 
+	   were good, which ones bad etc. */
+
+	score_event_object = { 'total_score' :  total_score,
+			       'phoneme_scores' : scores,
+			       'reference_phones' : reference_phones,
+			       'guess_phones' : guess_phones,
+			       'error': null };
+
+
     }
 
-
-
-
-    debugout(user, "user: "+user);
-    debugout(user, "word: "+word);
-    debugout(user, "wordid: "+wordid);    
-    debugout(user, "Scores: "+scores);
-    debugout(user, "Total score: "+ total_score + " --> " + Math.ceil( total_score  ));
-
-    total_score =  Math.ceil(total_score  / 20.0 / segmentation.length );
-
-    // Here some processing could be made
-
-
-    
-
-    /* phoneme scoring results should be stored in an array that can
-       be passed to a logging module. */
-
-
-
-
-    /* When ready, return the score by emitting an event.
-       The event call should include an object with score field
-       and some classification info to be logged (ie. which phonemes 
-       were good, which ones bad etc. */
-
-    score_event_object = { 'total_score' :  total_score,
-			   'phoneme_scores' : scores,
-			   'reference_phones' : reference_phones,
-			   'guess_phones' : guess_phones,
-			   'error': null };
-
-
-
-
-    process.emit('user_event', user, wordid,'scoring_done', score_event_object );
+    process.emit('user_event', user, wordid,'dnn_scoring_done', score_event_object );
    
 
 }

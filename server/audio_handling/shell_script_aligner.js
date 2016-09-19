@@ -16,7 +16,7 @@ var spawn = require('child_process').spawn;
 //var exec = require('child_process').exec;
 
 var feature_timeout_ms = 15000; // 15s 
-var DEBUG_TEXTS = false;
+var DEBUG_TEXTS = true;
 
 var sptk_path='/usr/local/bin/';
 
@@ -24,6 +24,7 @@ var debug = true;
 
 //var fs = require('fs');
 var fs = require('fs-extra');
+var mkdirp = require('mkdirp');
 
 
 var outputbuffer = Buffer.concat([]);
@@ -51,15 +52,16 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
     //var features_length = mfcclength+lsflength+1;
 
     var tmpdir = "/dev/shm/siak-"+process.pid+"-"+user+"_"+word_id+"_"+Date.now();
-
-    fs.mkdirSync(tmpdir);
-
     var wavinput = tmpdir+"/feature_input";
     var labelinput = tmpdir+"/label_input";
     var recipeinput = tmpdir+"/recipe_input";
     var segmentoutput = tmpdir+"/segment_output";
 
+ 
+    fs.mkdirSync(tmpdir);
+    
 
+    
     // 1. Write the float data into mem file system as 16bit PCM:
 
 
@@ -92,8 +94,16 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
     writer.end();
 
     // Make a copy of the wav file (async to save time):
-    // #cp $3 "/l/data/siak-server-devel/server/upload_data/from_game/${1}_`date +"%Y-%m-%d-%H-%M-%S"`.wav"    
-    var target_wavfile = 'upload_data/from_game/'+user +'_'+ word_id +'_'+ word_reference  +'_'+ logging.get_date_time().datetime_for_file + ".wav" ;
+    // #cp $3 "/l/data/siak-server-devel/server/upload_data/from_game/${1}_`date +"%Y-%m-%d-%H-%M-%S"`.wav"
+    var target_dir =  'upload_data/from_game/'+user; // Kalle: added user
+
+    mkdirp(target_dir, function(err) { 
+    	// path exists unless there was an error
+	});
+
+    var target_wavfile = target_dir + '/' + user +'_'+ word_id +'_'+ word_reference  +'_'+ logging.get_date_time().datetime_for_file + ".wav" ;
+    var adaptation_wavfile = target_dir + '/ada/' + user +'_'+ word_id +'_'+ word_reference  +'_'+ logging.get_date_time().datetime_for_file + ".wav" ;
+    var adaptation_matrix_name = target_dir + '/S'
     print_debug("target_wavfile :" + target_wavfile );
     print_debug("wavinput :" + wavinput );
 
@@ -113,9 +123,18 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
 
     var lexicon = conf.recogconf.lexicon;
     var model = conf.recogconf.model
-    
-    var featext_command = "./audio_handling/shell_script_aligner.sh";
-    var featext_args = [ word_reference, lexicon, wavinput, labelinput, model, segmentoutput ];
+    var flag_use_adaptation = conf.recogconf.flag_use_adaptation;
+    var featext_command = "./audio_handling/shell_script_aligner_quick.sh";
+    var model_word = conf.recogconf.word_modeldir + word_reference + '/' + word_reference;
+    var featext_args = [ word_reference, // $1
+			 lexicon, // $2
+			 wavinput, // $3
+			 labelinput, // $4
+			 model_word, // $5
+			 segmentoutput, // $6
+			 flag_use_adaptation,// $7
+			 adaptation_matrix_name, // $8
+			 model+".cfg"]; // $9
 
     var comm = featext_command;
     featext_args.forEach(function(arg){ comm += " "+arg });
@@ -126,6 +145,9 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
 
     var featext = spawn(featext_command, featext_args);
     
+    //console.log(featext_command);
+    //console.log(featext_args);
+
     featext.stderr.on('data',  function(data)  { print_debug(data); 
 						//process.emit('user_event', user, word_id, 'segmented',{word:word_reference} ) 
 					      } );
@@ -140,19 +162,27 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
 	if (exit_code == 0) {
 	    
 	    fs.readFile(segmentoutput, function (err, segmentation) {
-		if (err) throw err;
+		if (err) {
+		    print_debug("Error reading segmentoutput!");
+		    throw err;
+		}
 		
 		print_debug('Segmentation done: '+ segmentation);	   
 		
 		process.emit('user_event', user, word_id, 'segmented',{word:word_reference, segmentation:segmentation}); 			
 		process.emit('user_event', user, word_id, 'timestamp',{name: 'recog_stop' }); 			
 
+		// TODO: merge Kalle's dbg with other events:
+		process.emit('user_event', user, word_id, 'kalle_dbg',{word:word_reference, segmentation:segmentation, target_wavfile:target_wavfile, adaptation_wavfile:adaptation_wavfile, target_dir: target_dir, adaptation_matrix_name: adaptation_matrix_name});
+
+
+		/*
 		fs.unlink(wavinput);
 		fs.unlink(labelinput);
 
 		fs.unlink(segmentoutput);
 		fs.rmdir(tmpdir);
-
+*/
 		// We don't use the recipe input, though I guess we could.
 		//fs.unlink(recipeinput);
 
@@ -198,3 +228,8 @@ function print_debug(text) {
 
 
 module.exports = { align_with_shell_script: align_with_shell_script };
+
+
+
+
+
