@@ -4,6 +4,8 @@
  * 
  */
 
+var AM = require('../app/server/modules/account-manager');
+
 var fs=require('fs');
 
 var DEBUG_TEXTS=true;
@@ -28,6 +30,9 @@ function authenticate(req, res, callback) {
 
     //debugout("Authenticating >"+username + "< >" + password +"<!");    
 
+    AM.gamedataLogin(username, password, req, res, callback );
+    
+    /*
     if (!passwords.hasOwnProperty(username)) {
 	debugout('users does not contain >'+username+'<');
 	err= { error: 101,
@@ -44,7 +49,7 @@ function authenticate(req, res, callback) {
 	err = null;
     
     callback( err, username, req, res );
-
+    */
 }
 
 

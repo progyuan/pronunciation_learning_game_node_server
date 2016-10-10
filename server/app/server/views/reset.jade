@@ -1,0 +1,12 @@
+
+extends layout
+
+block content
+	include modals/reset-password
+
+block scripts
+	script(src='#{baseURL}/vendor/jquery-2.2.3.min.js')
+	script(src='#{baseURL}/vendor/jquery.form.min.js')
+	script(src='#{baseURL}/vendor/bootstrap.min.js')
+	script(src='#{baseURL}/js/views/reset.js')
+	script(src='#{baseURL}/js/form-validators/resetValidator.js')
