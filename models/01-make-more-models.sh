@@ -1,3 +1,5 @@
+head -n 4 clean-am/train.lex.utf8 > clean-am/train.lex.utf8.selection
+grep -f game_word_list.txt clean-am/train.lex.utf8 >> clean-am/train.lex.utf8.selection
 cat game_word_list.txt | while read w; do
   echo "word: $w"
   mkdir -p clean-am/$w

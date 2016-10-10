@@ -15,6 +15,7 @@ var logging = require('../game_data_handling/logging.js');
 
 
 
+
 ////var config=require('config');
 //var spawn = require('child_process').spawn;
 //var exec = require('child_process').exec;
@@ -41,7 +42,7 @@ var all_feature_analysis = require('./audio_analyser_all');
 
 function compute_features(audioconf, inputbuffer,outputbuffer, user, word_id, packetcode, maxpoint) {
 
-    print_debug(user, "=FEAT: packetnr "+ packetcode +" range: "+ (maxpoint-inputbuffer.length)+"-"+maxpoint+" ==========");
+    debugout(user, "=FEAT: packetnr "+ packetcode +" range: "+ (maxpoint-inputbuffer.length)+"-"+maxpoint+" ==========");
 
     //this.audioconf = audioconf;
     //this.inputbuffer = inputbuffer;
@@ -59,7 +60,7 @@ function compute_features(audioconf, inputbuffer,outputbuffer, user, word_id, pa
 	    addcount++;
 	}
     }	       
-    print_debug(user, "Added noise for "+addcount +" entries");
+    debugout(user, "Added noise for "+addcount +" entries");
 
     //mfcc_analysis.compute_mfcc(audioconf, noisedbuffer,outputbuffer, user, word_id, packetcode);
     //lsf_analysis.compute_lsf(audioconf, noisedbuffer,outputbuffer, user, word_id, packetcode);
@@ -71,7 +72,7 @@ function compute_features(audioconf, inputbuffer,outputbuffer, user, word_id, pa
 
 
 
-function print_debug(user,text) {
+function debugout(user,text) {
     if (DEBUG_TEXTS) 
     {
 	console.log( "\x1b[37maudio1  %s\x1b[0m", logging.get_date_time().datetime + ' '+user + ': '+text);

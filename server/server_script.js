@@ -14,10 +14,11 @@ var util = require('util');
 var url = require('url');
 var fs = require('fs');
 
-reply_codes = { 'package_received' : 0,
-		'audio_end': -1,
-		'segmentation_failure' : -2,
-		'segmentation_error' : -3 }
+var reply_codes = { 'package_received' : 0,
+		    'audio_end': -1,
+		    'segmentation_failure' : -2,
+		    'segmentation_error' : -3,
+		    'classification_error' : -4 }
 
 var spawn = require('child_process').spawn;
 
@@ -27,6 +28,9 @@ var flag_ada_running=0;
 var conf = require('./config');
 
 var logging = require('./game_data_handling/logging');
+
+
+
 var game_data_handler = require('./game_data_handling/game_data_handler');
 var user_handler = require('./game_data_handling/user_handler.js');
 
@@ -44,6 +48,14 @@ var audioconf = conf.audioconf;
 var recogconf = conf.recogconf;
 
 
+var debugout = function(format, msg) {
+    if (msg)
+	console.log( format, logging.get_date_time().datetime + ' ' +msg);
+    else
+	console.log( '\x1b[33mserver %s\x1b[0m', logging.get_date_time().datetime  +' '+ format);
+}
+
+
 if (process.env.NODE_ENV !== 'production'){
     require('longjohn');
     var debug = true;
@@ -52,25 +64,20 @@ if (process.env.NODE_ENV !== 'production'){
 }
 
 
-function debugout(format, msg) {
-    if (debug==true) {
-	if (msg)
-	    console.log(format, logging.get_date_time().datetime + ' ' +msg);
-	else
-	    console.log( '\x1b[33mserver %s\x1b[0m', logging.get_date_time().datetime  +' '+ format);
-    }
-}
-
 /*
  *   GET READY!
  */
+
+/*
+// I had this idea of copying the ASR models to ramdisk for quicker loading
+// but those are not used now.
 
 var cp_command="cp"
 var cpmodels = spawn(cp_command, ['-r',conf.recogconf.model_source, conf.recogconf.model_cache]);
 cpmodels.stderr.on('close',  function(exit_code)  { console.log("models copied with exit code "+exit_code); 
 					      } );
 
-
+*/
 
 
 /*
@@ -197,30 +204,36 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 		segmentation = eventdata.segmentation;
 		if (segmentation.length > 0) {
 		    
-		    userdata[user].currentword.segmentation = userdata[user].segmentation_handler.shell_segmentation_to_state_list(segmentation);
+		    userdata[user].currentword.segmentation = 
+			userdata[user].segmentation_handler.shell_segmentation_to_state_list(segmentation);
+
 		    userdata[user].currentword.segmentation_complete = true;
 
 
-		    if (userdata[user].currentword.segmentation_complete == true && userdata[user].currentword.featuresdone == true ) {
-			userdata[user].segmentation_handler.get_classification( userdata[user].currentword.segmentation, userdata[user].featuredata  );
+		    if (userdata[user].currentword.segmentation_complete == true && 
+			userdata[user].currentword.featuresdone == true ) 
+		    {			
+			userdata[user].segmentation_handler.get_classification( userdata[user].currentword.segmentation, 
+										userdata[user].featuredata  );
 		    }
 
-		    
-		    //var likelihood = -100.0*Math.random();
-		    // 
 		}
 		else 
 		{
-		    debugout(colorcodes.event, user + ": SEGMENTATION FAILED!");
+		    debugout(colorcodes.event, user + ": SEGMENTATION FAILED(1)!");
 		    userdata[user].currentword.segmentation = null;	
 		    userdata[user].currentword.segmentation_complete = true;
 
 		    // Segmentation failed, let's send a zero score to the client:
-		    send_score_and_clear(user, {"total_score" :  reply_codes.segmentation_failure, "error" : "Segmentation failed"});
+		    send_score_and_clear(user, 
+					 {
+					     "total_score" :  reply_codes.segmentation_failure, 
+					     "error" : "Segmentation failed"
+					 });
 		}
 		    
 		//check_feature_progress(user);
-
+		
 	    }
 	    else if (eventname == 'kalle_dbg') {
 		debugout(colorcodes.event, 'kalle_dbg: ' + eventdata.toString());
@@ -232,16 +245,20 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 					      eventdata);
 		
 	    }
-
 	    else if (eventname == 'segmentation_error') {
 		userdata[user].currentword.segmentation = null;
 		userdata[user].currentword.segmentation_complete = true;
 	
-		debugout(colorcodes.event, user +": SEGMENTATION FAILED!");
-		send_score_and_clear(user, {"total_score" : reply_codes.segmentation_error, "error" : "Segmentation error"});
+		debugout(colorcodes.event, user +": SEGMENTATION FAILED(2)!");
+		send_score_and_clear(user, 
+				     {
+					 "total_score" : reply_codes.segmentation_error, 
+					 "error" : "Segmentation error"
+				     });
 		
 		//check_feature_progress(user);
-	    }	
+	    }
+	    
 	    else if (eventname == 'classification_done') {
 		userdata[user].currentword.guessed_classes = eventdata.guessed_classes
 
@@ -255,6 +272,10 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 					    userdata[user].currentword.guessed_classes, 
 					    userdata[user].currentword.segmentation);
 		
+	    }
+	    else if (eventname == 'classification_error') {
+		send_score_and_clear(user, {"total_score" : reply_codes.classification_error, 
+						"error" : "Classifier operation error"});
 	    }
 	    else if (eventname == 'kalles_scoring_done') {
 		userdata[user].currentword.kalles_score = eventdata;
@@ -409,6 +430,7 @@ var operate_recognition = function (req,res) {
     }
 
     if (req.headers.hasOwnProperty('x-siak-profiler')) {
+	debugout(user + ": Setting profiler to " + req.headers['x-siak-profiler'] );
 	userdata[user].profiling = req.headers['x-siak-profiler'];
     }
     else
@@ -437,7 +459,10 @@ var operate_recognition = function (req,res) {
     else {
 	/* With first packet write the beginning to a log */
 	if (packetnr == 0 ) {
-	    logging.log_event({user: user, event: "start_audio", wordid: userdata[user].currentword.id, word: userdata[user].currentword.reference});		
+	    logging.log_event( { user: user, 
+				 event: "start_audio", 
+				 wordid: userdata[user].currentword.id, 
+				 word: userdata[user].currentword.reference } );		
 	} 
 
 	finalpacket = req.headers['x-siak-final-packet'];
@@ -662,8 +687,8 @@ function set_word_and_init_recogniser(user, word, word_id) {
 
 
     debugout(user + ": set_word_and_init_recogniser("+word+")!");	
-    // init segmenter / recogniser:
 
+    // init segmenter / recogniser:
     //userdata[user].segmenter = new recogniser_client(recogconf, user, word, word_id, "init_segmenter");	
     
     // //userdata[user].segmenter.init_segmenter(word, word_id);
@@ -762,37 +787,44 @@ function check_last_packet(user) {
 	    // Let's send the speech segmnents to the aligner:
 
 	    var sh_aligner = require('./audio_handling/shell_script_aligner');
-	    sh_aligner.align_with_shell_script(conf, 
-					       userdata[user].audiobinarydata.slice(userdata[user].currentword.vad.speechstart,  
-										    userdata[user].currentword.vad.speechend),
-					       userdata[user].currentword.reference, 
-					       user, 
-					       userdata[user].currentword.id); 
+	    sh_aligner.align_with_shell_script(
+		conf, 
+		userdata[user].audiobinarydata.slice(userdata[user].currentword.vad.speechstart,  
+						     userdata[user].currentword.vad.speechend),
+		userdata[user].currentword.reference, 
+		user, 
+		userdata[user].currentword.id
+	    ); 
 
 	    // For debug let's write the received data in the debug dir:
-	    if (debug) { fs.writeFile("upload_data/debug/"+user+"_floatdata", 
-				      userdata[user].audiobinarydata.slice(userdata[user].currentword.vad.speechstart,  
-									   userdata[user].currentword.vad.speechend) ); 
-			 fs.writeFile("upload_data/debug/"+user+"_complete_floatbuffer", 
-				      userdata[user].audiobinarydata); 			 
-		   }
+	    if (debug) { 
+		fs.writeFile("upload_data/debug/"+user+"_floatdata", 
+			     userdata[user].audiobinarydata.slice(userdata[user].currentword.vad.speechstart,  
+								  userdata[user].currentword.vad.speechend) ); 
+		fs.writeFile("upload_data/debug/"+user+"_complete_floatbuffer", 
+			     userdata[user].audiobinarydata); 			 
+	    }
 	    
 	    /* Kalle commented out the audio analyzer */
 
 	    var sh_feat_ext = require('./audio_handling/audio_analyser');
 
-	    sh_feat_ext.compute_features( audioconf,
-					  userdata[user].audiobinarydata.slice(userdata[user].currentword.vad.speechstart,  
-									       userdata[user].currentword.vad.speechend   ),
-					  userdata[user].featuredata,
-					  user, 
-					  userdata[user].currentword.id,
-					  packetnr,
-					  userdata[user].currentword.vad.speechend);
+	    sh_feat_ext.compute_features( 
+		audioconf,
+		userdata[user].audiobinarydata.slice(userdata[user].currentword.vad.speechstart,  
+						     userdata[user].currentword.vad.speechend   ),
+		userdata[user].featuredata,
+		user, 
+		userdata[user].currentword.id,
+		packetnr,
+		userdata[user].currentword.vad.speechend
+	    );
 	    
 	}
 	else {
-	    debugout(user + ": check_last_packet something missing: chunkcount "+ chunkcount +" !=  userdata[user].currentword.lastpacketnr "+  userdata[user].currentword.lastpacketnr);
+	    debugout(user + ": check_last_packet something missing: chunkcount "+ 
+		     chunkcount +" !=  userdata[user].currentword.lastpacketnr "+  
+		     userdata[user].currentword.lastpacketnr );
 	}
     }
 }

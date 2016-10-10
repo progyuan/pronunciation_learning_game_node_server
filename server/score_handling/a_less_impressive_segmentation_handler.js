@@ -215,6 +215,18 @@ function SegmentationHandler(user) {
 
     SegmentationHandler.prototype.get_classification = function(segmentation, features) {
 
+
+	// Sanity check:
+	if (segmentation.length < 1) {
+	    debugout(this.user, "Something funny about the segmentation (length zero)" )
+	    process.emit('user_event', 
+			 this.user, 
+			 this.word_id,
+			 'classification_error', {});
+	    return null;
+	}
+
+
 	// Hastily copied from a test script, this could be so much better...
 	// Schedule for rewriting when I have some extra time and energy. Maybe 2023?
 
