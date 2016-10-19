@@ -1,0 +1,91 @@
+
+doctype html
+html
+	head
+		title SIAK webapp
+		link(rel='stylesheet', href='#{baseURL}/vendor/bootstrap.min.css')
+		link(rel='stylesheet', href='#{baseURL}/css/style.css')
+		link(rel='stylesheet', href='#{baseURL}/css/livedemo.css')
+		link(rel='stylesheet', href='//cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.1.1/gh-fork-ribbon.min.css')
+		script.
+			var BASEURL = "#{baseURL}";
+		script(src='#{baseURL}/js/livedemo/RecordRTC.js')
+		script(src='#{baseURL}/js/livedemo/live_test.js')
+	body
+
+		nav.navbar.navbar-default.navbar-fixed-top
+			.container
+				.navbar-header
+					.navbar-brand 
+						a(href="#{baseURL}/home")  Home
+						|  /
+					.navbar-brand= title
+				ul.nav.navbar-nav.navbar-right
+					li
+						.navbar-btn#btn-logout.btn.btn-default
+							| Sign Out
+
+		// preset form values if we receive a userdata object //
+		- user = typeof(udata) != 'undefined' ? udata : { }
+		// store the userId on the client side in a hidden input field //
+		input(type='hidden', value= user._id)#userId
+
+		#user-statistics-container 
+			canvas#analyser
+			
+			div#recbutton Recording!
+			form
+				table
+					tr
+						th Server address:
+						th Username:
+						th Password:
+						th Word:
+						th 
+					tr
+						td
+							input#server_address(type='text', name="server_address", value="#{asrURL}/asr")
+						td
+							input#username(type='text', name="username", value= user.user)
+						td
+							input#password(type='text', name="password", value="")
+						td
+							select#transcription(name='transcription')
+								each item in word_list
+									option= item
+
+
+						td
+							button#connect_and_test(type="button", onclick='foo()', value="Connect, record and send") Connect, record and send
+			
+			
+			h4 Results
+			table#fancy_result_area(width="100%")
+					tr
+						th Word
+						th DNN score
+						th Palomäki-<br>Karhila<br>score
+						th Total score
+						th Reference<br>Phones
+						th Guessed<br>Phones
+						th Phone<br>score
+						th Processing<br>time
+						th Wav
+
+			h4 Stats
+			div#profiling_area
+
+
+			div#logging
+				h4 Logging
+				div#log0(class=logpart)
+
+block scripts
+		script(src='#{baseURL}/vendor/jquery-2.2.3.min.js')
+		script(src='#{baseURL}/vendor/jquery.form.min.js')
+		script(src='#{baseURL}/vendor/bootstrap.min.js')
+		//script(src='#{baseURL}/js/views/users.js')
+		//script(src='#{baseURL}/js/controllers/usersController.js')
+		//script(src='#{baseURL}/js/form-validators/accountValidator.js')
+
+		//script(src='#{baseURL}/js/livedemo/analyser.js')

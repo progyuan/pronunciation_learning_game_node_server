@@ -6,14 +6,19 @@ block content
 	nav.navbar.navbar-default.navbar-fixed-top
 		.container
 			.navbar-header
+				.navbar-brand 
+					a(href="#{baseURL}/home") Home
+					|  /
 				.navbar-brand= title
 			ul.nav.navbar-nav.navbar-right
 				li
 					.navbar-btn#btn-logout.btn.btn-default
 						| Sign Out
 
-						
-	include nav
+	#account-form-container.center-vertical
+		form(method="post")#account-form.form-horizontal.well
+			h2 Sessions
+	
 	include modals/alert
 	include modals/confirm
 
@@ -23,4 +28,4 @@ block scripts
 	script(src='#{baseURL}/vendor/bootstrap.min.js')
 	script(src='#{baseURL}/js/views/home.js')
 	script(src='#{baseURL}/js/controllers/homeController.js')
-	script(src='#{baseURL}/js/form-validators/accountValidator.js')
+	//script(src='#{baseURL}/js/form-validators/sessionValidator.js')

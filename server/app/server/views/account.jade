@@ -22,9 +22,16 @@ input(type='hidden', value= user._id)#userId
 		.form-group
 			label.control-label.col-sm-3 Location
 			.col-sm-9
-				select.form-control#country-list(name='country')
-					each item in countries
-						option(selected=item.name == user.country)= item.name
+				select.form-control#school-list(name='school')
+					each item in schools
+						option(selected=item.name == user.school)= item.name
+		.form-group
+			label.control-label.col-sm-3 Role
+			.col-sm-9
+				select.form-control#role-list(name='role')
+					each item in roles
+						option(selected=item.name == user.role)= item.name
+
 		hr
 		h6#sub2
 		.form-group

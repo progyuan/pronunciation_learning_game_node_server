@@ -101,17 +101,31 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
     	// path exists unless there was an error
 	});
 
-    var target_wavfile = target_dir + '/' + user +'_'+ word_id +'_'+ word_reference  +'_'+ logging.get_date_time().datetime_for_file + ".wav" ;
+    var wav_basename = user +'_'+ word_id +'_'+ word_reference  +'_'+ logging.get_date_time().datetime_for_file + ".wav" ;
+    var target_wavfile = target_dir + '/' + wav_basename;
     var adaptation_wavfile = target_dir + '/ada/' + user +'_'+ word_id +'_'+ word_reference  +'_'+ logging.get_date_time().datetime_for_file + ".wav" ;
     var adaptation_matrix_name = target_dir + '/S'
     print_debug("target_wavfile :" + target_wavfile );
     print_debug("wavinput :" + wavinput );
 
-    fs.copy(wavinput, target_wavfile, function(err) {if (err) { logging.log_error( {user: user, 
-										    event: "save_wav", 
-										    word: word_reference,
-										    target: target_wavfile,
-										    error: err.toString() } ) } });
+    fs.copy(wavinput, 
+	    target_wavfile, 
+	    function(err) { 
+		if (err) {
+		    logging.log_error( {user: user, 
+					event: "save_wav", 
+					word: word_reference,
+					target: target_wavfile,
+					error: err.toString() } );
+		}
+		else {
+		    //console.log("Sending save event with "+wav_basename);
+		    process.emit('user_event', user, word_id, 'wav_file_written', { wavfilename : wav_basename });
+		}
+	    });
+
+
+
     // 2. write the labels in to mem file system:
     
     // (This will be done by the script itself)

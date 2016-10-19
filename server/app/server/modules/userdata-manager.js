@@ -20,20 +20,20 @@ db.open(function(e, d){
 		if (process.env.NODE_ENV == 'live') {
 			db.authenticate(process.env.DB_USER, process.env.DB_PASS, function(e, res) {
 				if (e) {
-					console.log('account-manager: mongo :: error: not authenticated', e);
+					console.log('mongo :: error: not authenticated', e);
 				}
 				else {
-					console.log('account-manager: mongo :: authenticated and connected to database :: "'+dbName+'"');
+					console.log('mongo :: authenticated and connected to database :: "'+dbName+'"');
 				}
 			});
 		}	else{
-			console.log('account-manager: mongo :: connected to database :: "'+dbName+'"');
+			console.log('mongo :: connected to database :: "'+dbName+'"');
 		}
 	}
 });
 
+var userdata = db.collection('accounts');
 
-var accounts = db.collection('accounts');
 
 
 
@@ -108,33 +108,12 @@ exports.addNewAccount = function(newData, callback)
 	});
 }
 
-exports.addPupilAccount = function(newData, callback)
-{
-    accounts.findOne({user:newData.user}, function(e, o) {
-	if (o){
-	    callback('username-taken');
-	}
-	else{
-	    saltAndHash(newData.pass, function(hash){
-		newData.pass = hash;
-		// append date stamp when record was created //
-		newData.date = moment().format('MMMM Do YYYY, h:mm:ss a');
-		accounts.insert(newData, {safe: true}, callback);
-	    });
-	}
-    });
-}
-
-
 exports.updateAccount = function(newData, callback)
 {
 	accounts.findOne({_id:getObjectId(newData.id)}, function(e, o){
-	    o.name 		= newData.name;
-	    o.email 	= newData.email;
-	    o.school 	= newData.school;
-	    o.role 	= newData.role;
-	    o.group 	= newData.group;
-	    o.last_active = new Date();
+		o.name 		= newData.name;
+		o.email 	= newData.email;
+		o.country 	= newData.country;
 		if (newData.pass == ''){
 			accounts.save(o, {safe: true}, function(e) {
 				if (e) callback(e);
@@ -194,12 +173,6 @@ exports.getAllRecords = function(callback)
 	});
 }
 
-exports.getAccountsBySimpleQuery = function(query, callback)
-{
-	findByMultipleFields( query, callback);
-}
-
-
 exports.delAllRecords = function(callback)
 {
 	accounts.remove({}, callback); // reset accounts collection for testing //
@@ -258,39 +231,3 @@ var findByMultipleFields = function(a, callback)
 		else callback(null, results)
 	});
 }
-
-
-/* Some stuff to extract game data: */
-
-var game_events = db.collection('events');
-
-exports.getGameData = function(filters, limit, offset, callback)
-{
-    //console.log('getting game data with filters ');
-    //console.log(filters);
-    //console.log(limit);
-    //console.log(offset);
-
-    //console.log(Object.keys(filters).length);
-    if (Object.keys(filters).length>0) {
-    //    console.log('Long filter!');
-    // this takes an array of name/val pairs to search against {fieldName : 'value'} //
-	game_events.find( filters ).sort( { _id: -1 } ).skip( offset ).limit(limit).toArray(
-		function(e, results) {
-		    //console.log("Got results or error!");
-		    if (e) 
-			callback(e)
-		    else 
-			callback(null, results)
-	});
-    }
-    else {
-	//console.log('Empty filter!');
-	game_events.find().sort( { _id: -1 } ).skip( offset ).limit(limit).toArray(
-		function(e, results) {
-		if (e) callback(e)
-		else callback(null, results)
-	});
-    }
-}
-

@@ -1,0 +1,38 @@
+
+// preset form values if we receive a userdata object //
+- user = typeof(udata) != 'undefined' ? udata : { }
+// store the userId on the client side in a hidden input field //
+input(type='hidden', value= user._id)#userId
+
+#account-form-container.center-vertical
+	form#account-form.form-horizontal.well
+		div
+			a(href="#{baseURL}/live/") 
+				b Live web demo
+			p Here you can try the evaluation metrics - You'll need a headset mic!
+		div
+			a(href="#{baseURL}/view/gamedata/") 
+				b User statistics
+			p Here you can look at progress of each user
+		//div
+		//	a(href="#{baseURL}/sessions") 
+		//		b Session statistics
+		//	p Here you can look at statistics from specific playing sessions
+		div
+			a(href="#{baseURL}/addusers") 
+				b Add new users
+			p Here you can create new user accounts for your pupils
+		div
+			a(href="#{baseURL}/restart-server") 
+				b Restart game application server
+			p Here you (or anyone!) can restart the server in case its stuck - or even if not. 
+				| Remember with great power comes great responsibility! (No questions asked)
+		div
+			a(href="#{baseURL}/account") 
+				b Account settings
+			p Here you can update your contact information and change your password
+
+
+// display form errors in a custom modal window //
+
+include modals/form-errors

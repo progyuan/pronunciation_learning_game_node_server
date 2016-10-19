@@ -110,6 +110,100 @@ label, h6 {
 	}
 }
 
+#user-statistics-container {
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-top: 60px;
+  
+}
+
+.small-audio {
+  width: 120px;
+}
+
+
+.chart { 
+  width: 300px; 
+  display: inline-block;
+}
+
+.chart li {
+  border-radius: 4px 4px 0 0; /* Remember vendor prefixes */
+  box-shadow: 0 1px 0 0 rgba(255,255,255,.6) inset; /* Remember vendor prefixes */
+  display: block;
+  height: 125px;
+  padding: 0px 0;
+  position: relative;
+  text-align: center;
+  vertical-align: bottom;
+}
+
+.chart .axis { 
+  display: none;
+  top: -25px;
+  width: 11%;
+ }
+
+.chart .label {
+  background: #eaeaea;
+  margin: -.6em 0 65px 0;
+}
+.chart .column-lab {
+  background: #eaeaea;
+  margin-top: 15px;
+  height: 1.2 em;
+}
+.chart .percent {
+  font-size: 30px;
+  letter-spacing: -3px;
+  opacity: .4;
+  width: 100%;
+}
+
+.chart .teal {
+background: #4ecdc4;
+background-image: linear-gradient(#76d8d1, #4ecdc4 70%);
+border: 1px solid #4ecdc4;
+}
+
+@media (max-width: 700px) {
+  border-radius: 2px 2px 0 0; /* Remember vendor prefixes */
+ }
+@media (min-width: 700px) {
+  .chart {
+  // background: url("http://cl.ly/QSpc/bg-chart.png") right top repeat-x;
+    height: 125px;
+    margin: 0 auto -32px;
+  }
+  .chart li {
+    display: inline-block;
+    height: 125px;
+    margin: 0 1.8% 0 0;
+    width: 12%;
+  }
+  .chart .axis {
+    display: inline-block;
+  }
+  .chart .percent {
+    font-size: 40px;
+    position: absolute;
+  }
+  .chart .skill {
+    bottom: 20px;
+    font-size: 16px;
+    position: absolute;
+  }
+}
+
+@media (min-width: 1000px) {
+  .chart .percent {
+    font-size: 62px;
+  }
+}
+
+
+
+
 /*
 	modal windows
 */

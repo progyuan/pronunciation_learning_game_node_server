@@ -1,0 +1,79 @@
+
+extends layout
+
+block content
+
+	nav.navbar.navbar-default.navbar-fixed-top
+		.container
+			.navbar-header
+				.navbar-brand 
+					a(href="#{baseURL}/home") Home
+					|  /
+				.navbar-brand= title
+			ul.nav.navbar-nav.navbar-right
+				li
+					.navbar-btn#btn-logout.btn.btn-default
+						| Sign Out
+
+
+	// preset form values if we receive a userdata object //
+	- user = typeof(udata) != 'undefined' ? udata : { }
+	// store the userId on the client side in a hidden input field //
+	input(type='hidden', value= user._id)#userId
+
+	#account-form-container.center-vertical
+		form(method="post")#account-form.form-horizontal.well
+			h2 Add new users
+			#sub1 This text should be replaced by a script
+
+			h6#sub2
+			.form-group
+				label.control-label.col-sm-3 School
+				.col-sm-9
+					select.form-control#school-list(name='school')
+						each item in schools
+							option(selected=item.name == user.school)= item.name
+			.form-group
+				label.control-label.col-sm-3 Teacher
+				.col-sm-9
+					select.form-control#teacher-tf(name='teacher')
+						each item in teachers
+							option(selected=item.name == user.user)= item.name				
+			.form-group
+				label.control-label.col-sm-3 Role
+				.col-sm-9
+					select.form-control#role-tf(name='role')
+						each item in roles
+							option(selected=item.name == "pupil")= item.name
+			.form-group
+				label.control-label.col-sm-3 Group
+				.col-sm-9
+					input.form-control#group-tf(type='text', name='group', value='')
+
+
+			.form-group
+				label.control-label.col-sm-3 New Username
+				.col-sm-9
+					input.form-control#newuser-tf(type='text', name='newuser', value='')
+
+			.form-group
+				label.control-label.col-sm-3 Password
+				.col-sm-9
+					input.form-control#pass-tf(type='password', name='pass', value='')
+					p Password will be generated automatically if left empty
+
+			hr
+			.form-buttons
+				button(type='submit')#account-form-btn2.btn.btn-primary
+			.clearfix			
+
+	include modals/alert
+	include modals/confirm
+
+block scripts
+	script(src='#{baseURL}/vendor/jquery-2.2.3.min.js')
+	script(src='#{baseURL}/vendor/jquery.form.min.js')
+	script(src='#{baseURL}/vendor/bootstrap.min.js')
+	script(src='#{baseURL}/js/views/newUsers.js')
+	script(src='#{baseURL}/js/controllers/newUsersController.js')
+	script(src='#{baseURL}/js/form-validators/newUsersValidator.js')

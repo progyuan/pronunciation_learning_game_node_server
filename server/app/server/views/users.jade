@@ -1,0 +1,57 @@
+
+extends layout
+
+block content
+
+	nav.navbar.navbar-default.navbar-fixed-top
+		.container
+			.navbar-header
+				.navbar-brand 
+					a(href="#{baseURL}/home") Home
+					|  /
+				.navbar-brand= title
+			ul.nav.navbar-nav.navbar-right
+				li
+					.navbar-btn#btn-logout.btn.btn-default
+						| Sign Out
+
+	#userdata-container.center-vertical
+		//form(method="post")#account-form.form-horizontal.well
+		form#account-form.form-horizontal.well
+			h2 Statistics
+			h6#sub1 If this text is not replaced by javascript, you're doomed.
+			hr
+			table(width="90%")
+				tr
+					th  Username	
+					th  School	
+					th  Teacher
+					th  Group
+					th  Created	
+					th  Last active	
+				each item in users
+					tr
+						td
+							a(href="#{baseURL}/users/name/#{item.user}")
+								| #{item.user}
+						td
+							//a(href="#{baseURL}/users/school/#{item.school}")
+							| #{item.school}
+						td
+							//a(href="#{baseURL}/users/teacher/#{item.teacher}")
+							| #{item.teacher}
+						td
+							//a(href="#{baseURL}/users/group/#{item.group}")
+							| #{item.group}
+						td= item.created
+						td= item.last_active
+	include modals/alert
+	include modals/confirm
+
+block scripts
+	script(src='#{baseURL}/vendor/jquery-2.2.3.min.js')
+	script(src='#{baseURL}/vendor/jquery.form.min.js')
+	script(src='#{baseURL}/vendor/bootstrap.min.js')
+	script(src='#{baseURL}/js/views/users.js')
+	script(src='#{baseURL}/js/controllers/usersController.js')
+	//script(src='#{baseURL}/js/form-validators/accountValidator.js')

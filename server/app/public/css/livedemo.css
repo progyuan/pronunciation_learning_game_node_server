@@ -1,0 +1,49 @@
+#recbutton {
+    color: white;
+    font-weigth: bold;
+    padding: 20px;
+    float: left;
+    height: 150px;
+    visibility: hidden;
+    
+      animation: colorchange 4s; /* animation-name followed by duration in seconds*/
+         /* you could also use milliseconds (ms) or something like 2.5s */
+       animation-iteration-count:infinite; 
+      -webkit-animation: colorchange 4s; /* Chrome and Safari */
+      -webkit-animation-iteration-count:infinite;
+    }
+
+    @keyframes colorchange
+    {
+      0%   {background: red;}
+      25%  {background: black;}
+      50%  {background: red;}
+      75%  {background: black;}
+      100% {background: red;}
+    }
+
+    @-webkit-keyframes colorchange /* Safari and Chrome - necessary duplicate */
+    {
+      0%   {background: red;}
+      25%  {background: black;}
+      50%  {background: blue;}
+      75%  {background: black;}
+      100% {background: red;}
+    }
+
+.logpart {
+    border: 1px solid;
+    padding: 5px;
+    color: maroon;
+    margin: 10px;
+}
+
+#fancy_result_area td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+#fancy_result_area th {
+    text-align: center;
+    vertical-align: bottom;
+}

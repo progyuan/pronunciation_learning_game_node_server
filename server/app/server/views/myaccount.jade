@@ -6,14 +6,16 @@ block content
 	nav.navbar.navbar-default.navbar-fixed-top
 		.container
 			.navbar-header
+				.navbar-brand 
+					a(href="#{baseURL}/home") Home
+					|  /
 				.navbar-brand= title
 			ul.nav.navbar-nav.navbar-right
 				li
 					.navbar-btn#btn-logout.btn.btn-default
 						| Sign Out
 
-						
-	include nav
+	include account
 	include modals/alert
 	include modals/confirm
 

@@ -1,0 +1,113 @@
+
+extends layout
+
+block content
+
+	nav.navbar.navbar-default.navbar-fixed-top
+		.container
+			.navbar-header
+				.navbar-brand 
+					a(href="#{baseURL}/home") Home
+					|  /
+				.navbar-brand= title
+			ul.nav.navbar-nav.navbar-right
+				li
+					.navbar-btn#btn-logout.btn.btn-default
+						| Sign Out
+
+	// preset form values if we receive a userdata object //
+	- user = typeof(udata) != 'undefined' ? udata : { }
+	// store the userId on the client side in a hidden input field //
+	input(type='hidden', value= user._id)#userId
+
+	#user-statistics-container 
+		//form(method="post")#account-form.form-horizontal.well
+		//form#account-form.form-horizontal.well
+		div
+			h2 Statistics
+			h4 User: #{filters.user} 
+				|  - Word: #{filters.word} 
+				|  - Session: #{filters.date}
+				|  - Event: #{filters.event}
+				|  - Level: #{filters.level}
+			h6#sub1 If this text is not replaced by javascript, the form validators aren't working!
+			hr
+			div.chart DNN score
+				ul
+					each val in histograms[0]
+						li(class="teal" style="height:#{2 * val}px;")= val
+
+				ul
+					each val in [0,1,2,3,4,5]
+						li(class="column-lab")= val
+			div.chart Palomäki-Karhila Score
+				ul
+					each val in histograms[1]
+						li(class="teal" style="height:#{2 * val}px;")= val
+				ul
+					each val in [0,1,2,3,4,5]
+						li(class="column-lab")= val
+			div.chart Final Score
+				ul
+					each val in histograms[2]
+						li(class="teal" style="height:#{2 * val}px;")= val
+				ul
+					each val in [0,1,2,3,4,5]
+						li(class="column-lab")= val
+			hr
+			table(width="100%")
+				tr
+					th  Date
+					th  Time
+					th  User
+					th  Event
+					th(style="text-align: center;")  Level
+					th(style="text-align: center;")  Word id
+					th(style="text-align: center;")  Word
+					th(style="text-align: center;")  Reference
+					th(style="text-align: center;")  Guess
+					th(style="text-align: center;")  Phoneme <BR>scores
+					th(style="text-align: center;")  DNN <BR>score
+					th(style="text-align: center;")  Palomäki-<BR>Karhila<BR> Score
+					th(style="text-align: center;")  Combined<BR>Score
+					th(style="text-align: center;")  Audio
+					th(style="text-align: center;")  Features
+					th(style="text-align: center;")  Segmentation
+
+				each item in game_data
+					tr
+						td 
+							a(href="date/#{item.date}/")=item.date
+						td= item.time
+						td
+							a(href="user/#{item.user}/")=item.user
+						td
+							a(href="event/#{item.event}/")=item.event
+						td(align="center")
+							a(href="level/#{item.level}/")=item.level
+						td(align="center")= item.word_id
+						td(align="center")
+							a(href="word/#{item.word}/")= item.word
+						td(align="center")  [ #{item.reference_phones} ]
+						td(align="center")  [ #{item.guess} ]
+						td(align="center") [ #{item.phoneme_scores} ]
+						td(align="center")= item.dnn_score			
+						td(align="center")= item.kalles_score
+						td(align="center")= item.score
+						td(align="center")
+							if (item.wavfilename)
+								audio(src="#{baseURL}/audio/#{item.user}/#{item.wavfilename}", controls).small-audio
+							else
+								| -
+						td(align="center") -
+						td(align="center") -
+	include modals/alert
+	include modals/confirm
+
+block scripts
+	script(src='#{baseURL}/vendor/jquery-2.2.3.min.js')
+	script(src='#{baseURL}/vendor/jquery.form.min.js')
+	script(src='#{baseURL}/vendor/bootstrap.min.js')
+	script(src='#{baseURL}/js/views/users.js')
+	script(src='#{baseURL}/js/controllers/usersController.js')
+	//script(src='#{baseURL}/js/form-validators/accountValidator.js')
