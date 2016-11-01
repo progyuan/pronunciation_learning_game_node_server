@@ -1,0 +1,197 @@
+
+doctype html
+html
+	head
+		title SIAK webapp
+		link(rel='stylesheet', href='#{baseURL}/vendor/bootstrap.min.css')
+		link(rel='stylesheet', href='#{baseURL}/css/style.css')
+		link(rel='stylesheet', href='#{baseURL}/css/livedemo.css')
+		link(rel='stylesheet', href='#{baseURL}/css/fysiak-dev.css')
+
+		link(rel='stylesheet', href='//cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.1.1/gh-fork-ribbon.min.css')
+		script.
+			var BASEURL = "#{baseURL}";
+		script(src='#{baseURL}/js/livedemo/RecordRTC.js')
+		script(src='#{baseURL}/js/livedemo/live_test2.js')
+		//script(src='#{baseURL}/js/fysiak/matter.js')
+		<!-- matter lib edge master version -->
+		script(type="text/javascript",src="#{baseURL}/js/fysiak/matter-dev.js")
+
+		script(type="text/javascript",src="#{baseURL}/js/fysiak/jquery-1.11.0.min.js")
+		script(type="text/javascript",src="#{baseURL}/js/fysiak/matter-tools-dev.js")
+		script(type="text/javascript",src="#{baseURL}/js/fysiak/levels.js")
+	body
+
+		//nav.navbar.navbar-default.navbar-fixed-top
+		//	.container
+		//		.navbar-header
+		//			.navbar-brand 
+		//				a(href="#{baseURL}/home")  Home
+		//				|  /
+		//			.navbar-brand= title
+		//		ul.nav.navbar-nav.navbar-right
+		//			li
+		//				.navbar-btn#btn-logout.btn.btn-default
+		//					| Sign Out
+
+		// preset form values if we receive a userdata object //
+		- user = typeof(udata) != 'undefined' ? udata : { }
+		// store the userId on the client side in a hidden input field //
+		input(type='hidden', value= user._id)#userId
+
+
+		#canvas-container		
+			//canvas#gamecanvas
+
+		#scorewrapper
+			
+		#scorecard
+			#score
+				Your score here
+			
+			div#fysiakrecbutton Recording!	
+
+		#fixedsidebar
+			h4 
+				span#leveltitle Select your level!
+			h4 Stars: 
+				span#starcount -
+				|  / 
+				span#maxstars -
+			h4 Time left: 
+				span#timeleft -
+				|  seconds
+
+			hr 
+			h4 Your microphone:
+
+			canvas#analyser
+				| If you can see this text, your audio is not working!
+
+			hr
+
+			h4 Select a level to play:
+
+			form
+				select#level-select(name='level-select')
+				//	each item in [ "L0", "L1" ]
+				//		option= item
+
+				//input#playlevelbutton(type='button',onclick='play_level()', value='Play level!')
+				//input#playlevelbutton(type='button',value='Play level!')
+
+				input#level-reset(type='button',onclick='reset_level()', value='Reset level!')
+			#game-view-source
+
+
+
+		#flex-container.flex-container
+			div //.flex-item-1
+
+				H2 Debug information, loads of it!
+			
+
+				#hidden(style='visibility:hidden;')
+					form
+						table
+							tr
+								th Server address:
+								th Username:
+								th Password:
+								th Word:
+								th 
+							tr
+								td
+									input#server_address(type='hidden', name="server_address", value="#{asrURL}/asr")
+									| #{asrURL}/asr
+								td
+									input#username(type='hidden', name="username", value= user.user)
+									| #{user.user}
+								td
+									input#password(type='hidden', name="password", value="")
+									| *****
+								td
+									select#transcription(name='transcription')
+										each item in word_list
+											if (item in game_word_list.L0)
+												option= item
+
+
+								td
+									button#connect_and_test(type="button", onclick='foo()', value="Connect, record and send") Connect, record and send
+			
+			
+				h4 Results
+				table#fancy_result_area
+						tr
+							th Word
+							th DNN score
+							th Palomäki-<br>Karhila<br>score
+							th Total score
+							th Reference<br>Phones
+							th Guessed<br>Phones
+							th Phone<br>score
+							th Processing<br>time
+							th Wav
+
+				h4 Stats
+				div#profiling_area
+
+
+				div#logging
+					h4 Logging
+					div#log0(class=logpart)
+
+				div#editor
+					h4 Level editor
+
+					textarea#leveleditor(rows="30" cols="150")
+
+
+			div#wordlist //.flex-item-2 
+				h4 Words
+				each level, levelkey in game_word_list
+					div.levelwords
+						h5= levelkey
+							ol.wordlist
+							each word,wordkey in level
+								li(id="w_#{wordkey}")= word.en 
+									if (wordkey in word_counts)
+										span.counter-margin &#9733;
+											span(id="w_#{wordkey}_stars")= word_counts[wordkey].best_score
+										span.counter-margin &#8635;
+											span(id="w_#{wordkey}_counter")= word_counts[wordkey].count
+										//span.counter-margin &#8635;
+										//	span(id="w_#{wordkey}_moving_average")= word_counts[wordkey].moving_average
+
+
+									else
+										span.counter-margin &#9733;
+											span(id="w_#{wordkey}_stars") -
+										span.counter-margin &#8635;
+											span(id="w_#{wordkey}_counter") -
+			div#phonemelist //.flex-item-3.sidebar 
+				h4 Phonemes		
+				ol.phonemelist
+					each phoneme, phonemekey in phoneme_list
+						li(id="p_#{phonemekey}")= phonemekey 
+								if (phonemekey in phoneme_counts)
+									span.counter-margin &#9733;
+										span(id="p_#{phonemekey}_stars")= phoneme_counts[phonemekey].best_score
+									span.counter-margin &#8635;
+										span(id="p_#{phonemekey}_counter")= phoneme_counts[phonemekey].count
+								else
+									span.counter-margin &#9733;
+										span(id="p_#{phonemekey}_stars") -
+									span.counter-margin &#8635;
+										span(id="p_#{phonemekey}_counter") -
+block scripts
+		script(src='#{baseURL}/vendor/jquery-2.2.3.min.js')
+		script(src='#{baseURL}/vendor/jquery.form.min.js')
+		script(src='#{baseURL}/vendor/bootstrap.min.js')
+		//script(src='#{baseURL}/js/views/users.js')
+		//script(src='#{baseURL}/js/controllers/usersController.js')
+		//script(src='#{baseURL}/js/form-validators/accountValidator.js')
+
+		//script(src='#{baseURL}/js/livedemo/analyser.js')
+		script(src='#{baseURL}/js/fysiak/my_game-dev.js')

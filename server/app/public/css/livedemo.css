@@ -41,9 +41,108 @@
 #fancy_result_area td {
     text-align: center;
     vertical-align: middle;
+    padding-left: 5px;
+    padding-right: 5px;
 }
 
 #fancy_result_area th {
     text-align: center;
     vertical-align: bottom;
+}
+
+
+
+#fancy_result_area {
+    margin-right:100px;
+}
+
+#wordlist {
+    background-color: lightpink;
+}
+#phonemelist {
+    background-color: lightsalmon;
+
+}
+
+
+#user-statistics-container {
+    display: inline-block; /*float: left; /*display: block;*/
+    margin-right: 200px;
+}
+
+#fancy_result_area {
+    width: 100%;
+}
+
+
+
+.flex-container {
+    margin-top: 55px;
+    display:flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-content: flex-start;
+    align-items: flex-start;
+}
+		
+
+
+.flex-items-default {
+    width: 300px;
+    height: 250px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 0;
+}
+		
+
+.flex-item-1 {
+    width: auto;
+    height: 250px;
+    flex-grow: 1;
+    flex-shrink: 0;
+    /*flex-basis: 200px;*/
+    flex-wrap: wrap;
+}
+	
+
+.flex-item-2 {
+    width: 200px;
+    flex-grow: <property unused>
+    flex-shrink: <property unused>
+    flex-basis: <property unused>
+
+    margin-right: 5px;
+    padding: 10px;
+    border: 1px solid black;
+
+}
+	
+
+.flex-item-3 {
+    width: 120px;
+    flex-grow: <property unused>
+    flex-shrink: <property unused>
+    flex-basis: <property unused>
+
+    margin-right: 5px;
+    padding: 10px;
+    border: 1px solid black;
+
+}
+	
+.counter-margin {
+    margin-left: 10px;
+    float : right;
+}
+
+#wordlist ol {
+    -webkit-padding-start: 20px;
+}
+
+#phonemelist li {
+    margin-left: -40px;
+    list-style-type: none;
+    -webkit-padding-start: 0px;
 }

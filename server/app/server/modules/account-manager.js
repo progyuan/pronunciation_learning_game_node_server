@@ -4,6 +4,8 @@ var MongoDB 	= require('mongodb').Db;
 var Server 		= require('mongodb').Server;
 var moment 		= require('moment');
 
+var async = require('async');
+
 /*
 	ESTABLISH DATABASE CONNECTION
 */
@@ -34,7 +36,6 @@ db.open(function(e, d){
 
 
 var accounts = db.collection('accounts');
-
 
 
 /* login validation methods */
@@ -69,6 +70,12 @@ exports.manualLogin = function(user, pass, callback)
 
 exports.gamedataLogin = function(user, pass, req, resp, callback)
 {
+
+    console.log("Cookie:");
+    console.log(req.headers.cookie);
+    
+    
+
 	accounts.findOne({user:user}, function(e, o) {
 		if (o == null){
 			callback('user-not-found',null, req, resp );
@@ -293,4 +300,48 @@ exports.getGameData = function(filters, limit, offset, callback)
 	});
     }
 }
+
+var phoneme_counts = db.collection('phoneme_counts');
+var word_counts = db.collection('word_counts');
+
+
+exports.get_word_and_phoneme_counts = function(user, callback) {
+
+    async.parallel({
+	phonemes : function(cb) {
+	    phoneme_counts.findOne({ user: user.user}, function(e, o){
+		if(e)
+		    console.log(e);
+		if (o) {
+		    user_phoneme_counts=o;		    
+		    console.log(o);
+		}
+		else {
+		    console.log("1 No o for user ",user);
+		    user_phoneme_counts={};
+		}
+		cb(null, user_phoneme_counts);		
+	    });
+	},
+	words: function(cb) {	
+	    word_counts.findOne({ user: user.user}, function(e, o){
+		if(e)
+		    console.log(e);
+		if (o) {
+		    user_word_counts=o;
+		    console.log(o);
+
+		}
+		else {
+		    console.log("2 No o for user ",user);		
+		    user_word_counts={};
+		}
+		cb(null, user_word_counts);
+	    });
+	}}, function(err, data) {
+	    callback(err, data.phonemes, data.words); 
+	});
+
+}
+
 

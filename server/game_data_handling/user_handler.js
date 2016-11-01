@@ -12,44 +12,62 @@ var DEBUG_TEXTS=true;
 
 var logging = require('../game_data_handling/logging.js');
 
-/*
- * Extremely lazy user control!
- * 
- * Keep in mind this is not a production system in any way!
- */
+
+/* All this extra junk here just to be able to access the session storage
+   of the parent process... Let's hope it's worth it! */
+
+var cookie = require('cookie');
+
+var dbHost = process.env.DB_HOST || 'localhost'
+var dbPort = process.env.DB_PORT || 27017;
+var dbName = process.env.DB_NAME || 'node-login';
 
 
-var user_credential_file = './users.json';
-var passwords = JSON.parse(fs.readFileSync(user_credential_file, 'utf8'));
+var express = require('express');
+var session = require('express-session');
+var MongoStore = require('connect-mongo')(session);
+var mongoStore = new MongoStore({
+    db:dbName,            //these options values may different
+    port:dbPort,
+    host: dbHost
+});
+var app = express();
 
-//var user_data_dir = './users/';
+var dbURL = 'mongodb://'+dbHost+':'+dbPort+'/'+dbName;
+if (app.get('env') == 'live'){
+// prepend url with authentication credentials // 
+        dbURL = 'mongodb://'+process.env.DB_USER+':'+process.env.DB_PASS+'@'+dbHost+':'+dbPort+'/'+dbName;
+}
+
+app.use(session({
+        secret: 'faeb4453e5d14fe6f6d04637f78077c76c73d1b4',
+        proxy: true,
+        resave: true,
+        saveUninitialized: true,
+        store: new MongoStore({ url: dbURL })
+        })
+);
+
+/* This was the extra junk ! All this! It's loads! */
+
 
 function authenticate(req, res, callback) {
-    username = req.headers['x-siak-user'];
-    password = req.headers['x-siak-password'];
+    var username = req.headers['x-siak-user'];
+    var password = req.headers['x-siak-password'];
+	
+    //debugout("Authenticating >"+username + "< >" + password +"<!");       
 
-    //debugout("Authenticating >"+username + "< >" + password +"<!");    
+    var tS = cookie.parse(req.headers.cookie)['connect.sid'];
+    var sessionID = tS.split(".")[0].split(":")[1];
+    mongoStore.get(sessionID,function(err,session){
+	if (err || session.user.user != username) 
+	    AM.gamedataLogin(username, password, req, res, callback );    	
+	else 
+	    callback(null, username, req, res);
+    });	
 
-    AM.gamedataLogin(username, password, req, res, callback );
+
     
-    /*
-    if (!passwords.hasOwnProperty(username)) {
-	debugout('users does not contain >'+username+'<');
-	err= { error: 101,
-		 msg: "unknown username"
-	       }
-    }
-    else if (passwords[username] != password) {
-	debugout('password for '+username +' is not '+ password + ' (should be '+passwords[username]+" )");
-	err= { error: 102,
-		 msg: "username and password do not match"
-	       }	
-    }
-    else
-	err = null;
-    
-    callback( err, username, req, res );
-    */
 }
 
 

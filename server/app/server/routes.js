@@ -11,22 +11,109 @@ var moment 		= require('moment');
 
 var word_list = require('./modules/word-list');
 
+var game_word_list = require('./modules/game-word-list');
+var phoneme_list = require('./modules/phoneme-list');
+
+var async = require('async');
+
 module.exports = function(app) {
 
 
 /* Some views to look at game data */
+
     app.get('/live', function(req,res) {
 	if (req.session.user == null){
 	    // if user is not logged-in redirect back to login page //
 	    res.redirect(app.locals.baseURL);
 	}
 	else
-	    res.render('livedemo', { 
-		title: 'SIAK web demo!',
-                udata : req.session.user,
-		word_list : word_list
+	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
+		console.log("Rendering:");
+		console.log(e);
+		res.render('livedemo', { 
+		    title: 'SIAK web demo!',
+                    udata : req.session.user,
+		    word_list : word_list,
+		    game_word_list : game_word_list,
+		    phoneme_list : phoneme_list,
+		    phoneme_counts : phoneme_counts,
+		    word_counts : word_counts
+		});
 	    });
     });
+
+    app.get('/fysiak', function(req,res) {
+	if (req.session.user == null){
+	    // if user is not logged-in redirect back to login page //
+	    res.redirect(app.locals.baseURL);
+	}
+	else
+	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
+		console.log("Rendering:");
+		console.log(e);
+		res.render('fysiak', { 
+		    title: 'fySIAK on-line v. 0.2',
+                    udata : req.session.user,
+		    word_list : word_list,
+		    game_word_list : game_word_list,
+		    phoneme_list : phoneme_list,
+		    phoneme_counts : phoneme_counts,
+		    word_counts : word_counts
+		});
+	    });
+    });
+
+    app.get('/fysiak', function(req,res) {
+	if (req.session.user == null){
+	    // if user is not logged-in redirect back to login page //
+	    res.redirect(app.locals.baseURL);
+	}
+	else
+	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
+		console.log("Rendering:");
+		console.log(e);
+		res.render('fysiak', { 
+		    title: 'fySIAK on-line v. 0.2',
+                    udata : req.session.user,
+		    word_list : word_list,
+		    game_word_list : game_word_list,
+		    phoneme_list : phoneme_list,
+		    phoneme_counts : phoneme_counts,
+		    word_counts : word_counts
+		});
+	    });
+    });
+
+    app.get('/fysiak-dev', function(req,res) {
+	if (req.session.user == null){
+	    // if user is not logged-in redirect back to login page //
+	    res.redirect(app.locals.baseURL);
+	}
+	else
+	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
+		console.log("Rendering:");
+		console.log(e);
+		res.render('fysiak-dev', { 
+		    title: 'fySIAK on-line unstable cutting edge release',
+                    udata : req.session.user,
+		    word_list : word_list,
+		    game_word_list : game_word_list,
+		    phoneme_list : phoneme_list,
+		    phoneme_counts : phoneme_counts,
+		    word_counts : word_counts
+		});
+	    });
+    });
+
+    app.get('/live2', function(req,res) {
+	if (req.session.user == null){
+	    // if user is not logged-in redirect back to login page //
+	    res.redirect(app.locals.baseURL);
+	}
+	else
+	    res.redirect(app.locals.baseURL+'/fysiak');
+    });
+
       
     app.get('/:type(view|api)/gamedata/:fp1?/:fv1?/:fp2?/:fv2?/:fp3?/:fv3?/:fp4?/:fv4?/:fp5?/:fv5?/:fp6?/:fv6?/:fp7?/:fv7?', function(req, res) {
 
@@ -266,7 +353,7 @@ module.exports = function(app) {
 			AM.autoLogin(req.cookies.user, req.cookies.pass, function(o){
 				if (o != null){
 				    req.session.user = o;
-					res.redirect('/home');
+					res.redirect(app.locals.baseURL+'/home');
 				}	else{
 					res.render('login', { title: 'Hello - Please Login To Your Account' });
 				}

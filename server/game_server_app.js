@@ -65,6 +65,9 @@ if (process.env.NODE_ENV !== 'production'){
 }
 
 
+
+
+
 /*
  *   GET READY!
  */
@@ -112,6 +115,15 @@ http.createServer(function (req, res) {
 			 {
 			     start_level(req, res);
 			 }			 
+			 if (req.url == "/get-next-word") 
+			 {
+			     get-next-word(req, res);
+			 }
+			 if (req.url == "/finish-level") 
+			 {
+			     finish_level(req, res);
+			 }
+			 
 
 			 if (req.url == "/log-action")
 			 {
@@ -370,7 +382,7 @@ function send_score(user) {
     score_object.dnn_score = score_object.total_score
     score_object.kalles_score = userdata[user].currentword.kalles_score.total_score;
 
-    score_object.total_score = Math.ceil( (score_object.dnn_score + score_object.kalles_score) / 2 );
+    score_object.total_score = Math.ceil( (0.75 * score_object.dnn_score + 0.25 * score_object.kalles_score) );
 
     send_score_and_clear(user, score_object)
 
@@ -388,6 +400,7 @@ function send_score_and_clear(user, score_object) {
     score_object.speech_start = speech_start;
     score_object.speech_end = speech_end;
     score_object.speech_dur = speech_dur;
+    score_object.word = userdata[user].currentword.reference;
 
     score_object.wavfilename = userdata[user].currentword.wavfilename2;
 
@@ -417,7 +430,25 @@ function send_score_and_clear(user, score_object) {
 			 //segmentation: userdata[user].currentword.segmentation, 
 			 //classification: userdata[user].currentword.phoneme_classes 
 			});
-    
+
+    /*if (score_object.total_score > 0) {
+	score_object.reference_phones.forEach( function(phoneme, index) {
+	    logging.log_phoneme({user: user,
+				 phoneme : phoneme,
+				 guess: guess[index],
+				 phoneme_score: score_object.phoneme_scores[index],
+				 word_id : userdata[user].currentword.id,
+				 score: score_object.total_score, 
+				 kalles_score : score_object.kalles_score,
+				 dnn_score : score_object.dnn_score,
+				 word : userdata[user].currentword.reference,
+				 level: userdata[user].currentlevel,
+				 wavfilename: userdata[user].currentword.wavfilename2
+				 //segmentation: userdata[user].currentword.segmentation, 
+				 //classification: userdata[user].currentword.phoneme_classes 
+				});
+	});
+    }*/
     clearUpload(user)
     
 }
@@ -1117,9 +1148,64 @@ var start_level = function (req,res) {
 
     debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Received packet level up! user: "+user + " level "+ level);
   
-    change_level(level, user, function(req, res) { res.end("ok!") } );
+    game_data_handler.get_and_somehow_order_words_for_level(user, 
+							    level, 
+							    req, 
+							    res, function(e, 
+									  req, 
+									  res, 
+									  user, 
+									  level, 
+									  words) { 
+								if (!userdata.hasOwnProperty(user)) {	
+								    debugout("Init userdata!");
+								    init_userdata(user);
+								}
+
+								userdata[user].currentlevel = level;
+								userdata[user].levelwordstack = words;
+								res.end( JSON.stringify( words));
+							    } );
 
 }
+
+
+var get_next_word = function(req,res) {
+    user = req.headers['x-siak-user'];
+    level = req.headers['x-siak-level'];
+    if (typeof(level) == 'undefined') 
+	level = "L0";
+
+    var nextword;
+
+    if (levelwordstack in userdata[user] && userdata[user].levelwordstack.length>0) {
+	nextword = userdata[user].levelwordstack[0];
+	userdata[user].levelwordstack[0] =  userdata[user].levelwordstack[0].slice(1);
+    }
+    else {
+	game_data_handler.get_and_somehow_order_words_for_level(user, 
+								level, 
+								req, 
+								res, function(e, 
+									      req, 
+									      res, 
+									      user, 
+									      level, 
+									      words) { 
+								    if (!userdata.hasOwnProperty(user)) {	
+									debugout("Init userdata!");
+									init_userdata(user);
+								    }
+								    
+								    userdata[user].currentlevel = level;
+								    nextword=words[0];
+								    userdata[user].levelwordstack = words.slice(1);
+								    res.end( JSON.stringify( nextword));
+								} );
+    }
+}
+
+
 
 var change_level = function(user, level, callback)  {
     userdata[user].currentlevel = level;
@@ -1129,6 +1215,26 @@ var change_level = function(user, level, callback)  {
 		       level: userdata[user].currentlevel
 		      });
     callback();
+}
+
+var finish_level = function (req,res) {
+    user = req.headers['x-siak-user'];
+    level = req.headers['x-siak-level'];
+    if (typeof(level) == 'undefined') 
+	level = "L0";
+    score = req.headers['x-siak-score'];
+    if (typeof(score) == 'undefined') 
+	score = 0;
+
+    debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Received packet level up! user: "+user + " level "+ level);
+
+    logging.finish_level(user, level, score);
+    logging.log_event({user: user, 
+		       event: "finish-level", 
+		       level: userdata[user].currentlevel,
+		       score: score
+		      });
+    res.end("ok");
 }
 
 
