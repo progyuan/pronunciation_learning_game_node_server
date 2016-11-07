@@ -1,6 +1,6 @@
 #gamecanvas {
     background-color: pink;
-    width: 800px;
+    width: 800px;;
     height: 600px;
     margin: 20px;
     display: block;
@@ -27,8 +27,8 @@
 #analyser {
 /*    position: absolute;
     vertical-align: top;*/
-    width: 260px;
-    height: 120px;
+    width: 120px;
+    height: 60px;
     margin: 20px;
    /* z-index: 40;*/
 }
@@ -37,9 +37,10 @@
     position: absolute;
     width: 800px;
     height: 600px;
-    top: 60px;
+    top: 0px;
+    /*top: 60px;*/
     z-index: 20;
-    left: 20px;
+    left: 0px;
     background-color: yellow;
     opacity: 0.5;
     visibility: hidden;
@@ -82,9 +83,16 @@
     color: white;
     font-weigth: bold;
     padding: 20px;
-    height: 150px;
+    height: 80px;
+    width: 200px;
     visibility: hidden;
-    
+    background-color: red;
+    font-size: 22px;
+    margin-left: 20px;
+    border: 4px solid white;
+    border-radius: 18px; 
+    text-align: center;
+
     animation: blinker 1s linear infinite; /* colorchange 4s; /* animation-name followed by duration in seconds*/
     /* you could also use milliseconds (ms) or something like 2.5s */
     animation-iteration-count:infinite; 
@@ -147,4 +155,22 @@
     list-style-type: none;
     padding-left: 20px;
     padding-right: 20px;
+}
+
+#underbar {
+    background-color: pink;
+    /*width: 80%;*/
+}
+#underblock {
+    /*width: 33%;*/
+    width: 200px;
+    display: inline-block;
+    vertical-align: top;
+    padding: 10px;
+}
+
+#debug-area {
+    margin-left: 20px;
+    margin-right: 20px;
+    position: absolute;
 }

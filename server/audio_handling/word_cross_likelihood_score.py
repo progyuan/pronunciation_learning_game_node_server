@@ -32,7 +32,7 @@ else:
 path_word_cross_likelihoods = speaker_path + "/word_cross_" + adaptation_text + "likelihoods/"
 
 num_history=100
-flag_verbose = 2
+flag_verbose = 0 #2
 
 word_names=collect_word_names(word_list_name,target_word,n_anchors)
 

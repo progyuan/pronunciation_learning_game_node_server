@@ -72,8 +72,8 @@ var get_next_word_id = function( user, callback ) {
 
 var get_and_somehow_order_words_for_level = function(user, level, req, res, callback) {
     get_word_counts_for_level(user, level, req, res, function(e, req, res, user, level , wordcounts) {
-	console.log("I want to print a list of words under here:");
-	console.log(wordcounts);
+	//console.log("I want to print a list of words under here:");
+	//console.log(wordcounts);
 	
 	word_array = [];
 	moving_average_array = [];
@@ -85,21 +85,26 @@ var get_and_somehow_order_words_for_level = function(user, level, req, res, call
 		word.word = key;
 		word_array.push(word);
 		if ("moving_average" in word) {
-		    console.log(key, "\t", word.best_score, "\t", word.count, "\t", word.best_score/word.count );
-		    moving_average_array.push( word.best_score/word.count );
+		    //console.log(key, "\t", word.best_score, "\t", word.count, "\t", word.best_score/word.count );
+		    moving_average_array.push( word.moving_average * Math.sqrt(word.count) );
 		}
 		else {
 		    moving_average_array.push(0);
 		    if ("best_score" in word) {
-			console.log(key, "\t", word.best_score, "\t", word.count, "\t", word.best_score/word.count );
+		//	console.log(key, "\t", word.best_score, "\t", word.count, "\t", word.best_score/word.count );
 		    }
 		}
 	    }
 	});
 	indices = sort_with_indices(moving_average_array);
 	returnable_word_array = [];
+
+	//console.log("Working on getting the next words");
+	//console.log(word_array);
+
 	indices.forEach( function(i1, i2) {
-	    returnable_word_array.push(word_array[i1]);
+	    //console.log(i2);
+	    returnable_word_array.push(word_array[i2]);
 	});
 	callback(null,req,res,user, level, returnable_word_array);
     });

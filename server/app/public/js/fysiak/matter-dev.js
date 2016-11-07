@@ -3868,9 +3868,8 @@ var Bounds = require('../geometry/Bounds');
         var mouse = mouseConstraint.mouse,
             constraint = mouseConstraint.constraint,
             body = mouseConstraint.body;
-
         if (mouse.button === 0) {
-            if (!constraint.bodyB) {
+            if (!constraint.bodyB) {/*
                 for (var i = 0; i < bodies.length; i++) {
                     body = bodies[i];
                     if (Bounds.contains(body.bounds, mouse.position) 
@@ -3890,7 +3889,7 @@ var Bounds = require('../geometry/Bounds');
                             }
                         }
                     }
-                }
+                }*/
             } else {
                 Sleeping.set(constraint.bodyB, false);
                 constraint.pointA = mouse.position;

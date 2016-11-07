@@ -420,7 +420,8 @@ var get_score_for_word = function(word, item, callback) {
 		// Downsampling interpolation:
 		j=i*sampleRate/fs;
 		
-		dataview[i] = (1-j%1)*filtered(left, Math.floor(j)) +  (j%1)*filtered(left, Math.floor(j)+1);
+		//dataview[i] = (1-j%1)*filtered(left, Math.floor(j)) +  (j%1)*filtered(left, Math.floor(j)+1);
+		dataview[i] = (1-j%1)*left[Math.floor(j)] +  (j%1)*left[Math.floor(j)+1];
 	    }
 	    firbuffer = left.slice(-firbuffer.length);
 	    
@@ -515,11 +516,11 @@ function updateAnalysers(time) {
 
 	analyserContext.beginPath();
 
-	var sliceWidth = canvasWidth * 1.0 / bufferLength;
+	var sliceWidth = canvasWidth * 1.0 / bufferLength * 32;
 	var x = 0;
 	maxVal -= 0.02;
 	
-	for(var i = 0; i < bufferLength; i++) {
+	for(var i = 0; i < bufferLength; i+=32) {
 	    
 	    var v = dataArray[i] / 128.0;
 	    var y = v * canvasHeight/2;
@@ -600,7 +601,7 @@ function reinit_and_test() {
 */
 
 
-if (1==1) {
+if (1==0) {
     server='/siak-devel/start-level';
     
     var test = false;
@@ -1051,7 +1052,51 @@ function recorderProcess(e) {
 }*/
 
 
+function get_word_to_score(item, nextcallback, callback) { 
+    
+    server='/siak-devel/'+'get-next-word';
+    
+    var test = false;
+    var username = "foo1";
+    var password = "bar1";
+    
+    var formData = new FormData();
 
+    var get_next_word = new XMLHttpRequest();
+
+    get_next_word.open('POST', server, true);
+
+    get_next_word.setRequestHeader("x-siak-user", username);
+    get_next_word.setRequestHeader("x-siak-password", password);
+    get_next_word.setRequestHeader("x-siak-packetnr", "-2");
+
+    get_next_word.onreadystatechange = function(e) {
+        if ( 4 == this.readyState ) {
+
+	    if (get_next_word.status === 200) {		
+		word_and_stats =  JSON.parse(get_next_word.responseText);
+		word = word_and_stats.word;
+		console.log("Next word", word);
+		console.log(get_next_word);
+		callback(word, item, nextcallback);
+
+	    } else if (get_next_word.status === 502) {
+		document.getElementById('scorecard').innerHTML += "<h4>-2 Problem: Server down!</h4>";
+
+	    } else {
+		document.getElementById('scorecard').innerHTML += "<h4>-2 Problem: Server responded "+ get_next_word.status +"</h4>";
+	    }
+	}
+	/*else {
+	    console.log("get_next_word in state "+this.readyState);
+	}*/
+    };
+
+    get_next_word.send(formData);
+    
+
+    
+}
 
 
 function get_new_logdiv() {

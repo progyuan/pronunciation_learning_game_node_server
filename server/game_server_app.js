@@ -117,7 +117,7 @@ http.createServer(function (req, res) {
 			 }			 
 			 if (req.url == "/get-next-word") 
 			 {
-			     get-next-word(req, res);
+			     get_next_word(req, res);
 			 }
 			 if (req.url == "/finish-level") 
 			 {
@@ -1176,11 +1176,31 @@ var get_next_word = function(req,res) {
     if (typeof(level) == 'undefined') 
 	level = "L0";
 
-    var nextword;
+    //if (! 'user' in userdata) {
+    //	init_userdata(user);
+    //}
 
-    if (levelwordstack in userdata[user] && userdata[user].levelwordstack.length>0) {
+    var nextword;
+    console.log("checking word stack:")
+    console.log(user in userdata)
+    if (user in userdata) {
+	console.log('levelwordstack' in userdata[user])
+	if ('levelwordstack' in userdata[user]) 
+	    console.log(userdata[user].levelwordstack.length>0)
+    }
+
+    if (user in userdata 
+	&& 'levelwordstack' in userdata[user] 
+	&& userdata[user].levelwordstack.length>0) {
+
+	console.log("Levelwordstack in place:");
+	console.log(userdata[user].levelwordstack);
+
 	nextword = userdata[user].levelwordstack[0];
-	userdata[user].levelwordstack[0] =  userdata[user].levelwordstack[0].slice(1);
+	userdata[user].levelwordstack =  userdata[user].levelwordstack.slice(1);
+	res.end( JSON.stringify( nextword));
+
+	
     }
     else {
 	game_data_handler.get_and_somehow_order_words_for_level(user, 
@@ -1198,6 +1218,10 @@ var get_next_word = function(req,res) {
 								    }
 								    
 								    userdata[user].currentlevel = level;
+
+								    console.log("New levelwordstack:");
+								    console.log(userdata[user].levelwordstack);
+
 								    nextword=words[0];
 								    userdata[user].levelwordstack = words.slice(1);
 								    res.end( JSON.stringify( nextword));

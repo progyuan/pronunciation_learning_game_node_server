@@ -2,6 +2,247 @@ var _isBrowser = typeof window !== 'undefined' && window.location;
 
 var Matter = _isBrowser ? window.Matter : require(BASEURL+'/js/fysiak/matter-dev.js');
 
+var home= BASEURL+'/images/';
+
+// Define the look and feel of the game:
+// Colors:
+
+var box_colors = {
+    start: 'green',
+    visited: 'lightgreen',
+    locked: 'red',
+    unlocked: 'orange',
+    exit: 'red'
+};
+
+var active_box_colors = {
+    start: 'green',
+    visited: 'lightgreen',
+    locked: 'red',
+    unlocked: 'yellow',
+    exit : 'red'
+}
+
+var score_sprites = {
+    score1: home+'./score1.png',
+    score2: home+'./score2.png',
+    score3: home+'./score3.png' ,
+    score4: home+'./score4.png' ,
+    score5: home+'./score5.png',
+    exit: home+'./exit.png',
+    start: home+'./start.png',
+    //locked : home+'./locked.png',
+    //unlocked : home+'./unlocked.png',
+};
+
+var spritesize = 25;
+var nodesize = 16;
+var defaultStiffness = 0.2;
+var defaultFriction = 0.01;
+var defaultAirFriction = 0.1;
+
+var box_colors = {
+    start: 'green',
+    visited: 'lightgreen',
+    locked: 'red',
+    unlocked: 'orange',
+    exit: 'red'
+};
+
+var possible_edge = { lineWidth: 5 , visible: true, strokeStyle: 'lightgreen'};
+var blocked_edge = { lineWidth: 3 , visible: true, strokeStyle: 'darkred'};
+var orange_edge = { lineWidth: 4 , visible: true, strokeStyle: 'orange'};
+
+var edgestyles = {
+    'start-unlocked' : possible_edge,
+    'unlocked-start' : possible_edge,
+    'unlocked-unlocked' : orange_edge,
+    'unlocked-locked' : blocked_edge,
+    'locked-unlocked' : blocked_edge,
+    'locked-locked' : blocked_edge,
+    'visited-visited' : possible_edge,
+    'visited-start' : possible_edge,
+    'visited-unlocked' : possible_edge,
+    'unlocked-visited' : possible_edge,
+    'locked-exit' : blocked_edge,
+    'unlocked-exit' : blocked_edge,
+    'visited-exit' : possible_edge,
+    'exit-visited' : possible_edge,
+    'exit-locked' : blocked_edge,
+    'exit-unlocked' : blocked_edge
+}
+
+// Level building helping functions: 
+
+var getEdgePoint = function(itemA, itemB) {
+    // Get a point on the edge of itemA in the direction of itemB:
+
+    var vec = {x:itemA.circleRadius, y:0}; 
+    var angle = Matter.Vector.angle(itemA.position, itemB.position);
+    return Matter.Vector.rotate(vec, angle);
+}
+
+
+
+// Level building function:
+
+
+var json_to_world_objects = function(level) {
+    
+    
+    box_properties = level.box_properties;
+    edge_array = level.edge_array;
+    shelf_properties = level.shelf_properties;
+
+    object_properties = [];
+
+
+    boxes = {};
+    Object.keys(box_properties).forEach( function(key) {
+	item = box_properties[key];
+	if (item.type in score_sprites) {
+	    boxes[key]=Matter.Bodies.circle(item.x, 
+					    item.y, 
+					    spritesize,
+					    //boxes[key]=Bodies.rectangle(item.x, item.y, 30,30, 
+					    { // options:
+						label:  key, 
+						render:{ 
+						    fillStyle: box_colors[item.type],
+						    sprite : {
+							texture :  score_sprites[item.type],
+						    }
+						},
+						friction: defaultFriction,
+						frictionAir: defaultAirFriction,
+					    });
+	    
+	}
+	else {
+	    boxes[key]=Matter.Bodies.circle(item.x, item.y, nodesize,
+				     //boxes[key]=Bodies.rectangle(item.x, item.y, 30,30, 
+				     { label: key, 
+				       render:{ 
+					   fillStyle: box_colors[item.type],
+				       },
+				       friction: defaultFriction,
+				       frictionAir: defaultAirFriction,
+				     }
+				    );
+	}
+	Matter.Body.setDensity(boxes[key], 0.3);
+	object_properties[ boxes[key].id ] = box_properties[key];
+    });
+    
+
+
+/*    box_array = [];
+    Object.keys(boxes).forEach(function(box) {
+	box_array.push(boxes[box]);
+    });
+
+    box_compound = Matter.Body.create({
+            parts: box_array
+    });
+*/
+    stars = {};
+    hangers = {};
+    edges = {};
+    invisible_edges = {};
+
+    edge_array.forEach( function(ends) {
+	edges[ends[0]+ends[1]] =  Matter.Constraint.create(
+	    {
+		bodyA: boxes[ends[0]],
+		bodyB: boxes[ends[1]],
+		stiffness: 0.01,//0.01,
+		render: //strokeStyle
+		edgestyles[ box_properties[ends[0]].type +'-' + box_properties[ends[1]].type ],
+		pointA: getEdgePoint ( boxes[ends[0]],  boxes[ends[1]] ),
+		pointB: getEdgePoint ( boxes[ends[1]], boxes[ends[0]] )
+		//pointB: {x:-15, y:0}
+	    });
+	invisible_edges[ends[0]+ends[1]] =  Matter.Constraint.create(
+	    {
+		bodyA: boxes[ends[0]],
+		bodyB: boxes[ends[1]],
+		stiffness: defaultStiffness,
+		render: {visible:false},
+		//pointB: {x:-15, y:0}
+	    });
+
+	object_properties[ edges[ends[0]+ends[1]].id  ] = edges[ends[0]+ends[1]];
+	object_properties[ invisible_edges[ends[0]+ends[1]].id  ] = invisible_edges[ends[0]+ends[1]];
+    });
+
+    var shelves = [];
+    Object.keys(shelf_properties).forEach( function(key) {
+	s=shelf_properties[key];
+	shelf = Matter.Bodies.rectangle( s.x, s.y, s.width, s.height, {isStatic: s.isStatic})
+	if ("angle" in s) {
+	    Matter.Body.rotate(shelf, s.angle);
+	}
+	shelves.push(shelf);
+    });
+
+    
+    
+    //object_stack = [box_compound];
+
+//    Object.keys(edges).forEach( function(edge) { object_stack.push( edges[edge] ) }  );
+    //Object.keys(invisible_edges).forEach( function(edge) { object_stack.push( invisible_edges[edge] ) }  );
+    
+  
+
+    object_stack = Matter.Composite.create();
+    Object.keys(boxes).forEach( function(box) { Matter.Composite.add(object_stack, boxes[box]) }  )
+    Object.keys(edges).forEach( function(edge) { Matter.Composite.add(object_stack, edges[edge]) }  )
+    Object.keys(invisible_edges).forEach( function(edge) { Matter.Composite.add(object_stack, invisible_edges[edge]) }  )
+    
+
+
+    // add all of the bodies to the world
+    return   {shelves: shelves, 
+	      object_stack: object_stack,
+	      object_properties : object_properties};
+    
+}
+
+
+var prepare_level_meta = function (level) {
+
+    levelmeta = 
+	{ leveltitle : level.meta.levelname,
+	  maxstars : 0
+	}
+
+    if ("constants" in level) 
+	dummy = 1;
+    else	
+	level.constants = {}
+
+    if ("timelimit" in level.constants) 
+	levelmeta.timelimit = level.constants.timelimit;
+    else
+	levelmeta.timelimit = 60; //global_default_constants.timelimit;
+
+    Object.keys(level.box_properties).forEach( function(key) {
+	if (level.box_properties[key].type == 'locked' || level.box_properties[key].type == 'unlocked') {
+	    levelmeta.maxstars += 5;
+	    //box_properties[key].word = words.pop();
+	}
+    });
+
+    document.getElementById('leveltitle').innerHTML = levelmeta.leveltitle;
+    document.getElementById('maxstars').innerHTML = levelmeta.maxstars;
+    document.getElementById('timeleft').innerHTML = levelmeta.timelimit;
+    document.getElementById('starcount').innerHTML = 0;
+
+
+    //game_timer(levelmeta.timelimit);
+}
+
+
 var Levels = {};
 Matter.Levels = Levels;
 
@@ -10,26 +251,181 @@ if (!_isBrowser) {
 }
 
 (function() {
-
     var World = Matter.World,
         Bodies = Matter.Bodies;
+        Constraint = Matter.Constraint,
+        Events = Matter.Events;
 
-    Levels.airFriction = function(game) {
+    Levels.testA = function(game) {
         var engine = game.engine,
             world = engine.world;
         
-        World.add(world, [
+	var level_def = {
+	    meta: 
+	    {
+		levelname: "A gentle intro",
+		author: "Reima",
+		date: "Oct 27 2016"
+	    },
+	    // Nodes:
+	    box_properties:
+	    {
+		A : {x:  175,  y: 175,  clickable : false, type: 'start', score: 0},
+		B : {x:  295,  y: 50,  clickable : true, type: 'unlocked', score: 0},
+		C : {x:  375, y: 330,  clickable : false, type: 'exit', score: 0, winnable: false},
+	    },
+	    // Edges:
+	    edge_array :
+	    [
+		['A','B'], 
+		['B','C']
+	    ],
+	    // Static objects:
+	    shelf_properties :
+	    {
+		ground: { x: 400, y: 550, height: 100, width: 800, angle: 0.03* Math.PI, isStatic: true},
+	    },
+	    constants: 
+	    {
+		timelimit: 10		
+	    }
+	}
+
+	level = JSON.parse(JSON.stringify(level_def));
+	prepare_level_meta(level);
+	//game.box_properties = level.box_properties;
+	world_objects = json_to_world_objects(level);
+	
+	game.object_stack =  world_objects.object_stack;
+	game.object_properties = world_objects.object_properties;
+	game.stars = {};
+
+
+        World.add(world, world_objects.shelves.concat(game.object_stack));/*[
             Bodies.rectangle(200, 100, 60, 60, { frictionAir: 0.001 }),
             Bodies.rectangle(400, 100, 60, 60, { frictionAir: 0.05 }),
             Bodies.rectangle(600, 100, 60, 60, { frictionAir: 0.1 })
-        ]);
+        ]);*/
 
+	game.timelimit =  level.constants.timelimit;
         var renderOptions = engine.render.options;
         renderOptions.showAngleIndicator = false;
         renderOptions.showVelocity = true;
     };
     
 })();
+
+(function() {
+
+    var World = Matter.World,
+        Bodies = Matter.Bodies;
+        Constraint = Matter.Constraint,
+        Events = Matter.Events;
+
+    Levels.testB = function(game) {
+        var engine = game.engine,
+            world = engine.world;
+        
+	var level_def = {
+	    meta: 
+	    {
+		levelname: "A gentle intro",
+		author: "Reima",
+		date: "Oct 27 2016"
+	    },
+	    // Nodes:
+	    box_properties:
+	    {
+		A : {x:  75,  y: 175,  clickable : true, type: 'start', score: 0},
+		A1 :{x:  75,  y: 50,  clickable : true, type: 'unlocked', score: 0},
+		B : {x:  150, y: 75,  clickable : true, type: 'unlocked', score: 0},
+		C : {x:  200, y: 220,  clickable : true, type: 'unlocked', score: 0},
+		D : {x:  375, y: 100,  clickable : false, type: 'locked', score: 0},
+		E : {x:  355, y: 250,  clickable : false, type: 'locked', score: 0},
+		F : {x:  475, y: 100,  clickable : false, type: 'locked', score: 0},
+		G : {x:  525, y: 250,  clickable : false, type: 'locked', score: 0},
+		H : {x:  675, y: 175,  clickable : false, type: 'locked', score: 0},
+		I : {x:  675, y: 450,  clickable : false, type: 'exit', score: 0, winnable: false},
+	    },
+
+	    // Edges:
+	    edge_array :
+	    [
+		['A','B'], ['A','C'], ['A','A1'], ['A1','B'],
+		['B','C'], ['B','D'],['C','D'], ['C','E' ], 
+		['D','E'],
+		['D','F'], ['D','G'], ['E','G'],
+		['F','H'], ['G','H'],
+		['H','I']
+	    ],
+
+	    // Static objects:
+	    shelf_properties :
+	    {
+		left_shelf: { x: 80, y: 260, height: 80, width: 120, angle: -0.03*Math.PI, isStatic: true},
+		right_shelf: { x: 360, y: 300, height: 80, width: 120,angle: 0.01*Math.PI, isStatic: true},
+	    },
+	    constants: 
+	    {
+		timelimit: 40		
+	    }
+	}
+
+	level = JSON.parse(JSON.stringify(level_def));
+	prepare_level_meta(level);
+	//game.box_properties = level.box_properties;
+	world_objects = json_to_world_objects(level);
+	
+	game.object_stack =  world_objects.object_stack;
+	game.object_properties = world_objects.object_properties;
+
+        World.add(world, world_objects.shelves.concat(game.object_stack));/*[
+            Bodies.rectangle(200, 100, 60, 60, { frictionAir: 0.001 }),
+            Bodies.rectangle(400, 100, 60, 60, { frictionAir: 0.05 }),
+            Bodies.rectangle(600, 100, 60, 60, { frictionAir: 0.1 })
+        ]);*/
+
+	game.timelimit =  level.constants.timelimit;
+	game.stars = {};
+        var renderOptions = engine.render.options;
+        renderOptions.showAngleIndicator = false;
+        renderOptions.showVelocity = true;
+    };
+    
+})();
+
+
+(function() {
+
+    var World = Matter.World,
+        Bodies = Matter.Bodies;
+        Constraint = Matter.Constraint,
+        Events = Matter.Events;
+
+    Levels.levelEditor = function(game) {
+        var engine = game.engine,
+            world = engine.world;
+        
+	var level = jQuery.parseJSON(document.getElementById('leveleditor').value ); // JSON.parse( document.getElementById('leveleditor').value );
+	
+	prepare_level_meta(level);
+	//game.box_properties = level.box_properties;
+	world_objects = json_to_world_objects(level);
+	
+	game.object_stack =  world_objects.object_stack;
+	game.object_properties = world_objects.object_properties;
+
+        World.add(world, world_objects.shelves.concat(game.object_stack));
+
+	game.timelimit =  level.constants.timelimit;
+	game.stars = {};
+        var renderOptions = engine.render.options;
+        renderOptions.showAngleIndicator = false;
+        renderOptions.showVelocity = true;
+    };
+    
+})();
+
 (function() {
 
     var World = Matter.World,
@@ -55,6 +451,7 @@ if (!_isBrowser) {
     };
 
 })();
+
 (function() {
 
     var World = Matter.World,
@@ -584,8 +981,8 @@ if (!_isBrowser) {
     Levels.engine = function(game) {
         // some example engine options
         var options = {
-            positionIterations: 6,
-            velocityIterations: 4,
+            positionIterations: 12,// 6,
+            velocityIterations: 12, //4,
             enableSleeping: false,
             metrics: { extended: true }
         };
@@ -1841,3 +2238,5 @@ if (!_isBrowser) {
     };
 
 })();
+/*
+*/
