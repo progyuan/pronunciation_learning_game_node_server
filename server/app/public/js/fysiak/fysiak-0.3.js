@@ -1,48 +1,685 @@
-(function() {
-
-    var _isBrowser = typeof window !== 'undefined' && window.location,
-        _useInspector = _isBrowser && window.location.hash.indexOf('-inspect') !== -1,
-        _isMobile = _isBrowser && /(ipad|iphone|ipod|android)/gi.test(navigator.userAgent),
-        _isAutomatedTest = !_isBrowser || window._phantom;
-
-    var Matter = _isBrowser ? window.Matter : require(BASEURL+'/js/fysiak/matter-dev.js');
-
-    var Game = {};
-    Matter.Game = Game;
 
 
 
-    // reset game timer:
+var canvas = document.getElementById("gamecanvas");
 
-    var game_time_left = 0;
-    var timer_running = false;
-    var timer_instance;
+var w = canvas.width,
+    h = canvas.height;
+var scaleX = 20, scaleY = -20;
 
-    if (!_isBrowser) {
-        module.exports = Game;
-        window = {};
+// Create a physics world, where bodies and constraints live
+var world = new p2.World({
+    gravity:[ 0, -9.82]
+});
+
+var defaultNodeRadius = 2;
+var defaultStarRadius=0.8;
+
+circleBodiesArray = [];
+
+var nodes = {
+    'START': { position: [ 0.7  , 15.4   ], mass: 5 , type: 'start', word: 'START', color: 'lightgreen' },
+    'EXIT': { position: [ -3.7  , 15.4  ], mass: 5 , type: 'exit', word: 'EXIT' , color: 'red' },
+    'A': { position: [ -3.7  , 25.4  ], mass: 5 , type: 'unlocked', word: false },
+    'B': { position: [ 0.7  , 25.4  ], mass: 5 , type: 'locked', word: false },
+} 
+var hitNode = null;
+
+var id_to_node = {};
+
+circleBodies = {};
+starBodies = [];
+hangerBodies = [];
+
+Object.keys(nodes).forEach(function (key) {
+    node = nodes[key];
+    
+    circleBody = new p2.Body({
+	mass: node.mass,
+	position: node.position,
+    });
+	
+    var circleShape = new p2.Circle({ radius: defaultNodeRadius });
+
+    circleBody.addShape(circleShape);
+
+    circleBodies[circleBody.id]=circleBody;
+    circleBodiesArray.push(circleBody);
+
+    // ...and add the body to the world.
+    // If we don't add it to the world, it won't be simulated.
+    world.addBody(circleBody);
+    nodes[key].id =  circleBody.id;
+    id_to_node[circleBody.id] = key;
+});
+
+
+var edges = [
+    { from: 'START', to: 'A', type: 'spring', options: {stiffness: 1000}  },
+    { from: 'START', to: 'B', type: 'spring', options: {stiffness: 1000}  },
+    { from: 'A', to: 'B', type: 'spring', options: {stiffness: 1000}  },     
+    { from: 'B', to: 'EXIT', type: 'spring', options: {stiffness: 1000}  },     
+    { from: 'A', to: 'EXIT', type: 'spring', options: {stiffness: 1000}  },     
+]
+
+
+Object.keys(edges).forEach(function (key) {    
+    e = edges[key];    
+    if (e.type == 'spring') {
+	e.p2object = new p2.LinearSpring( circleBodies[nodes[e.from].id], circleBodies[nodes[e.to].id] , e.options),
+	world.addSpring(e.p2object);
+    }
+});
+
+
+
+
+
+
+
+
+// Add a plane
+planeShape = new p2.Plane();
+planeBody = new p2.Body();
+planeBody.addShape(planeShape);
+world.addBody(planeBody);
+
+
+// To animate the bodies, we must step the world forward in time, using a fixed time step size.
+// The World will run substeps and interpolate automatically for us, to get smooth animation.
+var fixedTimeStep = 1 / 60; // seconds
+var maxSubSteps = 10; // Max sub steps to catch up with the wall clock
+var lastTime;
+
+
+// Rendering style:
+
+var nodeColors = {
+    'start': { fill: 'lightgreen',
+	       stroke: 'black',
+	       activeFill: 'green',
+	       activeStroke: 'yellow',
+	     },
+    'exit': { fill: 'brown',
+	      stroke: 'black',
+	      activeFill: 'orange',
+	      activeStroke: 'yellow',
+	    },	
+    'activeExit': { fill: 'lightgreen',
+		    stroke: 'black',
+		    activeFill: 'green',
+		    activeStroke: 'yellow',
+		  },   
+    'visited': { fill: 'lightgreen',
+		 stroke: 'black',
+		 activeFill: 'lightgreen',
+		 activeStroke: 'yellow',
+	     },
+    'locked': { fill: 'darkgreen',
+		stroke: 'black',
+		activeFill: 'green',
+		activeStroke: 'yellow',
+	      },
+    'unlocked': { fill: 'lightgreen',
+		  stroke: 'black',
+		  activeFill: 'green',
+		  activeStroke: 'yellow',
+		},
+    'static' :  { fill: 'lightblue',
+		  stroke: 'darkblue'
+		}
+}
+
+
+var edgeColors = {
+    'active' :  {
+	outer: 'green',
+	inner: 'lightgreen'
+    },
+    'inactive' : {
+	outer: 'black',
+	inner: 'brown'
+    }
+}
+
+var get_edge_colors = function(bodyA, bodyB ) {
+    from = nodes[ id_to_node[bodyA.id] ].type;
+    to = nodes[ id_to_node[bodyB.id] ].type;
+
+    if (from == 'start' || to == 'start') 
+	return edgeColors.active;	
+    if (from == 'visited' || to == 'visited') 
+	return edgeColors.active;	
+
+    return edgeColors.inactive
+}
+
+
+// Animation loop
+
+
+function animate(time){
+    requestAnimationFrame(animate);
+
+    ctx = canvas.getContext("2d");
+    ctx.lineWidth = 0.05;
+
+    // Compute elapsed time since last render frame
+    var deltaTime = lastTime ? (time - lastTime) / 1000 : 0;
+
+    // Move bodies forward in time
+    world.step(fixedTimeStep, deltaTime, maxSubSteps);
+
+    // Clear the canvas
+    ctx.clearRect(0,0,w,h);
+    
+    // Transform the canvas
+    ctx.save();
+    ctx.translate(w/2, h/2); // Translate to the center
+    ctx.scale(scaleX, scaleY);
+    
+    // Draw all bodies
+    drawEdges();
+    drawCircles();
+    drawPlane();
+
+
+    // Restore transform
+    ctx.restore();
+
+
+    lastTime = time;
+    
+    
+    function drawEdges(){
+	
+	
+	Object.keys(edges).forEach(function (key) {
+	    c = edges[key].p2object;
+
+	    x1 = c.bodyA.position[0];
+	    y1 = c.bodyA.position[1];
+
+	    x2 = c.bodyB.position[0];
+	    y2 = c.bodyB.position[1];
+
+	    len =  Math.sqrt( (x1-x2) * (x1-x2) + (y1-y2)*(y1-y2));
+
+	    lenRatio =  (c.restLength / len) * (c.restLength / len) *  (c.restLength / len);
+
+	    ctx.lineWidth = 0.25 * lenRatio;
+	    
+	    colors = get_edge_colors( c.bodyA, c.bodyB );
+
+	    ctx.strokeStyle= colors.outer;
+
+	    ctx.beginPath();
+	    ctx.moveTo(x1, y1);
+	    ctx.lineTo(x2, y2);
+	    ctx.stroke();
+
+	    ctx.lineWidth = 0.15 * lenRatio;
+	    ctx.strokeStyle=colors.inner;
+
+	    ctx.lineTo(x1, y1);
+	    ctx.stroke();
+	    
+	    
+
+	});
+
     }
 
-    // Matter aliases
-    var Body = Matter.Body,
-        Levels = Matter.Levels,
-        Engine = Matter.Engine,
-        World = Matter.World,
-        Common = Matter.Common,
-        Bodies = Matter.Bodies,
-        Events = Matter.Events,
-        Mouse = Matter.Mouse,
-        MouseConstraint = Matter.MouseConstraint,
-        Runner = Matter.Runner;
 
-    // MatterTools aliases
-    /*
-    if (window.MatterTools) {
-        var Gui = MatterTools.Gui,
-            Inspector = MatterTools.Inspector;
+    function drawCircles(){
+
+
+
+	Object.keys(nodes).forEach(function (key) {
+
+	    circleBody = circleBodies[nodes[key].id];
+
+
+
+	    if (circleBody.id == hitNode)  {		
+		ctx.fillStyle = nodeColors[ nodes[key].type ].activeFill;
+		ctx.lineWidth = 0.10;		
+		ctx.strokeStyle= nodeColors[ nodes[key].type ].activeStroke;
+	    }
+	    else {
+		ctx.fillStyle = nodeColors[ nodes[key].type ].fill;		
+		ctx.lineWidth = 0.05;		
+		ctx.strokeStyle= nodeColors[ nodes[key].type ].stroke;
+	    }
+
+
+            ctx.beginPath();
+            ctx.save();
+
+            var x = circleBody.position[0],
+            y = circleBody.position[1],
+            radius = defaultNodeRadius;
+
+            ctx.arc(x,y,radius,0,2*Math.PI);
+            ctx.stroke();
+
+
+
+	    ctx.fill();
+	    //ctx.restore();
+	    
+	    if (nodes[key].word) {
+		txt = nodes[key].word; 
+	    }
+	    else txt = '?';
+
+	    if (nodes[key].fontSize)
+		ptSize = nodes[key].fontSize
+	    else {
+		ptSize = 2*defaultNodeRadius;
+		do {
+		    ptSize-=0.2;
+		    ctx.font = ptSize+"px Arial";
+		    txtw=ctx.measureText(txt).width;
+		} while (txtw > defaultNodeRadius*2)
+	    }
+	    
+	    //ctx.save();
+	    ctx.translate(x, y);   // Translate to the center of the box
+	    ctx.rotate(circleBody.angle);  // Rotate to the box body frame
+	    
+	    ctx.fillStyle = 'black';
+	    ctx.scale(1, -1);
+	    ctx.strokeText(txt, -0.5*txtw, 0.35*ptSize);
+	    
+	    ctx.restore();   
+		
+	});
+
+	starBodies.forEach(function (circleBody) {
+
+	    ctx.lineWidth = 0.05;
+	    ctx.strokeStyle='black';
+
+            ctx.beginPath();
+            ctx.save();
+
+            var x = circleBody.position[0],
+            y = circleBody.position[1],
+            radius = defaultStarRadius;
+
+            ctx.arc(x,y,radius,0,2*Math.PI);
+            ctx.stroke();
+	    
+	    ctx.fillStyle = 'pink';
+	    ctx.fill();
+	    //ctx.restore();
+
+	    ptSize = 2*defaultStarRadius;
+	    ctx.font = ptSize+"px Arial";	    
+	    txt = "\u2605";
+	    txtw=ctx.measureText(txt).width;
+	    
+
+	    //ctx.save();
+	    ctx.translate(x, y);   // Translate to the center of the box
+	    ctx.rotate(circleBody.angle);  // Rotate to the box body frame
+	    
+	    ctx.fillStyle = 'black';
+	    ctx.scale(1, -1);
+	    ctx.strokeText(txt, -0.5*txtw, 0.35*ptSize);
+	    
+	    ctx.restore();   
+		
+	});
+
     }
-    */
+    
+    function drawPlane(){
+	ctx.strokeStyle= nodeColors[ 'static' ].stroke;
+	ctx.fillStyle = nodeColors[ 'static' ].activeFill;
+	ctx.lineWidth = 0.05;
+	
+        var y = planeBody.position[1];
+        ctx.moveTo(-w, y);
+        ctx.lineTo( w, y);
+        ctx.stroke();
+    }
+    
 
+}
+
+
+
+// Event listeners:
+
+canvas.addEventListener('mousedown', function(event){
+    
+    // Convert the canvas coordinate to physics coordinates
+    var position = getPhysicsCoord(event);
+
+    console.log("Mouse down at world coords:", position);
+    
+    // Check if the cursor is inside the box
+    var hitBodies = world.hitTest(position, circleBodiesArray);
+    
+    if(hitBodies.length) {
+	node = nodes[id_to_node[hitBodies[0].id]];
+	console.log("hit body:", node.type, node.word);
+	
+	if (node.type == 'unlocked' || node.type == 'visited') {
+	    handle_scoring( id_to_node[hitBodies[0].id] );
+	} else 	if (node.type == 'activeExit') {
+	    win_game();
+	}
+
+    }
+});
+
+    
+canvas.addEventListener('mousemove', function(evt) {
+   
+    // Convert the canvas coordinate to physics coordinates
+    var position = getPhysicsCoord(event);
+    
+    // Check if the cursor is inside the box
+    var hitBodies = world.hitTest(position, circleBodiesArray);
+    
+    hitNode = null;
+    if(hitBodies.length){
+        //console.log("over body!");
+	hitNode = hitBodies[0].id; 
+    }
+});
+
+addableEdges = [];
+
+// The beginContact event is fired whenever two shapes starts overlapping, including sensors.
+world.on("beginContact",function(event){
+    console.log("Contact! BodyA", event.bodyA.id, "BodyB: ", event.bodyB.id);
+
+    if ( id_to_node[event.bodyA.id] &&  id_to_node[event.bodyB.id]) {
+
+	bodyA = id_to_node[event.bodyA.id];
+	bodyB = id_to_node[event.bodyB.id];
+	console.log(bodyA, bodyB);
+
+	addEdge = true;
+	// Unlock the close-by edges and nodes 
+	Object.keys(edges).forEach( function(key) {
+	    e=edges[key];
+	    if (e.from == bodyA || e.to == bodyA ) {
+		if (e.from == bodyB || e.to == bodyB ) {
+		    addEdge = false;
+		}
+	    }
+	});
+	if (addEdge) {	    
+	    addableEdges.push({ from: bodyA, to: bodyB, type: 'spring', options: {stiffness: 30, restLength: 4 * defaultNodeRadius }});
+
+	    // Make it winnable?
+	    typeA = nodes[bodyA].type;
+	    typeB = nodes[bodyB].type;
+
+	    if (typeA == 'exit' && ( typeB == 'visited' || typeB == 'start' )) {
+		bodyA.type = 'activeExit';
+	    }	    
+	    if (typeB == 'exit' && ( typeA == 'visited' || typeA == 'start' )) {
+		bodyB.type = 'activeExit';
+	    }
+
+	    // Open new nodes?
+	    if (typeA == 'locked' && ( typeB == 'visited' || typeB == 'start' )) {
+		bodyA.type = 'unlocked';
+	    }	    
+	    if (typeB == 'locked' && ( typeA == 'visited' || typeA == 'start' )) {
+		bodyB.type = 'unlocked';
+	    }
+
+
+
+
+	}
+
+
+    }
+});
+
+
+world.on("postStep",function(event){
+
+    if (addableEdges.length > 0) {
+	for (i=0; i< addableEdges.length; i++) { 
+	    e = addableEdges.pop();
+	    if (e.type == 'spring') {
+		console.log("Adding spring between ",e.from, "and",e.to);
+		e.p2object = new p2.LinearSpring( circleBodies[nodes[e.from].id], circleBodies[nodes[e.to].id] , e.options),
+		world.addSpring(e.p2object);
+		edges.push(e);
+	    }
+	}
+    }
+})
+
+
+// Convert a canvas coordiante to physics coordinate
+function getPhysicsCoord(mouseEvent){
+    var rect = canvas.getBoundingClientRect();
+    var x = mouseEvent.clientX - rect.left;
+    var y = mouseEvent.clientY - rect.top;
+
+    x = (x - w / 2) / scaleX;
+    y = (y - h / 2) / scaleY;
+
+    return [x, y];
+}
+
+
+
+
+// Start the animation loop
+requestAnimationFrame(animate);
+
+world.on('postStep', function(event){
+
+    // Add horizontal spring force
+    //circleBody.force[0] -= 100 * circleBody.position[0];
+});
+
+
+//
+// Game timer functions:
+//
+
+
+var game_time_left;
+var timer_running = false;
+var timer_instance = null;
+
+game_timer = function (timelimit) {
+    game_time_left = timelimit;
+    timer_running = true;
+
+    if (timer_instance) 
+	window.clearInterval(timer_instance);
+
+    timer_instance = setInterval( function() {
+	if (timer_running && game_time_left >= 0) {
+	    game_time_left -= 0.1;
+	    if (game_time_left < 0) {
+		timer_running=false;
+		Game.out_of_time(game);
+	    }
+	    else {
+		if (game_time_left > 10)
+		    document.getElementById('timeleft').innerHTML = Math.floor(game_time_left);
+		else
+		    document.getElementById('timeleft').innerHTML = (Math.floor(game_time_left*10)/10);
+	    }
+	}	
+    }, 100);
+}
+
+var pause_game = function () {
+    pause_timer();
+}
+
+
+var continue_game = function() {
+    continue_timer();
+}
+
+var pause_timer = function () {
+    timer_running = false;
+}
+
+var continue_timer = function() {
+    timer_running = true;
+}
+
+
+//
+// Game functions:
+//
+
+debug_score=0;
+
+var handle_scoring = function(node_id) {
+    pause_game();
+
+    document.getElementById('scorewrapper').style.visibility = "visible";
+    document.getElementById('scorecard').style.visibility = "visible";
+
+    //var score = Math.floor((Math.random() * 5.9999))
+    if (nodes[node_id].word) {
+	var word = nodes[node_id].word;
+	document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>';
+	//get_score_for_word(word, node_id, apply_scoring);
+	apply_scoring(node_id, ++debug_score);
+    }
+    else {
+	document.getElementById('score').innerHTML='Getting a word for you..';
+	get_word_to_score(node_id, apply_scoring, function(word, node_id, callback) { 		    
+	    //console.log(nodes[node_id]);
+	    nodes[node_id].word = word;
+	    //console.log(nodes[node_id]);
+	    document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
+	    //get_score_for_word(word, node_id, callback);
+	    apply_scoring(node_id, ++debug_score);
+	});
+    }
+}
+
+
+
+var apply_scoring = function(node_id, score) {
+
+    document.getElementById('score').innerHTML +='<br>You scored '+score;
+    setTimeout(function(){ 
+	document.getElementById('scorewrapper').style.visibility = "hidden";
+	document.getElementById('scorecard').style.visibility = "hidden";
+	continue_game();
+    }, 1300);
+
+    if (score > (nodes[node_id].score | 0 )) {
+	// If the score was good enough, add some stars:
+	addStars(node_id, score);
+
+	// Mark the node as visited:
+	console.log("Node", node_id, ":",nodes[node_id]);
+	nodes[node_id].type = 'visited';
+	//item.render.fillStyle=box_colors[game.object_properties[ item.id].type];
+
+	// Unlock the close-by edges and nodes 
+	Object.keys(edges).forEach( function(key) {
+	    console.log(edges);
+	    console.log("key:",key);
+	    e=edges[key];
+	    
+	    if (e.from == node_id || e.to == node_id ) {
+		itemA = nodes[ e.from ];
+		itemB = nodes[ e.to ];
+		console.log(itemA, itemB);
+		if (itemA.type == 'locked')
+		    itemA.type = 'unlocked';
+		if  (itemB.type == 'locked')
+		    itemB.type = 'unlocked';
+		if  (itemA.type == 'exit')
+		    itemA.type = 'activeExit';
+		if  (itemB.type == 'exit')
+		    itemB.type = 'activeExit';
+		console.log(itemA, itemB);
+		
+	    }
+	});
+
+	nodes[node_id].score = score;
+    }
+    if (score > 0 ) {
+	// Apply force!
+	//Matter.Body.applyForce(item, item.position, Matter.Vector.create(0, getScoreForce(score)) );
+    }
+
+
+}
+
+
+var addStars = function(node_id, score) {
+
+    // Distance between node and star centres:
+    var dist = defaultNodeRadius + 1.5 * defaultStarRadius
+    var sqt2 = Math.sqrt(2);
+
+    star_offsets = [
+	{x: 0, y: -dist }, // 0
+	{x: -dist/sqt2, y: -dist/sqt2}, // 1
+	{x: dist/sqt2, y: -dist/sqt2}, // 2
+	{x: -dist, y: 0}, // 3
+	{x: 0, y: dist}, // 4
+    ]
+    
+    stars = {}
+
+    item = circleBodies[ nodes[node_id].id ];
+
+    for (i= (nodes[node_id].score | 0); i < score; i++) {
+
+	star = {
+	    position : [
+		item.position[0]+star_offsets[i].x,
+		item.position[1]+star_offsets[i].y,
+	    ],
+	    mass: 15
+	}
+	
+	circleBody = new p2.Body({
+	    mass: star.mass,
+	    position: star.position,
+	});
+	
+
+	var circleShape = new p2.Circle({ radius: defaultStarRadius });
+	circleBody.addShape(circleShape);
+	world.addBody(circleBody);
+	starBodies.push(circleBody);
+
+	var hanger = new p2.LinearSpring( item, circleBody, {stiffness: 1000, restLength: defaultNodeRadius + defaultStarRadius} );
+	world.addSpring(hanger);
+    }
+    
+    update_star_count();
+
+}
+
+
+var update_star_count = function() {
+    var starcount= starBodies.length;
+    document.getElementById('starcount').innerHTML = starcount;
+}
+
+
+
+/*
 
     Game.create = function(options) {
         var defaults = {
@@ -182,73 +819,8 @@
         var levelSelect = document.getElementById('level-select'),
             levelReset = document.getElementById('level-reset');
 
-	/*
-        // create a Matter.Gui
-        if (!_isMobile && Gui) {	   
-            game.gui = Gui.create(game.engine, game.runner);
-
-            // need to add mouse constraint back in after gui clear or load is pressed
-            Events.on(game.gui, 'clear load', function() {
-                game.mouseConstraint = MouseConstraint.create(game.engine);
-                World.add(game.engine.world, game.mouseConstraint);
-            });
-
-            // need to rebind mouse on render change
-            Events.on(game.gui, 'setRenderer', function() {
-                Mouse.setElement(game.mouseConstraint.mouse, game.engine.render.canvas);
-            });
-        }
-	
-        // create a Matter.Inspector
-        if (!_isMobile && Inspector && _useInspector) {
-            game.inspector = Inspector.create(game.engine, game.runner);
-
-            Events.on(game.inspector, 'import', function() {
-                game.mouseConstraint = MouseConstraint.create(game.engine);
-                World.add(game.engine.world, game.mouseConstraint);
-            });
-
-            Events.on(game.inspector, 'play', function() {
-                game.mouseConstraint = MouseConstraint.create(game.engine);
-                World.add(game.engine.world, game.mouseConstraint);
-            });
-
-            Events.on(game.inspector, 'selectStart', function() {
-                game.mouseConstraint.constraint.render.visible = false;
-            });
-
-            Events.on(game.inspector, 'selectEnd', function() {
-                game.mouseConstraint.constraint.render.visible = true;
-            });
-        }
-	*/
         // go fullscreen when using a mobile device
 
-	/*
-        if (_isMobile) {
-            var body = document.body;
-
-            body.className += ' is-mobile';
-            game.engine.render.canvas.addEventListener('touchstart', Game.fullscreen);
-
-            var fullscreenChange = function() {
-                var fullscreenEnabled = document.fullscreenEnabled || document.mozFullScreenEnabled || document.webkitFullscreenEnabled;
-
-                // delay fullscreen styles until fullscreen has finished changing
-                setTimeout(function() {
-                    if (fullscreenEnabled) {
-                        body.className += ' is-fullscreen';
-                    } else {
-                        body.className = body.className.replace('is-fullscreen', '');
-                    }
-                }, 2000);
-            };
-
-            document.addEventListener('webkitfullscreenchange', fullscreenChange);
-            document.addEventListener('mozfullscreenchange', fullscreenChange);
-            document.addEventListener('fullscreenchange', fullscreenChange);
-        }
-*/
         // keyboard controls
         document.onkeypress = function(keys) {
             // shift + a = toggle manual
@@ -269,7 +841,6 @@
 
         // initialise game selector
         levelSelect.value = game.sceneName;
-        /*Game.setUpdateSourceLink(game.sceneName);*/
         
         levelSelect.addEventListener('change', function(e) {
             Game.reset(game);
@@ -282,7 +853,6 @@
             var scrollY = window.scrollY;
             window.location.hash = game.sceneName;
             window.scrollY = scrollY;
-            /*Game.setUpdateSourceLink(game.sceneName);*/
         });
         
         levelReset.addEventListener('click', function(e) {
@@ -293,15 +863,10 @@
                 Gui.update(game.gui);
             }
 
-            /*Game.setUpdateSourceLink(game.sceneName);*/
         });
     };
 
-    /*Game.setUpdateSourceLink = function(sceneName) {
-        var gameViewSource = document.getElementById('game-view-source'),
-            sourceUrl = 'https://github.com/liabru/matter-js/blob/master/examples';
-        gameViewSource.setAttribute('href', sourceUrl + '/' + sceneName + '.js');
-    };*/
+
 
     Game.setManualControl = function(game, isManual) {
         var engine = game.engine,
@@ -329,17 +894,7 @@
 
     Game.fullscreen = function(game) {
 	return false;
-	/*        var _fullscreenElement = game.engine.render.canvas;
-        
-        if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement) {
-            if (_fullscreenElement.requestFullscreen) {
-                _fullscreenElement.requestFullscreen();
-            } else if (_fullscreenElement.mozRequestFullScreen) {
-                _fullscreenElement.mozRequestFullScreen();
-            } else if (_fullscreenElement.webkitRequestFullscreen) {
-                _fullscreenElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-            }
-        }*/
+
     };
     
 
@@ -439,13 +994,7 @@
         game.engine.world.gravity.x = 0;
         game.engine.timing.timeScale = 1;
 
-/*        var offset = 5;
-        World.add(world, [
-            Bodies.rectangle(400, -offset, 800.5 + 2 * offset, 50.5, { isStatic: true }),
-            Bodies.rectangle(400, 600 + offset, 800.5 + 2 * offset, 50.5, { isStatic: true }),
-            Bodies.rectangle(800 + offset, 300, 50.5, 600.5 + 2 * offset, { isStatic: true }),
-            Bodies.rectangle(-offset, 300, 50.5, 600.5 + 2 * offset, { isStatic: true })
-            ]);*/
+
 
         if (game.mouseConstraint) {
             World.add(world, game.mouseConstraint);
@@ -454,7 +1003,7 @@
 
 
 
-	/* Game events for the fysiak game: */
+	// Game events for the fysiak game: 
 
 	Events.on(game.mouseConstraint, "startdrag", function(event) {
 	    console.log("started dragging");
@@ -777,9 +1326,7 @@
             renderOptions.width= 1000;
 
             renderOptions.showDebug = true;
-            /*if (_isMobile) {
-                renderOptions.showDebug = true;
-            }*/
+
         }
 
 	document.getElementById('scorewrapper').style.visibility = "hidden";
@@ -788,6 +1335,8 @@
     };
 
 })();
+
+*/
 
 
 sample_level = '{\n\
@@ -834,8 +1383,78 @@ sample_level = '{\n\
 
 
 
+// Screen size handling: 
+
+var screen_size_setup = function() {
+    // Eventually move this to a separate function:
+
+    // Fiddle with the css of the game container:
+
+    game_canvas_element = document.getElementById("gamecanvas");
+    underbar = document.getElementById("underbar");
+    cover = document.getElementById("scorewrapper");
+
+    var he = $(window).height(),
+    wi = $(window).width();
+    
+    var toolbarwi = 200,
+    toolbarhe = 200,
+    toolbarstyle = {
+	position: "absolute"
+    };
+
+    var canvaswi;
+
+    bottom_toolbar_canvaswi = Math.min (wi, 4.0 / 3.0 * (he -toolbarhe));
+    left_toolbar_canvaswi = Math.min ( 4.0 / 3.0 * (he), wi - toolbarwi);
+
+    // Option 1: 
+    // More vertical space than horisontal space: Toolbar on bottom
+    if (bottom_toolbar_canvaswi > left_toolbar_canvaswi) {	    
+
+	canvaswi = bottom_toolbar_canvaswi
+	toolbarstyle.top = ((3.0 / 4.0) * canvaswi) + "px";
+	toolbarstyle.left = "0"
+	toolbarstyle.height = toolbarhe + "px";
+	toolbarstyle.width = canvaswi + "px";
+
+	document.getElementById("debug-area").style.top = (3*canvaswi/4 + toolbarhe) + "px";
+
+    }
+    // Option 2: Toolbar at the bottom
+    // More horizontal space than vertical space: Toolbar on the left
+    else {
+	canvaswi = left_toolbar_canvaswi;
+
+	toolbarstyle.top = "0";
+	toolbarstyle.left = canvaswi + "px";
+	toolbarstyle.height = (3.0 / 4.0 * canvaswi) + "px";
+	toolbarstyle.width = toolbarwi + "px";
+
+	document.getElementById("debug-area").style.top = (3*canvaswi/4) + "px";
+    }
+
+    game_canvas_element.style.width = canvaswi+"px";
+
+    Object.keys(toolbarstyle).forEach( function(key) {
+	underbar.style[key] = toolbarstyle[key];
+    });
+    
+    cover.style.width = canvaswi + "px";
+    cover.style.height = 3*canvaswi/4 + "px";
+    
+
+
+}
+screen_size_setup();
+$( window ).resize(function() {
+    screen_size_setup();
+});
+
+
 document.getElementById('level-select').value;
 levelselector = document.getElementById('level-select');
+
 /*Object.keys(levels).forEach ( function(key) {
 	var opt = document.createElement("option");
 	opt.value= key;

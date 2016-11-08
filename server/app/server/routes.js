@@ -64,7 +64,7 @@ module.exports = function(app) {
 	    });
     });
 
-    app.get('/fysiak', function(req,res) {
+    app.get('/fysiak-dev', function(req,res) {
 	if (req.session.user == null){
 	    // if user is not logged-in redirect back to login page //
 	    res.redirect(app.locals.baseURL);
@@ -86,26 +86,7 @@ module.exports = function(app) {
 	    });
     });
 
-    app.get('/fysiak-dev', function(req,res) {
-	if (req.session.user == null){
-	    // if user is not logged-in redirect back to login page //
-	    res.redirect(app.locals.baseURL);
-	}
-	else
-	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
-		console.log("Rendering:");
-		console.log(e);
-		res.render('fysiak-dev', { 
-		    title: 'fySIAK on-line unstable cutting edge release',
-                    udata : req.session.user,
-		    word_list : word_list,
-		    game_word_list : game_word_list,
-		    phoneme_list : phoneme_list,
-		    phoneme_counts : phoneme_counts,
-		    word_counts : word_counts
-		});
-	    });
-    });
+
 
     app.get('/live2', function(req,res) {
 	if (req.session.user == null){

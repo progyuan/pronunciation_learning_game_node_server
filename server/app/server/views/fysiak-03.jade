@@ -6,7 +6,7 @@ html
 		link(rel='stylesheet', href='#{baseURL}/vendor/bootstrap.min.css')
 		link(rel='stylesheet', href='#{baseURL}/css/style.css')
 		link(rel='stylesheet', href='#{baseURL}/css/livedemo.css')
-		link(rel='stylesheet', href='#{baseURL}/css/fysiak-dev.css')
+		link(rel='stylesheet', href='#{baseURL}/css/fysiak-#{fysiak_version}.css')
 
 		//link(rel='stylesheet', href='//cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.1.1/gh-fork-ribbon.min.css')
 		script.
@@ -15,12 +15,10 @@ html
 		script(src='#{baseURL}/js/livedemo/live_test2.js')
 		//script(src='#{baseURL}/js/fysiak/matter.js')
 		<!-- matter lib edge master version -->
-		script(type="text/javascript",src="#{baseURL}/js/fysiak/matter-dev.js")
-
+		script(type="text/javascript",src="#{baseURL}/js/fysiak/p2.js")
 		script(type="text/javascript",src="#{baseURL}/js/fysiak/jquery-1.11.0.min.js")
-		script(type="text/javascript",src="#{baseURL}/js/fysiak/matter-tools-dev.js")
-		script(type="text/javascript",src="#{baseURL}/js/fysiak/levels.js")
-		//script(type="text/javascript",src="#{baseURL}/js/fysiak/game_events.js")
+
+
 
 	body
 
@@ -42,8 +40,8 @@ html
 		input(type='hidden', value= user._id)#userId
 
 
-		#canvas-container		
-			//canvas#gamecanvas
+		canvas(width="800px", height="500px")#gamecanvas
+			
 
 		#scorewrapper
 			
@@ -86,17 +84,12 @@ html
 					input#level-reset(type='button', value='Reset level!')
 				#game-view-source
 
+		#debug-area
+			#bar
 
-
-				//#flex-container.flex-container
-
-		#foo	
-			#bar //.flex-item-1
-
-				H2 Debug information, loads of it!
-			
-
-				#hidden(style='visibility:hidden;')
+				h2 Debug information, loads of it!
+				
+				#hidden(style='display:none;')
 					form
 						table
 							tr
@@ -126,8 +119,10 @@ html
 									button#connect_and_test(type="button", onclick='foo()', value="Connect, record and send") Connect, record and send
 			
 			
-			h4 Results
-			#results(style='visibility:hidden;')
+			h3 Results 
+				a(onclick='$("#results").toggle();') [show]
+
+			#results(style='display:none;')
 				table#fancy_result_area
 						tr
 							th Word
@@ -140,20 +135,42 @@ html
 							th Processing<br>time
 							th Wav
 
-			h4 Stats
-			div#profiling_area
+			h3 Performance stats 
+				a(onclick='$("#profiling_area").toggle();') [show]
+				
+			div#profiling_area(style='display:none;')
+				h4 Statistics
 
+			h3 Logging 
+				a(onclick='$("#logging").toggle();') [show]
 
-			h4 Logging
-			div#logging
+			div#logging(style='display:none;')
+				h4 Logs
 				div#log0(class=logpart)
 
-			h4 Level editor
-			div#editor
+			h3 Level editor 
+				a(onclick='$("#editor").toggle();') [show]
+			div#editor(style='display:none;')
+				p Nodes are defined in "box_properties" by their central point x,y and type <br>
+					| "start" : Your starting point<br>
+					| "exit" : The place to reach to win the game. Should have "winnable: false" at start<br>
+					| "unlocked" : A node that you can visit - contains a word and will become visited if a positive score is attained<br>
+					| "locked" : A node you can't visit yet - will become unlocked if anyneigbouring node becomes visited<br>
+					| "visited" : A node you have already opened by saying a word and will contain stars
+
+				p Edges are defined in "edge_array", a list of pairs indicating start and end nodes.
+					| The style of the edge is selected and updated automatically.
+					| For now there is only one basic connection type between nodes.
+
+				p Static objects are defined in "shelf_properties" by their central points x,y and width, height and angle in radians.
+
+				p You can also define maximum time limit and in the future also other stuff in "constants."
+
 				textarea#leveleditor(rows="30" cols="150")
 
-			h4 Word list
-			div#wordlist //.flex-item-2 
+			h3 Word list 
+				a(onclick='$("#wordlist").toggle();') [show]
+			div#wordlist(style='display:none;') //.flex-item-2 
 				h4 Words
 				each level, levelkey in game_word_list
 					div.levelwords
@@ -175,8 +192,9 @@ html
 											span(id="w_#{wordkey}_stars") -
 										span.counter-margin &#8635;
 											span(id="w_#{wordkey}_counter") -
-			h4 Phoneme list
-			div#phonemelist //.flex-item-3.sidebar 
+			h3 Phoneme list 
+				a(onclick='$("#phonemelist").toggle();') [show]
+			div#phonemelist(style='display:none;') //.flex-item-3.sidebar 
 				h4 Phonemes		
 				ol.phonemelist
 					each phoneme, phonemekey in phoneme_list
@@ -200,4 +218,4 @@ block scripts
 		//script(src='#{baseURL}/js/form-validators/accountValidator.js')
 
 		//script(src='#{baseURL}/js/livedemo/analyser.js')
-		script(src='#{baseURL}/js/fysiak/my_game-dev.js')
+		script(src='#{baseURL}/js/fysiak/fysiak-#{fysiak_version}.js')
