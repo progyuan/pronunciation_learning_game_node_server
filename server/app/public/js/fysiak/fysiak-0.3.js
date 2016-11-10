@@ -5,85 +5,172 @@ var canvas = document.getElementById("gamecanvas");
 
 var w = canvas.width,
     h = canvas.height;
-var scaleX = 20, scaleY = -20;
+
+
+
+var scaleX = 30, scaleY = -30;
 
 // Create a physics world, where bodies and constraints live
 var world = new p2.World({
-    gravity:[ 0, -9.82]
-});
+	gravity:[ 0, -9.82]
+    });
 
 var defaultNodeRadius = 2;
-var defaultStarRadius=0.8;
+var defaultStarRadius=0.6;
 
 circleBodiesArray = [];
 
-var nodes = {
-    'START': { position: [ 0.7  , 15.4   ], mass: 5 , type: 'start', word: 'START', color: 'lightgreen' },
-    'EXIT': { position: [ -3.7  , 15.4  ], mass: 5 , type: 'exit', word: 'EXIT' , color: 'red' },
-    'A': { position: [ -3.7  , 25.4  ], mass: 5 , type: 'unlocked', word: false },
-    'B': { position: [ 0.7  , 25.4  ], mass: 5 , type: 'locked', word: false },
-} 
+
+var maxStars = 0;
+
 var hitNode = null;
 
 var id_to_node = {};
 
-circleBodies = {};
-starBodies = [];
-hangerBodies = [];
+var nodes = {},
+    circleBodies = {},
+    starBodies = [], 
+    hangerBodies = [],
+    statics = [],
+    edges = [],
+    circleBodiesArray = [];
 
-Object.keys(nodes).forEach(function (key) {
-    node = nodes[key];
-    
-    circleBody = new p2.Body({
-	mass: node.mass,
-	position: node.position,
-    });
+var build_level = function(new_level) {
+
+    // Clear any exising structures:
+    world.clear();
 	
-    var circleShape = new p2.Circle({ radius: defaultNodeRadius });
 
-    circleBody.addShape(circleShape);
-
-    circleBodies[circleBody.id]=circleBody;
-    circleBodiesArray.push(circleBody);
-
-    // ...and add the body to the world.
-    // If we don't add it to the world, it won't be simulated.
-    world.addBody(circleBody);
-    nodes[key].id =  circleBody.id;
-    id_to_node[circleBody.id] = key;
-});
+				  
+    level = JSON.parse(JSON.stringify(new_level));
+    document.getElementById('leveljson').value=JSON.stringify(level, null, 2);
 
 
-var edges = [
-    { from: 'START', to: 'A', type: 'spring', options: {stiffness: 1000}  },
-    { from: 'START', to: 'B', type: 'spring', options: {stiffness: 1000}  },
-    { from: 'A', to: 'B', type: 'spring', options: {stiffness: 1000}  },     
-    { from: 'B', to: 'EXIT', type: 'spring', options: {stiffness: 1000}  },     
-    { from: 'A', to: 'EXIT', type: 'spring', options: {stiffness: 1000}  },     
-]
+    circleBodies = {};
+    starBodies = [];
+    hangerBodies = [];
+    circleBodiesArray = [];
+    id_to_node = [];
+
+    nodes = level.nodes;
+    edges = level.edges;
+    statics = level.statics;
+
+    //
+    // Add nodes:
+    //
+
+    Object.keys(nodes).forEach(function (key) {
+
+	node = nodes[key];
+	//console.log("Add node", key, node);
+	
+	if (! "mass" in node) {
+	    node.mass = 5
+	}
+
+	circleBody = new p2.Body({
+	    mass: node.mass,
+	    position: node.position,
+	});
+	
+	var circleShape = new p2.Circle({ radius: defaultNodeRadius });
+
+	circleBody.addShape(circleShape);
+
+	circleBodies[circleBody.id]=circleBody;
+	circleBodiesArray.push(circleBody);
+
+	world.addBody(circleBody);
+	nodes[key].id =  circleBody.id;
+	id_to_node[circleBody.id] = key;
+
+	if (node.type == 'start') {
+	    maxStars += 5;
+	    node.type = 'unlocked';
+	    node.word = false;
+	}
+	else if (node.type == 'word') 
+	{
+	    maxStars += 5;
+	    node.type = 'locked';
+	    node.word = false;
+	}
+	else {
+	    node.word = node.type.toUpperCase();
+	}
+    });
+
+    $("#maxstars").html(maxStars);
+
+    // 
+    // Add edges:
+    // 
+
+    Object.keys(edges).forEach(function (key) {    
+	e = edges[key];  
 
 
-Object.keys(edges).forEach(function (key) {    
-    e = edges[key];    
-    if (e.type == 'spring') {
-	e.p2object = new p2.LinearSpring( circleBodies[nodes[e.from].id], circleBodies[nodes[e.to].id] , e.options),
-	world.addSpring(e.p2object);
-    }
-});
+	if (! "type" in e) {
+	    e.type = 'spring';
+	}
+  
+	if (e.type == 'spring') {
+	    if (! "options" in e) {
+		e.options = {stiffness: 1000} ;
+	    }
+	    e.p2object = new p2.LinearSpring( circleBodies[nodes[e.from].id], circleBodies[nodes[e.to].id] , e.options),
+	    
+	    // Make it winnable?
+	    typeA = nodes[e.from].type;
+	    typeB = nodes[e.to].type;
 
+	    /*
+	    if (typeA == 'exit' && typeB == 'start' ) {
+		nodes[e.from].type = 'activeExit';
+	    }	    
+	    if (typeB == 'exit' && typeA == 'start' ) {
+		nodes[e.to].type = 'activeExit';
+	    }
+	    */
+	    // Open new nodes?
+	    if (typeA == 'locked' && typeB == 'start' ) {
+		console.log("unlocking node ",bodyA.id);
+		nodes[e.from].type = 'unlocked';
+	    }	    
+	    if (typeB == 'locked' && typeA == 'start' ) {
+		console.log("unlocking node ",bodyB.id);
+		nodes[e.to].type = 'unlocked';
+	    }
 
+	    world.addSpring(e.p2object);
 
+	}
 
+    });
 
+    statics.forEach(function(statObj) {
 
+	var staticBody = new p2.Body({
+            mass: 0, // Static
+            position: statObj.position,
+	    angle: statObj.angle,
+	});
+	staticBody.type = p2.Body.STATIC;
+	var staticShape = new p2.Box({ width: statObj.w , height: statObj.h });
+	//platformShape.material = groundMaterial;
+	staticBody.addShape(staticShape);
+	world.addBody(staticBody);
+	statObj.p2object = staticBody;
 
+	//console.log("Added a static object:",staticBody);
+    });
 
-// Add a plane
-planeShape = new p2.Plane();
-planeBody = new p2.Body();
-planeBody.addShape(planeShape);
-world.addBody(planeBody);
+    // Done building, let's roll!
+    game_timer(level.meta.timelimit);
+    
 
+}
 
 // To animate the bodies, we must step the world forward in time, using a fixed time step size.
 // The World will run substeps and interpolate automatically for us, to get smooth animation.
@@ -97,37 +184,57 @@ var lastTime;
 var nodeColors = {
     'start': { fill: 'lightgreen',
 	       stroke: 'black',
-	       activeFill: 'green',
-	       activeStroke: 'yellow',
+	       activeFill: 'lightgreen',
+	       activeStroke: 'black',
+	       textFill: 'yellow',
 	     },
     'exit': { fill: 'brown',
 	      stroke: 'black',
-	      activeFill: 'orange',
-	      activeStroke: 'yellow',
+	      activeFill: 'brown',
+	      activeStroke: 'black',
+	      textFill: 'yellow',
 	    },	
-    'activeExit': { fill: 'lightgreen',
-		    stroke: 'black',
-		    activeFill: 'green',
-		    activeStroke: 'yellow',
+    'activeExit': { fill: 'orange',
+		    stroke: 'yellow',
+		    activeFill: 'yellow',
+		    activeStroke: 'red',
+		    textFill: 'yellow',
+
 		  },   
     'visited': { fill: 'lightgreen',
 		 stroke: 'black',
-		 activeFill: 'lightgreen',
-		 activeStroke: 'yellow',
+		 activeFill: 'yellow',
+		 activeStroke: 'lightgreen',
+		 textFill: 'yellow',
+
 	     },
     'locked': { fill: 'darkgreen',
 		stroke: 'black',
-		activeFill: 'green',
-		activeStroke: 'yellow',
+		activeFill: 'darkgreen',
+		activeStroke: 'black',
+		textFill: 'yellow',
+
 	      },
     'unlocked': { fill: 'lightgreen',
 		  stroke: 'black',
-		  activeFill: 'green',
-		  activeStroke: 'yellow',
+		  activeFill: 'yellow',
+		  activeStroke: 'lightgreen',
+		  textFill: 'yellow',
+
 		},
-    'static' :  { fill: 'lightblue',
+    'static' :  { fill: 'orange',
 		  stroke: 'darkblue'
-		}
+
+		},
+    'star' : { circleFill: 'lightgreen',
+	       starFill: 'yellow',
+	       circleStroke: 'black',
+	       starStroke: 'orange',
+	       activeCircleFill: 'yellow',
+	       activeStarFill: 'lightgreen',
+	       activeCircleStroke: 'black',
+	       activeStarStroke: 'orange'
+	     },
 }
 
 
@@ -164,11 +271,15 @@ function animate(time){
     ctx = canvas.getContext("2d");
     ctx.lineWidth = 0.05;
 
-    // Compute elapsed time since last render frame
-    var deltaTime = lastTime ? (time - lastTime) / 1000 : 0;
 
-    // Move bodies forward in time
-    world.step(fixedTimeStep, deltaTime, maxSubSteps);
+
+    if (timer_running) {
+	// Compute elapsed time since last render frame
+	var deltaTime = lastTime ? (time - lastTime) / 1000 : 0;
+	
+	// Move bodies forward in time
+	world.step(fixedTimeStep, deltaTime, maxSubSteps);
+    }
 
     // Clear the canvas
     ctx.clearRect(0,0,w,h);
@@ -178,11 +289,19 @@ function animate(time){
     ctx.translate(w/2, h/2); // Translate to the center
     ctx.scale(scaleX, scaleY);
     
+
+    ctx.beginPath();
+    ctx.rect(-w/2 /scaleX, -h/2/scaleY, w/scaleX, h/scaleY);
+    ctx.lineWidth = 0.35;
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+  
+
     // Draw all bodies
+    drawStatics();
     drawEdges();
     drawCircles();
-    drawPlane();
-
+    //drawPlane();
 
     // Restore transform
     ctx.restore();
@@ -190,11 +309,10 @@ function animate(time){
 
     lastTime = time;
     
-    
     function drawEdges(){
-	
-	
+		
 	Object.keys(edges).forEach(function (key) {
+
 	    c = edges[key].p2object;
 
 	    x1 = c.bodyA.position[0];
@@ -205,7 +323,7 @@ function animate(time){
 
 	    len =  Math.sqrt( (x1-x2) * (x1-x2) + (y1-y2)*(y1-y2));
 
-	    lenRatio =  (c.restLength / len) * (c.restLength / len) *  (c.restLength / len);
+	    lenRatio =  (c.restLength / len) * (c.restLength / len);// *  (c.restLength / len);
 
 	    ctx.lineWidth = 0.25 * lenRatio;
 	    
@@ -239,16 +357,15 @@ function animate(time){
 
 	    circleBody = circleBodies[nodes[key].id];
 
-
+	    ctx.lineWidth = 0.05;		
 
 	    if (circleBody.id == hitNode)  {		
 		ctx.fillStyle = nodeColors[ nodes[key].type ].activeFill;
-		ctx.lineWidth = 0.10;		
 		ctx.strokeStyle= nodeColors[ nodes[key].type ].activeStroke;
 	    }
 	    else {
 		ctx.fillStyle = nodeColors[ nodes[key].type ].fill;		
-		ctx.lineWidth = 0.05;		
+
 		ctx.strokeStyle= nodeColors[ nodes[key].type ].stroke;
 	    }
 
@@ -268,6 +385,8 @@ function animate(time){
 	    ctx.fill();
 	    //ctx.restore();
 	    
+	    ctx.fillStyle = nodeColors[ nodes[key].type ].textFill;
+
 	    if (nodes[key].word) {
 		txt = nodes[key].word; 
 	    }
@@ -288,18 +407,31 @@ function animate(time){
 	    ctx.translate(x, y);   // Translate to the center of the box
 	    ctx.rotate(circleBody.angle);  // Rotate to the box body frame
 	    
-	    ctx.fillStyle = 'black';
 	    ctx.scale(1, -1);
+	    ctx.fillText(txt, -0.5*txtw, 0.35*ptSize);
 	    ctx.strokeText(txt, -0.5*txtw, 0.35*ptSize);
-	    
+
 	    ctx.restore();   
 		
 	});
 
-	starBodies.forEach(function (circleBody) {
+	starBodies.forEach(function (star) {
+
+	    parent_id = star.parent_id;
+	    circleBody = star.body;
 
 	    ctx.lineWidth = 0.05;
-	    ctx.strokeStyle='black';
+
+	    if (parent_id == hitNode)  {		
+		ctx.fillStyle = nodeColors.star.activeCircleStroke;
+	    }
+	    else {
+		ctx.fillStyle = nodeColors.star.circleStroke;
+	    }
+
+
+
+	    ctx.strokeStyle=nodeColors.star.circleStroke;
 
             ctx.beginPath();
             ctx.save();
@@ -310,8 +442,17 @@ function animate(time){
 
             ctx.arc(x,y,radius,0,2*Math.PI);
             ctx.stroke();
-	    
-	    ctx.fillStyle = 'pink';
+
+
+	    if (parent_id == hitNode)  {		
+		ctx.fillStyle = nodeColors.star.activeCircleFill;
+	    }
+	    else {
+		ctx.fillStyle = nodeColors.star.circleFill;
+	    }
+
+
+
 	    ctx.fill();
 	    //ctx.restore();
 
@@ -325,16 +466,62 @@ function animate(time){
 	    ctx.translate(x, y);   // Translate to the center of the box
 	    ctx.rotate(circleBody.angle);  // Rotate to the box body frame
 	    
-	    ctx.fillStyle = 'black';
+
+	    if (parent_id == hitNode)  {		
+		ctx.strokeStyle = nodeColors.star.activeStarStroke;
+		ctx.fillStyle = nodeColors.star.activeStarFill;
+	    }
+	    else {
+		ctx.strokeStyle = nodeColors.star.starStroke;
+		ctx.fillStyle = nodeColors.star.starFill;
+	    }
+
+
 	    ctx.scale(1, -1);
+	    ctx.fillText(txt, -0.5*txtw, 0.35*ptSize);
 	    ctx.strokeText(txt, -0.5*txtw, 0.35*ptSize);
-	    
+
+
+
+
+
 	    ctx.restore();   
 		
 	});
 
     }
     
+    function drawStatics() {
+	Object.keys(statics).forEach(function (key) {
+	    c = statics[key].p2object;
+
+	    x = c.position[0];
+	    y = c.position[1];
+	    s = c.shapes[0];
+
+	    //console.log("static x:",x, "y:", y, "h:",c.height, "w:", c.width );
+	    //console.log(c);
+
+	    ctx.beginPath();
+            ctx.save();
+	    
+	    ctx.translate(x, y);   // Translate to the center of the box
+	    ctx.rotate(c.angle);  // Rotate to the box body frame
+
+	    ctx.lineWidth = 0.05;
+
+	    ctx.strokeStyle = nodeColors.static.stroke;
+	    ctx.fillStyle = nodeColors.static.fill;
+	    ctx.rect(-s.width /2 , -s.height/2, s.width, s.height);
+	    ctx.fill();
+	    ctx.stroke();
+
+	    ctx.restore();   
+
+
+	});
+    }
+
     function drawPlane(){
 	ctx.strokeStyle= nodeColors[ 'static' ].stroke;
 	ctx.fillStyle = nodeColors[ 'static' ].activeFill;
@@ -377,7 +564,7 @@ canvas.addEventListener('mousedown', function(event){
 });
 
     
-canvas.addEventListener('mousemove', function(evt) {
+canvas.addEventListener('mousemove', function(event) {
    
     // Convert the canvas coordinate to physics coordinates
     var position = getPhysicsCoord(event);
@@ -396,13 +583,13 @@ addableEdges = [];
 
 // The beginContact event is fired whenever two shapes starts overlapping, including sensors.
 world.on("beginContact",function(event){
-    console.log("Contact! BodyA", event.bodyA.id, "BodyB: ", event.bodyB.id);
+    //console.log("Contact! BodyA", event.bodyA.id, "BodyB: ", event.bodyB.id);
 
     if ( id_to_node[event.bodyA.id] &&  id_to_node[event.bodyB.id]) {
 
 	bodyA = id_to_node[event.bodyA.id];
 	bodyB = id_to_node[event.bodyB.id];
-	console.log(bodyA, bodyB);
+	//console.log(bodyA, bodyB);
 
 	addEdge = true;
 	// Unlock the close-by edges and nodes 
@@ -422,20 +609,21 @@ world.on("beginContact",function(event){
 	    typeB = nodes[bodyB].type;
 
 	    if (typeA == 'exit' && ( typeB == 'visited' || typeB == 'start' )) {
-		bodyA.type = 'activeExit';
+		nodes[bodyA].type = 'activeExit';
 	    }	    
 	    if (typeB == 'exit' && ( typeA == 'visited' || typeA == 'start' )) {
-		bodyB.type = 'activeExit';
+		nodes[bodyB].type = 'activeExit';
 	    }
 
 	    // Open new nodes?
 	    if (typeA == 'locked' && ( typeB == 'visited' || typeB == 'start' )) {
-		bodyA.type = 'unlocked';
+		console.log("unlocking node ",bodyA.id);
+		nodes[bodyA].type = 'unlocked';
 	    }	    
 	    if (typeB == 'locked' && ( typeA == 'visited' || typeA == 'start' )) {
-		bodyB.type = 'unlocked';
+		console.log("unlocking node ",bodyB.id);
+		nodes[bodyB].type = 'unlocked';
 	    }
-
 
 
 
@@ -497,8 +685,12 @@ var timer_running = false;
 var timer_instance = null;
 
 game_timer = function (timelimit) {
+
     game_time_left = timelimit;
     timer_running = true;
+
+    document.getElementById('scorewrapper').style.visibility = "hidden";
+    document.getElementById('scorecard').style.visibility = "hidden";
 
     if (timer_instance) 
 	window.clearInterval(timer_instance);
@@ -508,7 +700,7 @@ game_timer = function (timelimit) {
 	    game_time_left -= 0.1;
 	    if (game_time_left < 0) {
 		timer_running=false;
-		Game.out_of_time(game);
+		out_of_time();
 	    }
 	    else {
 		if (game_time_left > 10)
@@ -524,7 +716,6 @@ var pause_game = function () {
     pause_timer();
 }
 
-
 var continue_game = function() {
     continue_timer();
 }
@@ -536,6 +727,25 @@ var pause_timer = function () {
 var continue_timer = function() {
     timer_running = true;
 }
+
+var out_of_time = function(game) {
+    document.getElementById('scorewrapper').style.visibility = "visible";
+    document.getElementById('scorecard').style.visibility = "visible";
+    document.getElementById('score').innerHTML='Out of time! Please try again.';
+}
+
+var win_game = function(item) {
+    pause_timer();
+    
+    starscore = parseInt(document.getElementById('starcount').innerHTML);
+    timescore = parseFloat(parseInt(game_time_left*10)/100.0);
+    
+    document.getElementById('scorewrapper').style.visibility = "visible";
+    document.getElementById('scorecard').style.visibility = "visible";
+    document.getElementById('score').innerHTML='You win! <br>Your score: <br> Stars: '+ starscore + '<br>Time '+ timescore + '<br>Total: '+ (starscore + timescore);
+    
+}
+
 
 
 //
@@ -661,7 +871,7 @@ var addStars = function(node_id, score) {
 	var circleShape = new p2.Circle({ radius: defaultStarRadius });
 	circleBody.addShape(circleShape);
 	world.addBody(circleBody);
-	starBodies.push(circleBody);
+	starBodies.push({body:  circleBody, parent_id: nodes[node_id].id});
 
 	var hanger = new p2.LinearSpring( item, circleBody, {stiffness: 1000, restLength: defaultNodeRadius + defaultStarRadius} );
 	world.addSpring(hanger);
@@ -679,709 +889,200 @@ var update_star_count = function() {
 
 
 
-/*
-
-    Game.create = function(options) {
-        var defaults = {
-            isManual: false,
-            sceneName: 'mixed',
-            sceneEvents: []
-        };
-
-        return Common.extend(defaults, options);
-    };
-
-    Game.init = function() {
-        var game = Game.create();
-        Matter.Game._game = game;
-
-        // get container element for the canvas
-        game.container = document.getElementById('canvas-container');
-
-        // create an example engine (see /examples/engine.js)
-        game.engine = Levels.engine(game);
-
-	game.engine.constraintIterations = 25;
-	game.engine.positionIterations = 25;
-
-        // run the engine
-        game.runner = Engine.run(game.engine);
-
-        // add a mouse controlled constraint
-        game.mouseConstraint = MouseConstraint.create(game.engine);
-        World.add(game.engine.world, game.mouseConstraint);
-
-        // pass mouse to renderer to enable showMousePosition
-        game.engine.render.mouse = game.mouseConstraint.mouse;
-
-        // get the scene function name from hash
-        if (window.location.hash.length !== 0) 
-            game.sceneName = window.location.hash.replace('#', '').replace('-inspect', '');
-
-        // set up a scene with bodies
-	Game.reset(game);
-        Game.setScene(game, game.sceneName);
-
-        // set up game interface (see end of this file)
-        Game.initControls(game);
-
-        // pass through runner as timing for debug rendering
-        game.engine.metrics.timing = game.runner;
+//
+// Level editor functions:
+//
 
 
 
+var update_level_editor = function (level) {
+    counter=0;
 
-	var screen_size_setup = function() {
-	    // Eventually move this to a separate function:
+    console.log("UPDATING LEVEL EDITOR");
 
-	    // Fiddle with the css of the game container:
-	    canvas_children=document.getElementById("canvas-container").childNodes;
-	    game_canvas_element = canvas_children[canvas_children.length-1];
-	    underbar = document.getElementById("underbar");
-	    cover = document.getElementById("scorewrapper");
+    Object.keys(level.nodes).forEach( function (key) {
+	$('#edit-nodes').append( get_node_editor(key, level.nodes[key], counter++  ) );
+    });
+    // Update level editor:
+    
+    counter = 0;
+    // Update level editor:
+    level.edges.forEach( function (edge) {
+	$('#edit-edges').append( get_edge_editor( edge, counter++) );
+    });
 
-	    var he = $(window).height(),
-	    wi = $(window).width();
-	    
-	    var toolbarwi = 200,
-	    toolbarhe = 200,
-	    toolbarstyle = {
-		position: "absolute"
-	    };
+     counter = 0;
+    // Update level editor:
+    level.statics.forEach( function (staticobj) {
+	$('#edit-statics').append( get_statics_editor( staticobj, counter++) );
+    });
+   
 
-	    var canvaswi;
+}
 
-	    bottom_toolbar_canvaswi = Math.min (wi, 4.0 / 3.0 * (he -toolbarhe));
-	    left_toolbar_canvaswi = Math.min ( 4.0 / 3.0 * (he), wi - toolbarwi);
+var decrease_field = function (field) {
+    val = parseFloat(document.getElementById(field).value)
+    if (Math.abs(val) < 20)
+	valchange = 0.1;
+    else if (Math.abs(val) < 100)
+	valchange = 1;
+    else if (Math.abs(val) < 1000)
+	valchange = 10;
+     else 
+	 valchange = 100;
 
-	    // Option 1: 
-	    // More vertical space than horisontal space: Toolbar on bottom
-	    if (bottom_toolbar_canvaswi > left_toolbar_canvaswi) {	    
+    document.getElementById(field).value = val - valchange;
 
-		canvaswi = bottom_toolbar_canvaswi
-		toolbarstyle.top = ((3.0 / 4.0) * canvaswi) + "px";
-		toolbarstyle.left = "0"
-		toolbarstyle.height = toolbarhe + "px";
-		toolbarstyle.width = canvaswi + "px";
-
-		document.getElementById("debug-area").style.top = (3*canvaswi/4 + toolbarhe) + "px";
-
-	    }
-	    // Option 2: Toolbar at the bottom
-	    // More horizontal space than vertical space: Toolbar on the left
-	    else {
-		canvaswi = left_toolbar_canvaswi;
-
-		toolbarstyle.top = "0";
-		toolbarstyle.left = canvaswi + "px";
-		toolbarstyle.height = (3.0 / 4.0 * canvaswi) + "px";
-		toolbarstyle.width = toolbarwi + "px";
-
-		document.getElementById("debug-area").style.top = (3*canvaswi/4) + "px";
-	    }
-
-	    game_canvas_element.style.width = canvaswi+"px";
-
-	    Object.keys(toolbarstyle).forEach( function(key) {
-		underbar.style[key] = toolbarstyle[key];
-	    });
-	    
-	    cover.style.width = canvaswi + "px";
-	    cover.style.height = 3*canvaswi/4 + "px";
-	    
+    updateJSON();
+}
+var increase_field = function (field) {
+    val = parseFloat(document.getElementById(field).value)
+    if (Math.abs(val) < 20)
+	valchange = 0.1;
+    else if (Math.abs(val) < 100)
+	valchange = 1;
+    else if (Math.abs(val) < 1000)
+	valchange = 10;
+     else 
+	 valchange = 100;
+    document.getElementById(field).value = val + valchange;
+    updateJSON();
+}
 
 
-	}
-	screen_size_setup();
-	$( window ).resize(function() {
-	    	screen_size_setup();
-	});
-        return game;
-    };
-
-    // call init when the page has loaded fully
-    if (!_isAutomatedTest) {
-        if (window.addEventListener) {
-            window.addEventListener('load', Game.init);
-        } else if (window.attachEvent) {
-            window.attachEvent('load', Game.init);
-        }
-    }
-
-    Game.setScene = function(game, sceneName) {
-        Levels[sceneName](game);
-	Game.game_timer(game, game.timelimit);
-
-    };
-
-    // the functions for the game interface and controls below
-    Game.initControls = function(game) {
-        var levelSelect = document.getElementById('level-select'),
-            levelReset = document.getElementById('level-reset');
-
-        // go fullscreen when using a mobile device
-
-        // keyboard controls
-        document.onkeypress = function(keys) {
-            // shift + a = toggle manual
-            if (keys.shiftKey && keys.keyCode === 65) {
-                Game.setManualControl(game, !game.isManual);
-            }
-
-            // shift + q = step
-
-            if (keys.shiftKey && keys.keyCode === 81) {
-                if (!game.isManual) {
-                    Game.setManualControl(game, true);
-                }
-
-                Runner.tick(game.runner, game.engine);
-            }
-        };
-
-        // initialise game selector
-        levelSelect.value = game.sceneName;
-        
-        levelSelect.addEventListener('change', function(e) {
-            Game.reset(game);
-            Game.setScene(game,game.sceneName = e.target.value);
-
-            if (game.gui) {
-                Gui.update(game.gui);
-            }
-            
-            var scrollY = window.scrollY;
-            window.location.hash = game.sceneName;
-            window.scrollY = scrollY;
-        });
-        
-        levelReset.addEventListener('click', function(e) {
-            Game.reset(game);
-            Game.setScene(game, game.sceneName);
-
-            if (game.gui) {
-                Gui.update(game.gui);
-            }
-
-        });
-    };
-
-
-
-    Game.setManualControl = function(game, isManual) {
-        var engine = game.engine,
-            world = engine.world,
-            runner = game.runner;
-
-        game.isManual = isManual;
-
-        if (game.isManual) {
-            Runner.stop(runner);
-
-            // continue rendering but not updating
-            (function render(time){
-                runner.frameRequestId = window.requestAnimationFrame(render);
-                Events.trigger(engine, 'beforeUpdate');
-                Events.trigger(engine, 'tick');
-                engine.render.controller.world(engine);
-                Events.trigger(engine, 'afterUpdate');
-            })();
-        } else {
-            Runner.stop(runner);
-            Runner.start(runner, engine);
-        }
-    };
-
-    Game.fullscreen = function(game) {
-	return false;
-
-    };
+var get_node_editor = function(name, node, id) {
     
 
-    Game.game_timer = function (game,timelimit) {
-	game_time_left = timelimit;
-	timer_running = true;
-
-	if (timer_instance) 
-	    window.clearInterval(timer_instance);
-
-	timer_instance = setInterval( function() {
-	    if (timer_running && game_time_left >= 0) {
-		game_time_left -= 0.1;
-		if (game_time_left < 0) {
-		    timer_running=false;
-		    Game.out_of_time(game);
-		}
-		else {
-		    if (game_time_left > 10)
-			document.getElementById('timeleft').innerHTML = Math.floor(game_time_left);
-		    else
-			document.getElementById('timeleft').innerHTML = (Math.floor(game_time_left*10)/10);
-		}
-	    }	
-	}, 100);
-    }
-
-    Game.out_of_time = function(game) {
-	document.getElementById('scorewrapper').style.visibility = "visible";
-	document.getElementById('scorecard').style.visibility = "visible";
-	document.getElementById('score').innerHTML='Out of time! Please try again.';
+    editor = "<div>"
+    editor += " id:";
+    editor += "<input id='key' type=text value='"+name+"' maxlength=12 size=6 onchange='updateJSON();'>";
+    
+    editor += " type:";
+    editor += "<select id='node_type' onchange='updateJSON();'>";
+    (['start', 'word', 'exit']).forEach (function (type) {
+	if (node.type == type)
+	    editor += "<option value='" + type + "' selected>" + type + "</option>";
+	else
+	    editor += "<option value='" + type + "'>" + type + "</option>";
+    } );
+    editor += "</select>";
 
 
-    }
+    editor += " Position "
+    editor += " x:";
+    editor += "<input onclick='decrease_field(\"node_positionx\")' type=button value='-'>";
+    editor += "<input id='node_positionx' type=text value='"+node.position[0]+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field(\"node_positionx\")' type=button value='+'>";
+    editor += " y:";
+    editor += "<input onclick='decrease_field(\"node_positiony\")' type=button value='-'>";
+    editor += "<input id='node_positiony' type=text value='"+node.position[1]+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field(\"node_positiony\")' type=button value='+'>";
+    
+    return editor;    
+}
 
-    Game.reset = function(game) {
-        var world = game.engine.world,
-            i;
-        
-        World.clear(world);
-        Engine.clear(game.engine);
+var get_edge_editor = function(edge, id) {
 
-        // clear scene graph (if defined in controller)
-        if (game.engine.render) {
-            var renderController = game.engine.render.controller;
-            if (renderController && renderController.clear)
-                renderController.clear(game.engine.render);
-        }
-
-        // clear all scene events
-        if (game.engine.events) {
-            for (i = 0; i < game.sceneEvents.length; i++)
-                Events.off(game.engine, game.sceneEvents[i]);
-        }
-
-        if (game.mouseConstraint && game.mouseConstraint.events) {
-            for (i = 0; i < game.sceneEvents.length; i++)
-                Events.off(game.mouseConstraint, game.sceneEvents[i]);
-        }
-
-        if (world.events) {
-            for (i = 0; i < game.sceneEvents.length; i++)
-                Events.off(world, game.sceneEvents[i]);
-        }
-
-        if (game.runner && game.runner.events) {
-            for (i = 0; i < game.sceneEvents.length; i++)
-                Events.off(game.runner, game.sceneEvents[i]);
-        }
-
-        if (game.engine.render && game.engine.render.events) {
-            for (i = 0; i < game.sceneEvents.length; i++)
-                Events.off(game.engine.render, game.sceneEvents[i]);
-        }
-
-        game.sceneEvents = [];
-
-        // reset id pool
-        Body._nextCollidingGroupId = 1;
-        Body._nextNonCollidingGroupId = -1;
-        Body._nextCategory = 0x0001;
-        Common._nextId = 0;
-
-        // reset random seed
-        Common._seed = 0;
-
-        // reset mouse offset and scale (only required for Game.views)
-        if (game.mouseConstraint) {
-            Mouse.setScale(game.mouseConstraint.mouse, { x: 1, y: 1 });
-            Mouse.setOffset(game.mouseConstraint.mouse, { x: 0, y: 0 });
-        }
+    editor = "<p>"
+    editor += " from: ";
+    editor += "<input id='edge_from' type=text value='"+ edge.from + "' maxlength=12 size=6 onchange='updateJSON();'>";
+    editor += " to: ";
+    editor += "<input id='edge_from' type=text value='"+ edge.to + "' maxlength=12 size=6 onchange='updateJSON();'>";
+    editor += " type: ";
+    editor += "<select id='edge_type' onchange='updateJSON();'>";
+    (['spring']).forEach (function (type) {
+	if (edge.type == type)
+	    editor += "<option value='" + type + "' selected>" + type + "</option>";
+	else
+	    editor += "<option value='" + type + "'>" + type + "</option>";
+    } );
+    editor += "</select>";
+    editor += " options.stiffness: ";
+    editor += "<input onclick='decrease_field(\"edge_stiffness\")' type=button value='-'>";
+    editor += "<input id='edge_stiffness' type=text value='"+ edge.options.stiffness + "' maxlength=12 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field(\"edge_stiffness\")' type=button value='+'>";
 
 
+    return editor;
 
-        game.engine.enableSleeping = true;
-        game.engine.world.gravity.y = 1;
-        game.engine.world.gravity.x = 0;
-        game.engine.timing.timeScale = 1;
+}
 
 
+var get_statics_editor = function(statics, id) {
+ 
+    editor = "<div>";
+    editor += " Position ";
+    editor += " x:";
+    editor += "<input onclick='decrease_field(\"statics_positionx\")' type=button value='-'>";
+    editor += "<input id='statics_positionx' type=text value='"+statics.position[0]+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field(\"statics_positionx\")' type=button value='+'>";
+    editor += " y:";
+    editor += "<input onclick='decrease_field(\"statics_positiony\")' type=button value='-'>";
+    editor += "<input id='statics_positiony' type=text value='"+statics.position[1]+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field(\"statics_positiony\")' type=button value='+'>";
+    
+    editor += " height:";
+    editor += "<input onclick='decrease_field(\"statics_h\")' type=button value='-'>";
+    editor += "<input id='statics_h' type=text value='"+statics.h+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field(\"statics_h\")' type=button value='+'>";
+    editor += " width:";
+    editor += "<input onclick='decrease_field(\"statics_w\")' type=button value='-'>";
+    editor += "<input id='statics_w' type=text value='"+statics.w+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field(\"statics_w\")' type=button value='+'>";
+    editor += " angle (radians):";
+    editor += "<input onclick='decrease_field(\"statics_angle\")' type=button value='-'>";
+    editor += "<input id='statics_w' type=text value='"+statics.angle+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field(\"statics_angle\")' type=button value='+'>";    
+    editor += "</div>";
+    return editor;    
+}
 
-        if (game.mouseConstraint) {
-            World.add(world, game.mouseConstraint);
-        }
+
+var updateJSON = function() {
 
 
+    console.log("updating JSON!");
+    json_nodes = {};
+    console.log($('#edit-nodes').children());
 
+    $('#edit-nodes').children().each(function () {	
+	node = { position: []}; 
+	var key;
+	console.log( $( this ) );
+	$( this ).children('input').each(function () {
+	    field = this;
+	    console.log("Working on:",field, field.id);
+	    if ( field.id == 'key')
+		key = field.value;	    
+	    else if ( field.id == 'node_positionx')
+		node.position[0] = field.value ;
+	    else if ( field.id == 'node_positiony')
+		node.position[1] = field.value ;
+	    else if ( field.id == 'node_type')
+		node.type = field.value ;
 
-	// Game events for the fysiak game: 
-
-	Events.on(game.mouseConstraint, "startdrag", function(event) {
-	    console.log("started dragging");
-	    return false;
 	});
-	Events.on(game.mouseConstraint, "enddrag", function(event) {
-	    return false;
+	$( this ).children('select').each(function () {
+	    field = this;
+	    console.log("Working on:",field, field.id);
+	    if ( field.id == 'node_type')
+		node.type = field.value ;
+
 	});
-	Events.on(game.mouseConstraint, 'mousedown', function(event) {
-	    var mousePosition = event.mouse.position;
-	    console.log('mousedown at ' + mousePosition.x + ' ' + mousePosition.y);
-	    
-	    bodies = Matter.Composite.allBodies(game.engine.world);
-	    console.log(bodies);
-	    Matter.Query.point(bodies, mousePosition).forEach( function(item) {
-		console.log(item);
-		if (item.id < game.object_properties.length) {
-		    if (game.object_properties[item.id].type == 'exit' &&  game.object_properties[item.id].winnable) {	
-			win_game(item);
-		    }	    
-		    else if (game.object_properties[item.id].clickable) {	
-			//ASR here 
-			handle_scoring(item);
-		    }
-		}
-	    });
-	})
-	
-	var mouseOverStack = [];
-	var default_fill = 'green';
-	var active_fill = 'lightgreen';
-	
-
-	
-
-	Events.on(game.engine.render, 'afterRender', function() {
-	    var mousePosition = game.mouseConstraint.mouse.position;
-	    mouseOverStack.forEach(function() {
-		item = mouseOverStack.pop();
-		//console.log(item.label +" in mouseoverstack");
-		item.render.fillStyle = box_colors[game.object_properties[item.id].type];
-	    });
-	    var allBodies = Matter.Composite.allBodies(game.engine.world);
-	    Matter.Query.point(allBodies, mousePosition).forEach( function(item) {
-		if (item.id < game.object_properties.length) {		    
-		    mouseOverStack.push(item);	    
-		    item.render.fillStyle = active_box_colors[game.object_properties[item.id].type];
-		}
-	    });    
-	});
-	
-	// Game events:
-
-	var getScoreDensity = function(score) {
-	    return (score+1)*4
-	}
-
-	var getScoreForce = function(score) {
-	    return 10 * (score+1);
-	}
-
-	var addStars = function(item, score) {
-	    console.log("check if "+game.object_properties[item.id].score+" < "+ score);
-
-	    star_offsets = [
-		{x: 0, y: 25}, // 0
-		{x: -15, y: 20}, // 1
-		{x: 15, y: 20}, // 2
-		{x: -25, y: 15}, // 3
-		{x: 25, y: 15}, // 4
-	    ]
-	    connect_star_to = [
-		false,
-		item.label+'_star'+0,
-		item.label+'_star'+0,
-		item.label+'_star'+1,
-		item.label+'_star'+2,
-	    ]
-	    
-	    for (i=game.object_properties[item.id].score;i<score;i++) {
-		
-		console.log("adding a box!");
-		game.stars[item.id+'_star'+i] = Bodies.circle(
-		    item.position.x+star_offsets[i].x,
-		    item.position.y+star_offsets[i].y,
-		    //item.position.x+(i-3)*20,
-		    //item.position.y+30,
-		    7,
-		    { label: item.id+'_star'+i, 
-		      render:{ 
-			  fillStyle: box_colors[item.type],
-			  sprite : {
-			      texture :  home+'./star.png' //score_sprites[item.type],
-			      
-			  }
-		      },
-		      friction: defaultFriction,
-		      frictionAir: 0.6
-		    }
-		    
-
-		);
-
-		Matter.Body.setDensity(game.stars[item.id+'_star'+i], 50);
-		Matter.Composite.add(object_stack, game.stars[item.id+'_star'+i]);
-
-		console.log("Adding an edge");
-		hangers[item.id+'_hanger'+i] =  Matter.Constraint.create(
-		    {
-			bodyA: item,
-			bodyB: game.stars[item.id+'_star'+i],
-			pointA: {x: 0, y: 0},
-			stiffness: defaultStiffness,
-			render: { visible: false }
-		    });
-		
-		console.log("Adding to stack!");	  
-		Matter.Composite.add(object_stack, hangers[item.id+'_hanger'+i]);
-
-		if (connect_star_to[i]) {
-		    hangers[item.id+'_hanger_connection'+i] =  Matter.Constraint.create(
-			{
-			    bodyA: game.stars[connect_star_to[i]],
-			    bodyB: game.stars[item.id+'_star'+i],
-			    pointA: {x: 0, y: 0},
-			    stiffness: 1,
-			    render: { visible: false }
-			});
-		    Matter.Composite.add(object_stack, hangers[item.id+'_hanger_connection'+i]);
-		}
-		
-
-		Matter.Composite.setModified(object_stack, true);
-		console.log("Finished adding");
-	    }
-	    
-	    update_star_count();
-
-	}
-
-	var update_star_count = function() {
-	    var starcount= 0;
-	    Object.keys(game.stars).forEach( function(key) {
-		starcount ++; 
-	    });
-	    document.getElementById('starcount').innerHTML = starcount;
-	}
-
-
-	var handle_scoring = function(item) {
-	    console.log(game.engine.timing);
-	    pause_game();
-
-	    document.getElementById('scorewrapper').style.visibility = "visible";
-	    document.getElementById('scorecard').style.visibility = "visible";
-
-	    //var score = Math.floor((Math.random() * 5.9999))
-	    if ("word" in game.object_properties[item.id]) {
-		var word = game.object_properties[item.id].word;
-		document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>';
-		get_score_for_word(word, item, apply_scoring);
-	    }
-	    else {
-		document.getElementById('score').innerHTML='Getting a word for you..';
-		get_word_to_score(item, apply_scoring, function(word, item, callback) { 		    
-		    console.log(game.object_properties[item.id]);
-		    game.object_properties[item.id].word = word;
-		    console.log(game.object_properties[item.id]);
-		    document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
-		    get_score_for_word(word, item, callback);
-
-		});
-	    }
-	}
-
-	var apply_scoring = function(item, score) {
-
-	    document.getElementById('score').innerHTML +='<br>You scored '+score;
-	    setTimeout(function(){ 
-		document.getElementById('scorewrapper').style.visibility = "hidden";
-		document.getElementById('scorecard').style.visibility = "hidden";
-		continue_game();
-	    }, 1300);
-	    console.log(item);
-	    if (score > game.object_properties[item.id].score  ) {
-		// If the score was good enough, add some stars:
-		addStars(item, score);
-
-		// Mark the node as visited:
-		game.object_properties[item.id].type = 'visited';
-		item.render.fillStyle=box_colors[game.object_properties[ item.id].type];
-
-		// Unlock the close-by edges and nodes 
-		Object.keys(game.object_properties).forEach( function(key) {
-		    if (game.object_properties[key].type == "constraint") {
-		    
-			if (game.object_properties[key].bodyA.id == item.id || game.object_properties[key].bodyB.id == item.id ) {
-			    itemA=game.object_properties[key].bodyA;
-			    itemB=game.object_properties[key].bodyB;
-			    
-			    if ( game.object_properties[itemB.id].type == 'locked') {
-				game.object_properties[itemB.id].type = 'unlocked';
-				game.object_properties[itemB.id].clickable = true;
-				itemB.render.fillStyle=box_colors[game.object_properties[ itemB.id].type];
-			    }	
-			    else if ( game.object_properties[itemA.id].type == 'locked') {
-				game.object_properties[itemA.id].type = 'unlocked';
-				game.object_properties[itemA.id].clickable = true;
-				itemA.render.fillStyle=box_colors[game.object_properties[ itemA.id].type];
-			    }
-			    else if ( game.object_properties[itemA.id].type == 'exit') {
-				game.object_properties[itemA.id].winnable = 'true';
-			    }
-			    else if ( game.object_properties[itemB.id].type == 'exit') {
-				game.object_properties[itemB.id].winnable = 'true';
-			    }	    
-			}
-		    }
-		} )
-		Object.keys(game.object_properties ).forEach( function(key) {
-		    if (game.object_properties[key].type == "constraint") {
-			
-			itemA=game.object_properties[key].bodyA;
-			itemB=game.object_properties[key].bodyB;
-
-			game.object_properties[key].render.strokeStyle = edgestyles[ game.object_properties[ itemB.id].type+'-'+object_properties[ itemA.id].type].strokeStyle;
-		    }
-		});
-		
-		
-		game.object_properties[item.id].score = score;
-	    }
-	    if (score > 0 ) {
-		Matter.Body.applyForce(item, item.position, Matter.Vector.create(0, getScoreForce(score)) );
-	    }
-
-
-	}
-
-
-	var win_game = function(item) {
-	    pause_timer();
-
-	    starscore = parseInt(document.getElementById('starcount').innerHTML);
-	    timescore = parseFloat(parseInt(game_time_left*10)/100.0);
-
-	    document.getElementById('scorewrapper').style.visibility = "visible";
-	    document.getElementById('scorecard').style.visibility = "visible";
-	    document.getElementById('score').innerHTML='You win! <br>Your score: <br> Stars: '+ starscore + '<br>Time '+ timescore + '<br>Total: '+ (starscore + timescore);
-
-	}
-
-
-
-	// Game events:
-
-
-	var pause_timer = function () {
-	    timer_running = false;
-	}
-
-	var continue_timer = function() {
-	    timer_running = true;
-	}
-
-	// Game-related physical things:
-
-	var getScoreDensity = function(score) {
-	    return (score+1)*4
-	}
-
-	var getScoreForce = function(score) {
-	    return 100 * (score+1);
-	}
-
-	var pause_game = function () {
-
-	    //Matter.Runner.stop(engine)
-	    game.engine.timing.timeScale = 0.0000;
-	    //Render.stop(render);
-	    game.engine.enabled = false
-	    pause_timer();
-	    console.log(game.engine.timing);
-
-	}
-
-	var continue_game = function() {
-
-	    //Matter.Runner.run(engine);
-	    game.engine.enabled = true;
-	    //Render.run(render);
-	    game.engine.timing.timeScale = 1;
-	    continue_timer();
-
-	}
-
-
-        
-        if (game.engine.render) {
-            var renderOptions = game.engine.render.options;
-            renderOptions.wireframes = false;
-            renderOptions.hasBounds = false;
-            renderOptions.showDebug = false;
-            renderOptions.showBroadphase = false;
-            renderOptions.showBounds = false;
-            renderOptions.showVelocity = false;
-            renderOptions.showCollisions = false;
-            renderOptions.showAxes = false;
-            renderOptions.showPositions = false;
-            renderOptions.showAngleIndicator = true;
-            renderOptions.showIds = false;
-            renderOptions.showShadows = false;
-            renderOptions.showVertexNumbers = false;
-            renderOptions.showConvexHulls = false;
-            renderOptions.showInternalEdges = false;
-            renderOptions.showSeparations = false;
-            renderOptions.background = '#fff';
-
-	    renderOptions.height= 1000;
-            renderOptions.width= 1000;
-
-            renderOptions.showDebug = true;
-
-        }
-
-	document.getElementById('scorewrapper').style.visibility = "hidden";
-	document.getElementById('scorecard').style.visibility = "hidden";
-
-    };
-
-})();
-
-*/
-
-
-sample_level = '{\n\
-	    "meta": \n\
-	    {\n\
-		"levelname": "A sample for the level editor",\n\
-		"author": "Reima",\n\
-		"date": "Oct 27 2016"\n\
-	    },\n\
-            "box_properties":\n\
-	    {\n\
-		"A" : {"x":  75,  "y": 175,  "clickable" : true, "type": "start", "score": 0},\n\
-		"A1" :{"x":  75,  "y": 50,  "clickable" : true, "type": "unlocked", "score": 0},\n\
-		"B" : {"x":  150, "y": 75,  "clickable" : true, "type": "unlocked", "score": 0},\n\
-		"C" : {"x":  200, "y": 220,  "clickable" : true, "type": "unlocked", "score": 0},\n\
-		"D" : {"x":  375, "y": 100,  "clickable" : false, "type": "locked", "score": 0},\n\
-		"E" : {"x":  355, "y": 250,  "clickable" : false, "type": "locked", "score": 0},\n\
-		"F" : {"x":  475, "y": 100,  "clickable" : false, "type": "locked", "score": 0},\n\
-		"G" : {"x":  525, "y": 250,  "clickable" : false, "type": "locked", "score": 0},\n\
-		"H" : {"x":  675, "y": 175,  "clickable" : false, "type": "locked", "score": 0},\n\
-		"I" : {"x":  675, "y": 450,  "clickable" : false, "type": "exit", "score": 0, "winnable": false}\n\
-	    },\n\
-	    "edge_array" :\n\
-	    [\n\
-		["A","B"], ["A","C"], ["A","A1"], ["A1","B"],\n\
-		["B","C"], ["B","D"],["C","D"], ["C","E" ], \n\
-		["D","E"],\n\
-		["D","F"], ["D","G"], ["E","G"],\n\
-		["F","H"], ["G","H"],\n\
-		["H","I"]\n\
-	    ],\n\
-	    "shelf_properties" :\n\
-	    {\n\
-		"left_shelf": { "x": 80, "y": 260, "height": "80", "width": 120, "angle": -0.0942, "isStatic": true},\n\
-		"right_shelf": { "x": 360, "y": 300, "height": "80", "width": 120, "angle": 0.0314, "isStatic": true}\n\
-	    },\n\
-	    "constants" : \n\
-	    {\n\
-		"defaultStiffness": 0.5,\n\
-		"timelimit": 30\n\
-	    }\n\
-	}';
-
-
-
+	console.log("key:", key, "vals:", node);
+	json_nodes[key] = node;
+    });
+	/*console.log(node);
+	nodes[ $("#node_"+(id)+"_id").value ] = 
+	    {
+		position: [ $("#node_"+(id)+"_positionx").value,  $("#node_"+(id)+"_positiony").value ],
+		type :  $("#node_"+id+"_type").value
+	    };*/
+    json_level = { nodes: json_nodes }
+    
+    document.getElementById('leveljson').value =  JSON.stringify(json_level, null, 2);
+    
+}
 
 // Screen size handling: 
 
@@ -1434,7 +1135,22 @@ var screen_size_setup = function() {
 	document.getElementById("debug-area").style.top = (3*canvaswi/4) + "px";
     }
 
-    game_canvas_element.style.width = canvaswi+"px";
+    //game_canvas_element.style.width = canvaswi+"px";
+    //game_canvas_element.style.transform = "scale("+(canvaswi/800.0)+")";
+
+    
+    $('#gamecanvas').prop('width', canvaswi);
+    $('#gamecanvas').prop('height',  (3*canvaswi/4) );
+
+    scaleX = 15.0*canvaswi/800.0;
+    scaleY = -scaleX;
+
+    console.log("canvas width:",canvaswi);
+    console.log("scaleX & scaleY: ",scaleX, scaleY);
+
+
+    w = canvas.width;
+    h = canvas.height;
 
     Object.keys(toolbarstyle).forEach( function(key) {
 	underbar.style[key] = toolbarstyle[key];
@@ -1443,7 +1159,7 @@ var screen_size_setup = function() {
     cover.style.width = canvaswi + "px";
     cover.style.height = 3*canvaswi/4 + "px";
     
-
+    
 
 }
 screen_size_setup();
@@ -1452,10 +1168,20 @@ $( window ).resize(function() {
 });
 
 
+
+
 document.getElementById('level-select').value;
 levelselector = document.getElementById('level-select');
 
-/*Object.keys(levels).forEach ( function(key) {
+var opt = document.createElement("option");
+opt.value= "0";
+opt.innerHTML = "Choose a level to play:"; // whatever property it has
+
+// then append it to the select element
+levelselector.appendChild(opt);
+
+
+Object.keys(levels).forEach ( function(key) {
 	var opt = document.createElement("option");
 	opt.value= key;
 	opt.innerHTML = key+ " - " + levels[key].meta.levelname; // whatever property it has
@@ -1463,20 +1189,6 @@ levelselector = document.getElementById('level-select');
 	// then append it to the select element
 	levelselector.appendChild(opt);
 });
-var opt = document.createElement("option");
-opt.value= "My own";
-opt.innerHTML = "Define my own level" ; // whatever property it has
-levelselector.appendChild(opt);
-*/
-var opt = document.createElement("option");
-opt.value= "testA";
-opt.innerHTML = "Test 0" ; // whatever property it has
-levelselector.appendChild(opt);
-
-var opt = document.createElement("option");
-opt.value= "testB";
-opt.innerHTML = "Test 1" ; // whatever property it has
-levelselector.appendChild(opt);
 
 var opt = document.createElement("option");
 opt.value= "levelEditor";
@@ -1484,7 +1196,54 @@ opt.innerHTML = "Your own level" ; // whatever property it has
 levelselector.appendChild(opt);
 
 
-document.getElementById('leveleditor').value=sample_level;
+
+
+// Everything set, let's run the game!
+
+var levelSelect = document.getElementById('level-select'),
+levelReset = document.getElementById('level-reset');
+
+// get the scene function name from hash
+if (window.location.hash.length !== 0) {
+    sceneName = window.location.hash.replace('#', '').replace('-inspect', '');
+    build_level(levels[sceneName]);
+    levelReset.disabled = false;
+}
+else
+    sceneName = "0";
+
+// initialise game selector
+levelSelect.value = sceneName;
+
+levelSelect.addEventListener('change', function(e) {
+    if (e.target.value == "levelEditor") {
+	edited_level = jQuery.parseJSON(document.getElementById('leveljson').value );
+	build_level( edited_level ); 
+	update_level_editor( edited_level);
+	//window.location.hash = e.target.value;    
+	levelReset.disabled = false;
+
+	$('#editor').show();
+	$(document).scrollTop( $("#editor").offset().top ); 
+
+    }
+    else if (e.target.value != "0") {
+	console.log(e.target.value);
+	window.location.hash = e.target.value;    
+	build_level(levels[e.target.value]); 
+	levelReset.disabled = false;
+    }
+});
+
+levelReset.addEventListener('click', function(e) {
+    if (e.target.value == "levelEditor") {
+	build_level( jQuery.parseJSON(document.getElementById('leveljson').value )); 
+    }
+    else if ( levelSelect.value != "0") {
+	console.log("Building levelSelect.value:", levelSelect.value);
+	build_level(levels[levelSelect.value]);
+    }
+});
 
 
 
