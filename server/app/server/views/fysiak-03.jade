@@ -151,22 +151,20 @@ html
 			h3 Level editor 
 				a(onclick='$("#editor").toggle();') [show]
 			div#editor(style='display:none;')
-				p Nodes are defined in "box_properties" by their central point x,y and type <br>
-					| "start" : Your starting point<br>
-					| "exit" : The place to reach to win the game. Should have "winnable: false" at start<br>
-					| "unlocked" : A node that you can visit - contains a word and will become visited if a positive score is attained<br>
-					| "locked" : A node you can't visit yet - will become unlocked if anyneigbouring node becomes visited<br>
-					| "visited" : A node you have already opened by saying a word and will contain stars
-
-				p Edges are defined in "edge_array", a list of pairs indicating start and end nodes.
-					| The style of the edge is selected and updated automatically.
-					| For now there is only one basic connection type between nodes.
-
-				p Static objects are defined in "shelf_properties" by their central points x,y and width, height and angle in radians.
-
-				p You can also define maximum time limit and in the future also other stuff in "constants."
-
-				textarea#leveleditor(rows="30" cols="150")
+				h4 Meta:
+					div#edit-meta
+				h4 Nodes:
+					div#edit-nodes
+					input#addNode(type='button',onclick='add_node()', value='Add new node')
+				h4 Edges:
+					div#edit-edges
+					input#addEdge(type='button',onclick='add_edge()', value='Add new edge')
+				h4 Static:
+					div#edit-statics
+					input#addStatic(type='button',onclick='add_static()', value='Add a static object')
+				h4 JSON (for copying or pasting):
+					input#buildLevelFromJSON(type='button',onclick='build_level_from_JSON(true)', value='Build level from JSON')
+					textarea#leveljson(rows="30" cols="150")
 
 			h3 Word list 
 				a(onclick='$("#wordlist").toggle();') [show]
@@ -218,4 +216,5 @@ block scripts
 		//script(src='#{baseURL}/js/form-validators/accountValidator.js')
 
 		//script(src='#{baseURL}/js/livedemo/analyser.js')
+		script(src='#{baseURL}/js/fysiak/fysiak-levels-#{fysiak_version}.js')
 		script(src='#{baseURL}/js/fysiak/fysiak-#{fysiak_version}.js')

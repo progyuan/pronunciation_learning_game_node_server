@@ -17,6 +17,7 @@ var world = new p2.World({
 
 var defaultNodeRadius = 2;
 var defaultStarRadius=0.6;
+var starMass = 5;
 
 circleBodiesArray = [];
 
@@ -39,12 +40,9 @@ var build_level = function(new_level) {
 
     // Clear any exising structures:
     world.clear();
-	
-
-				  
+		  
     level = JSON.parse(JSON.stringify(new_level));
-    document.getElementById('leveljson').value=JSON.stringify(level, null, 2);
-
+    //document.getElementById('leveljson').value=JSON.stringify(level, null, 2);
 
     circleBodies = {};
     starBodies = [];
@@ -55,7 +53,13 @@ var build_level = function(new_level) {
     nodes = level.nodes;
     edges = level.edges;
     statics = level.statics;
+    meta = level.meta;
 
+    world.gravity = meta.gravity;
+
+
+    starMass = meta.starmass;
+    maxStars = 0;
     //
     // Add nodes:
     //
@@ -109,44 +113,56 @@ var build_level = function(new_level) {
 
     Object.keys(edges).forEach(function (key) {    
 	e = edges[key];  
-
-
-	if (! "type" in e) {
-	    e.type = 'spring';
+	badnode = false;
+	try {
+	    test = circleBodies[nodes[e.from].id];
 	}
-  
-	if (e.type == 'spring') {
-	    if (! "options" in e) {
-		e.options = {stiffness: 1000} ;
+	catch (err) {
+	    badnode = true;
+	}
+	try  {
+	    test = circleBodies[nodes[e.to].id];
+	}
+	catch (err) {
+	    badnode = true;
+	}
+
+	if (!badnode) {
+	    if (! "type" in e) {
+		e.type = 'spring';
 	    }
-	    e.p2object = new p2.LinearSpring( circleBodies[nodes[e.from].id], circleBodies[nodes[e.to].id] , e.options),
 	    
-	    // Make it winnable?
-	    typeA = nodes[e.from].type;
-	    typeB = nodes[e.to].type;
+	    if (e.type == 'spring') {
+		if (! "options" in e) {
+		    e.options = {stiffness: 1000} ;
+		}
+		e.p2object = new p2.LinearSpring( circleBodies[nodes[e.from].id], circleBodies[nodes[e.to].id] , e.options),
+		
+		// Make it winnable?
+		typeA = nodes[e.from].type;
+		typeB = nodes[e.to].type;
 
-	    /*
-	    if (typeA == 'exit' && typeB == 'start' ) {
-		nodes[e.from].type = 'activeExit';
-	    }	    
-	    if (typeB == 'exit' && typeA == 'start' ) {
-		nodes[e.to].type = 'activeExit';
+		/*
+		  if (typeA == 'exit' && typeB == 'start' ) {
+		  nodes[e.from].type = 'activeExit';
+		  }	    
+		  if (typeB == 'exit' && typeA == 'start' ) {
+		  nodes[e.to].type = 'activeExit';
+		  }
+		*/
+		// Open new nodes?
+		if (typeA == 'locked' && typeB == 'start' ) {
+		    console.log("unlocking node ",bodyA.id);
+		    nodes[e.from].type = 'unlocked';
+		}	    
+		if (typeB == 'locked' && typeA == 'start' ) {
+		    console.log("unlocking node ",bodyB.id);
+		    nodes[e.to].type = 'unlocked';
+		}
+		world.addSpring(e.p2object);
+
 	    }
-	    */
-	    // Open new nodes?
-	    if (typeA == 'locked' && typeB == 'start' ) {
-		console.log("unlocking node ",bodyA.id);
-		nodes[e.from].type = 'unlocked';
-	    }	    
-	    if (typeB == 'locked' && typeA == 'start' ) {
-		console.log("unlocking node ",bodyB.id);
-		nodes[e.to].type = 'unlocked';
-	    }
-
-	    world.addSpring(e.p2object);
-
 	}
-
     });
 
     statics.forEach(function(statObj) {
@@ -167,7 +183,8 @@ var build_level = function(new_level) {
     });
 
     // Done building, let's roll!
-    game_timer(level.meta.timelimit);
+    console.log("Starting game timer!");
+    game_timer(meta.timelimit);
     
 
 }
@@ -257,6 +274,8 @@ var get_edge_colors = function(bodyA, bodyB ) {
 	return edgeColors.active;	
     if (from == 'visited' || to == 'visited') 
 	return edgeColors.active;	
+    if (from == 'unlocked' && to == 'unlocked') 
+	return edgeColors.active;	
 
     return edgeColors.inactive
 }
@@ -313,35 +332,36 @@ function animate(time){
 		
 	Object.keys(edges).forEach(function (key) {
 
-	    c = edges[key].p2object;
+	    if ("p2object" in edges[key]) {
+		c = edges[key].p2object;
 
-	    x1 = c.bodyA.position[0];
-	    y1 = c.bodyA.position[1];
+		x1 = c.bodyA.position[0];
+		y1 = c.bodyA.position[1];
 
-	    x2 = c.bodyB.position[0];
-	    y2 = c.bodyB.position[1];
+		x2 = c.bodyB.position[0];
+		y2 = c.bodyB.position[1];
 
-	    len =  Math.sqrt( (x1-x2) * (x1-x2) + (y1-y2)*(y1-y2));
+		len =  Math.sqrt( (x1-x2) * (x1-x2) + (y1-y2)*(y1-y2));
 
-	    lenRatio =  (c.restLength / len) * (c.restLength / len);// *  (c.restLength / len);
+		lenRatio =  (c.restLength / len) * (c.restLength / len);// *  (c.restLength / len);
 
-	    ctx.lineWidth = 0.25 * lenRatio;
-	    
-	    colors = get_edge_colors( c.bodyA, c.bodyB );
+		ctx.lineWidth = 0.25 * lenRatio;
+		
+		colors = get_edge_colors( c.bodyA, c.bodyB );
 
-	    ctx.strokeStyle= colors.outer;
+		ctx.strokeStyle= colors.outer;
 
-	    ctx.beginPath();
-	    ctx.moveTo(x1, y1);
-	    ctx.lineTo(x2, y2);
-	    ctx.stroke();
+		ctx.beginPath();
+		ctx.moveTo(x1, y1);
+		ctx.lineTo(x2, y2);
+		ctx.stroke();
 
-	    ctx.lineWidth = 0.15 * lenRatio;
-	    ctx.strokeStyle=colors.inner;
+		ctx.lineWidth = 0.15 * lenRatio;
+		ctx.strokeStyle=colors.inner;
 
-	    ctx.lineTo(x1, y1);
-	    ctx.stroke();
-	    
+		ctx.lineTo(x1, y1);
+		ctx.stroke();
+	    }	
 	    
 
 	});
@@ -492,7 +512,8 @@ function animate(time){
     }
     
     function drawStatics() {
-	Object.keys(statics).forEach(function (key) {
+	Object.keys(statics).forEach(function (key) {	    
+	    //console.log("Drawing static", key);
 	    c = statics[key].p2object;
 
 	    x = c.position[0];
@@ -686,6 +707,7 @@ var timer_instance = null;
 
 game_timer = function (timelimit) {
 
+
     game_time_left = timelimit;
     timer_running = true;
 
@@ -764,8 +786,8 @@ var handle_scoring = function(node_id) {
     if (nodes[node_id].word) {
 	var word = nodes[node_id].word;
 	document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>';
-	//get_score_for_word(word, node_id, apply_scoring);
-	apply_scoring(node_id, ++debug_score);
+	get_score_for_word(word, node_id, apply_scoring);
+	//apply_scoring(node_id, ++debug_score);
     }
     else {
 	document.getElementById('score').innerHTML='Getting a word for you..';
@@ -774,8 +796,8 @@ var handle_scoring = function(node_id) {
 	    nodes[node_id].word = word;
 	    //console.log(nodes[node_id]);
 	    document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
-	    //get_score_for_word(word, node_id, callback);
-	    apply_scoring(node_id, ++debug_score);
+	    get_score_for_word(word, node_id, callback);
+	    //apply_scoring(node_id, ++debug_score);
 	});
     }
 }
@@ -853,13 +875,13 @@ var addStars = function(node_id, score) {
     item = circleBodies[ nodes[node_id].id ];
 
     for (i= (nodes[node_id].score | 0); i < score; i++) {
-
+c
 	star = {
 	    position : [
 		item.position[0]+star_offsets[i].x,
 		item.position[1]+star_offsets[i].y,
 	    ],
-	    mass: 15
+	    mass: starMass
 	}
 	
 	circleBody = new p2.Body({
@@ -896,10 +918,21 @@ var update_star_count = function() {
 
 
 var update_level_editor = function (level) {
+
+    need_json_update = true;
+
+    if (typeof(level) == 'undefined') {
+	level = JSON.parse(document.getElementById('leveljson').value);	
+	need_json_update = false;
+    }
+
     counter=0;
 
     console.log("UPDATING LEVEL EDITOR");
+    $('#edit-meta').empty();
+    $('#edit-meta').append( get_meta_editor(level.meta));
 
+    $('#edit-nodes').empty();
     Object.keys(level.nodes).forEach( function (key) {
 	$('#edit-nodes').append( get_node_editor(key, level.nodes[key], counter++  ) );
     });
@@ -907,21 +940,31 @@ var update_level_editor = function (level) {
     
     counter = 0;
     // Update level editor:
+    $('#edit-edges').empty();
     level.edges.forEach( function (edge) {
 	$('#edit-edges').append( get_edge_editor( edge, counter++) );
     });
 
      counter = 0;
+    $('#edit-statics').empty();
     // Update level editor:
     level.statics.forEach( function (staticobj) {
 	$('#edit-statics').append( get_statics_editor( staticobj, counter++) );
     });
-   
 
+    if (need_json_update)
+	updateJSON();
 }
 
 var decrease_field = function (field) {
-    val = parseFloat(document.getElementById(field).value)
+    tweak_field(field, 'minus');
+}
+var increase_field = function (field) {
+    tweak_field(field, 'plus');
+}
+
+var tweak_field = function (field, direction) {
+    val = parseFloat(field.value);
     if (Math.abs(val) < 20)
 	valchange = 0.1;
     else if (Math.abs(val) < 100)
@@ -930,23 +973,90 @@ var decrease_field = function (field) {
 	valchange = 10;
      else 
 	 valchange = 100;
+    if (direction == 'minus')
+	val -= valchange;
+    else
+	val += valchange;
 
-    document.getElementById(field).value = val - valchange;
+    field.value = Math.round( val * 1000 ) / 1000.0;
+    updateJSON();
+}
+
+var remove_node = function(element) {
+    $( element ).parent().remove();
+    updateJSON();
+}
+var remove_static = function(element) {
+    $( element ).parent().remove();
+    updateJSON();
+}
+var remove_edge = function(element) {
+    $( element ).parent().remove();
+    updateJSON();
+}
+
+
+var add_node = function(element) {
+    $('#edit-nodes').append( get_node_editor(
+	Math.random().toString(36).substring(2,7), 
+	{
+	    type:'word',
+	    position: [0,0],
+	    mass: 5
+	}, 
+	    -1));
 
     updateJSON();
 }
-var increase_field = function (field) {
-    val = parseFloat(document.getElementById(field).value)
-    if (Math.abs(val) < 20)
-	valchange = 0.1;
-    else if (Math.abs(val) < 100)
-	valchange = 1;
-    else if (Math.abs(val) < 1000)
-	valchange = 10;
-     else 
-	 valchange = 100;
-    document.getElementById(field).value = val + valchange;
+var add_static = function(element) {
+    $('#edit-statics').append( get_statics_editor( 
+	{
+	    position: [0,0],
+	    h: 1,
+	    w: 1,
+	    angle: 0
+	},
+	    -1) );
     updateJSON();
+}
+var add_edge = function(element) {
+       $('#edit-edges').append( get_edge_editor(
+        {
+            from: "",
+            to: "",
+            type: "spring",
+            options: { stiffness: 1000 }
+        },
+            -1) );
+
+    updateJSON();
+}
+
+var get_meta_editor = function(meta) {
+    editor = "<div>"
+    editor += " Level name:";
+    editor += "<input id='levelname' type=text value='"+meta.levelname+"' maxlength=24 size=12 onchange='updateJSON();'>";
+    editor += " Author:";
+    editor += "<input id='author' type=text value='"+meta.author+"' maxlength=24 size=12 onchange='updateJSON();'>";
+    editor += " Time limit:";
+    editor += "<input onclick='decrease_field(  $( this ).parent().find(\"#timelimit\")[0]  )' type=button value='-'>";
+    editor += "<input id='timelimit' type=text value='"+meta.timelimit+"' maxlength=4 size=4 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field(  $( this ).parent().find(\"#timelimit\")[0] )' type=button value='+'>";
+    editor += " star mass:";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#starmass\")[0] )' type=button value='-'>";
+    editor += "<input id='starmass' type=text value='"+meta.starmass+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#starmass\")[0] )' type=button value='+'>";
+    editor += " Gravity x:";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#gravityx\")[0] )' type=button value='-'>";
+    editor += "<input id='gravityx' type=text value='"+meta.gravity[0]+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#gravityx\")[0] )' type=button value='+'>";
+    editor += " Gravity y:";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#gravityy\")[0] )' type=button value='-'>";
+    editor += "<input id='gravityy' type=text value='"+meta.gravity[1]+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#gravityy\")[0] )' type=button value='+'>";
+   editor += '</div>';
+
+    return editor;
 }
 
 
@@ -970,14 +1080,20 @@ var get_node_editor = function(name, node, id) {
 
     editor += " Position "
     editor += " x:";
-    editor += "<input onclick='decrease_field(\"node_positionx\")' type=button value='-'>";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#node_positionx\")[0] )' type=button value='-'>";
     editor += "<input id='node_positionx' type=text value='"+node.position[0]+"' maxlength=6 size=6 onchange='updateJSON();'>";
-    editor += "<input onclick='increase_field(\"node_positionx\")' type=button value='+'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#node_positionx\")[0] )' type=button value='+'>";
     editor += " y:";
-    editor += "<input onclick='decrease_field(\"node_positiony\")' type=button value='-'>";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#node_positiony\")[0] )' type=button value='-'>";
     editor += "<input id='node_positiony' type=text value='"+node.position[1]+"' maxlength=6 size=6 onchange='updateJSON();'>";
-    editor += "<input onclick='increase_field(\"node_positiony\")' type=button value='+'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#node_positiony\")[0] )' type=button value='+'>";
+    editor += " mass:";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#node_mass\")[0] )' type=button value='-'>";
+    editor += "<input id='node_mass' type=text value='"+node.mass+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#node_mass\")[0] )' type=button value='+'>";
     
+  editor += " <input type=button value='Remove element' onclick='remove_node(this)' style='color: red;'>"
+
     return editor;    
 }
 
@@ -987,7 +1103,7 @@ var get_edge_editor = function(edge, id) {
     editor += " from: ";
     editor += "<input id='edge_from' type=text value='"+ edge.from + "' maxlength=12 size=6 onchange='updateJSON();'>";
     editor += " to: ";
-    editor += "<input id='edge_from' type=text value='"+ edge.to + "' maxlength=12 size=6 onchange='updateJSON();'>";
+    editor += "<input id='edge_to' type=text value='"+ edge.to + "' maxlength=12 size=6 onchange='updateJSON();'>";
     editor += " type: ";
     editor += "<select id='edge_type' onchange='updateJSON();'>";
     (['spring']).forEach (function (type) {
@@ -998,10 +1114,11 @@ var get_edge_editor = function(edge, id) {
     } );
     editor += "</select>";
     editor += " options.stiffness: ";
-    editor += "<input onclick='decrease_field(\"edge_stiffness\")' type=button value='-'>";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#edge_stiffness\")[0] )' type=button value='-'>";
     editor += "<input id='edge_stiffness' type=text value='"+ edge.options.stiffness + "' maxlength=12 size=6 onchange='updateJSON();'>";
-    editor += "<input onclick='increase_field(\"edge_stiffness\")' type=button value='+'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#edge_stiffness\")[0] )' type=button value='+'>";
 
+  editor += " <input type=button value='Remove element' onclick='remove_edge(this)' style='color: red;'>"
 
     return editor;
 
@@ -1013,26 +1130,28 @@ var get_statics_editor = function(statics, id) {
     editor = "<div>";
     editor += " Position ";
     editor += " x:";
-    editor += "<input onclick='decrease_field(\"statics_positionx\")' type=button value='-'>";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#statics_positionx\")[0] )' type=button value='-'>";
     editor += "<input id='statics_positionx' type=text value='"+statics.position[0]+"' maxlength=6 size=6 onchange='updateJSON();'>";
-    editor += "<input onclick='increase_field(\"statics_positionx\")' type=button value='+'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#statics_positionx\")[0] )' type=button value='+'>";
     editor += " y:";
-    editor += "<input onclick='decrease_field(\"statics_positiony\")' type=button value='-'>";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#statics_positiony\")[0] )' type=button value='-'>";
     editor += "<input id='statics_positiony' type=text value='"+statics.position[1]+"' maxlength=6 size=6 onchange='updateJSON();'>";
-    editor += "<input onclick='increase_field(\"statics_positiony\")' type=button value='+'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#statics_positiony\")[0] )' type=button value='+'>";
     
     editor += " height:";
-    editor += "<input onclick='decrease_field(\"statics_h\")' type=button value='-'>";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#statics_h\")[0] )' type=button value='-'>";
     editor += "<input id='statics_h' type=text value='"+statics.h+"' maxlength=6 size=6 onchange='updateJSON();'>";
-    editor += "<input onclick='increase_field(\"statics_h\")' type=button value='+'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#statics_h\")[0] )' type=button value='+'>";
     editor += " width:";
-    editor += "<input onclick='decrease_field(\"statics_w\")' type=button value='-'>";
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#statics_w\")[0] )' type=button value='-'>";
     editor += "<input id='statics_w' type=text value='"+statics.w+"' maxlength=6 size=6 onchange='updateJSON();'>";
-    editor += "<input onclick='increase_field(\"statics_w\")' type=button value='+'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#statics_w\")[0] )' type=button value='+'>";
     editor += " angle (radians):";
-    editor += "<input onclick='decrease_field(\"statics_angle\")' type=button value='-'>";
-    editor += "<input id='statics_w' type=text value='"+statics.angle+"' maxlength=6 size=6 onchange='updateJSON();'>";
-    editor += "<input onclick='increase_field(\"statics_angle\")' type=button value='+'>";    
+    editor += "<input onclick='decrease_field( $( this ).parent().find(\"#statics_angle\")[0] )' type=button value='-'>";
+    editor += "<input id='statics_angle' type=text value='"+statics.angle+"' maxlength=6 size=6 onchange='updateJSON();'>";
+    editor += "<input onclick='increase_field( $( this ).parent().find(\"#statics_angle\")[0]  )' type=button value='+'>";    
+    editor += " <input type=button value='Remove element' onclick='remove_static(this)' style='color: red;'>"
+
     editor += "</div>";
     return editor;    
 }
@@ -1040,54 +1159,134 @@ var get_statics_editor = function(statics, id) {
 
 var updateJSON = function() {
 
-
     console.log("updating JSON!");
     json_nodes = {};
-    console.log($('#edit-nodes').children());
+    json_edges = [];
+    json_statics = [];
+
+    console.log("#edit-meta:",$('#edit-meta'));
+
+    json_meta = { gravity: []};
+
+    $('#edit-meta').find('input').each(function () {
+	//$( this ).children('input').each(function () {
+	    field = this;
+	    console.log("metafield:",field);
+	    if ( field.id == 'levelname')
+		json_meta.levelname = field.value;
+            else if ( field.id == 'timelimit')
+		json_meta.timelimit = field.value ;
+            else if ( field.id == 'author')
+		json_meta.author = field.value ;
+            else if ( field.id == 'starmass')
+		json_meta.starmass = field.value ;
+            else if ( field.id == 'gravityx')
+		json_meta.gravity[0] = field.value ;
+            else if ( field.id == 'gravityy')
+		json_meta.gravity[1] = field.value ;
+			
+	//});
+    });
 
     $('#edit-nodes').children().each(function () {	
 	node = { position: []}; 
 	var key;
-	console.log( $( this ) );
 	$( this ).children('input').each(function () {
 	    field = this;
-	    console.log("Working on:",field, field.id);
 	    if ( field.id == 'key')
 		key = field.value;	    
 	    else if ( field.id == 'node_positionx')
-		node.position[0] = field.value ;
+		node.position[0] = parseFloat(field.value);
 	    else if ( field.id == 'node_positiony')
-		node.position[1] = field.value ;
+		node.position[1] = parseFloat(field.value);
 	    else if ( field.id == 'node_type')
 		node.type = field.value ;
+	    else if ( field.id == 'node_mass')
+		node.mass = parseFloat(field.value);
 
 	});
 	$( this ).children('select').each(function () {
 	    field = this;
-	    console.log("Working on:",field, field.id);
 	    if ( field.id == 'node_type')
 		node.type = field.value ;
 
 	});
-	console.log("key:", key, "vals:", node);
 	json_nodes[key] = node;
     });
+
+    $('#edit-edges').children().each(function () {	
+	edge = { options : {} }; 
+	var key;
+	console.log( $( this ) );
+	$( this ).children('input').each(function () {
+	    field = this;
+	    if (field.id == 'edge_to')
+		edge.to = field.value;
+	    else if ( field.id == 'edge_from')
+		edge.from = field.value ;
+	    else if ( field.id == 'edge_type')
+		edge.type = field.value ;
+	    else if ( field.id == 'edge_stiffness')
+		edge.options.stiffness = field.value ;
+
+	});
+	$( this ).children('select').each(function () {
+	    field = this;
+	    if ( field.id == 'edge_type')
+		edge.type = field.value ;
+
+	});
+	json_edges.push(edge)
+    });
+
+    $('#edit-statics').children().each(function () {	
+	st = { position:[] }; 
+	var key;
+	
+	$( this ).children('input').each(function () {
+	    field = this;
+	    if (field.id == 'statics_positionx')
+		st.position[0] = parseFloat(field.value);
+	    else if ( field.id == 'statics_positiony')
+		st.position[1] = parseFloat(field.value);
+	    else if ( field.id == 'statics_h')
+		st.h = parseFloat(field.value) ;
+	    else if ( field.id == 'statics_w')
+		st.w = parseFloat(field.value) ;
+	    else if ( field.id == 'statics_angle')
+		st.angle = parseFloat(field.value) ;
+	});
+	json_statics.push(st)
+    });
+
 	/*console.log(node);
 	nodes[ $("#node_"+(id)+"_id").value ] = 
 	    {
 		position: [ $("#node_"+(id)+"_positionx").value,  $("#node_"+(id)+"_positiony").value ],
 		type :  $("#node_"+id+"_type").value
 	    };*/
-    json_level = { nodes: json_nodes }
+    json_level = { meta: json_meta,
+		   nodes: json_nodes,
+		   edges: json_edges,
+		   statics: json_statics
+		 }
     
     document.getElementById('leveljson').value =  JSON.stringify(json_level, null, 2);
-    
+    build_level_from_JSON();
+}
+
+
+var build_level_from_JSON = function (update_editor) {
+    console.log("Building level from JSON!");
+    build_level( JSON.parse(document.getElementById('leveljson').value));
+    if (update_editor) {
+    	update_level_editor( JSON.parse(document.getElementById('leveljson').value)  );
+    }
 }
 
 // Screen size handling: 
 
-var screen_size_setup = function() {
-    // Eventually move this to a separate function:
+var screen_size_setup = function(editing) {
 
     // Fiddle with the css of the game container:
 
@@ -1095,8 +1294,6 @@ var screen_size_setup = function() {
     underbar = document.getElementById("underbar");
     cover = document.getElementById("scorewrapper");
 
-    var he = $(window).height(),
-    wi = $(window).width();
     
     var toolbarwi = 200,
     toolbarhe = 200,
@@ -1105,13 +1302,24 @@ var screen_size_setup = function() {
     };
 
     var canvaswi;
+    var he, wi;
+
+    if (editing) {
+	he=400;
+	wi=$(window).width();
+    }
+
+    else {
+	he = $(window).height();
+	wi = $(window).width();
+    }
 
     bottom_toolbar_canvaswi = Math.min (wi, 4.0 / 3.0 * (he -toolbarhe));
     left_toolbar_canvaswi = Math.min ( 4.0 / 3.0 * (he), wi - toolbarwi);
-
+    
     // Option 1: 
     // More vertical space than horisontal space: Toolbar on bottom
-    if (bottom_toolbar_canvaswi > left_toolbar_canvaswi) {	    
+    if (bottom_toolbar_canvaswi > left_toolbar_canvaswi && ! editing) {	    
 
 	canvaswi = bottom_toolbar_canvaswi
 	toolbarstyle.top = ((3.0 / 4.0) * canvaswi) + "px";
@@ -1158,8 +1366,6 @@ var screen_size_setup = function() {
     
     cover.style.width = canvaswi + "px";
     cover.style.height = 3*canvaswi/4 + "px";
-    
-    
 
 }
 screen_size_setup();
@@ -1173,12 +1379,6 @@ $( window ).resize(function() {
 document.getElementById('level-select').value;
 levelselector = document.getElementById('level-select');
 
-var opt = document.createElement("option");
-opt.value= "0";
-opt.innerHTML = "Choose a level to play:"; // whatever property it has
-
-// then append it to the select element
-levelselector.appendChild(opt);
 
 
 Object.keys(levels).forEach ( function(key) {
@@ -1192,7 +1392,7 @@ Object.keys(levels).forEach ( function(key) {
 
 var opt = document.createElement("option");
 opt.value= "levelEditor";
-opt.innerHTML = "Your own level" ; // whatever property it has
+opt.innerHTML = "Edit this level" ; // whatever property it has
 levelselector.appendChild(opt);
 
 
@@ -1205,44 +1405,54 @@ levelReset = document.getElementById('level-reset');
 
 // get the scene function name from hash
 if (window.location.hash.length !== 0) {
-    sceneName = window.location.hash.replace('#', '').replace('-inspect', '');
-    build_level(levels[sceneName]);
-    levelReset.disabled = false;
+    sceneName = window.location.hash.replace('#', '').replace('-inspect', '');   
+} 
+else {
+    sceneName = $( levelselector ).children()[0].value;
 }
-else
-    sceneName = "0";
+    
+build_level(levels[sceneName]);
 
 // initialise game selector
 levelSelect.value = sceneName;
+document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
+update_level_editor();
 
 levelSelect.addEventListener('change', function(e) {
+
     if (e.target.value == "levelEditor") {
-	edited_level = jQuery.parseJSON(document.getElementById('leveljson').value );
-	build_level( edited_level ); 
-	update_level_editor( edited_level);
-	//window.location.hash = e.target.value;    
-	levelReset.disabled = false;
-
+	
 	$('#editor').show();
-	$(document).scrollTop( $("#editor").offset().top ); 
+	screen_size_setup(true);
+    }
+    else {
+	sceneName = e.target.value;
+	window.location.hash = sceneName;
+	build_level(levels[ sceneName ]);     
+	update_level_editor( levels[ sceneName ] );
+	//document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
+	//update_level_editor();
+    }
 
-    }
-    else if (e.target.value != "0") {
-	console.log(e.target.value);
-	window.location.hash = e.target.value;    
-	build_level(levels[e.target.value]); 
-	levelReset.disabled = false;
-    }
+
 });
 
 levelReset.addEventListener('click', function(e) {
+
+    build_level_from_JSON(false);
+
     if (e.target.value == "levelEditor") {
-	build_level( jQuery.parseJSON(document.getElementById('leveljson').value )); 
+	$('#editor').show();
+	screen_size_setup(true);
+	//$(document).scrollTop( $("#editor").offset().top ); 
+    }
+    /*
+    if (e.target.value == "levelEditor") {
+	build_level_from_json();
     }
     else if ( levelSelect.value != "0") {
-	console.log("Building levelSelect.value:", levelSelect.value);
 	build_level(levels[levelSelect.value]);
-    }
+    }*/
 });
 
 

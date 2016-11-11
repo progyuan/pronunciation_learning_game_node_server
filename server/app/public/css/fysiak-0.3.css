@@ -1,10 +1,9 @@
 #gamecanvas {
-    background-color: pink;
-    width: 800px;;
-    height: 600px;
-    margin: 20px;
+    background-color: lightblue;
+    /*width: 800px;
+    height: 600px;*/
+    margin: 0px;
     display: block;
-    margin-top: 60px;
 }
 
 
