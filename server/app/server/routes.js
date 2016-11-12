@@ -51,9 +51,9 @@ module.exports = function(app) {
 	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
 		console.log("Rendering:");
 		console.log(e);
-		res.render('fysiak-02', { 
-		    title: 'fySIAK on-line v. 0.2',
-		    fysiak_version: '0.2',
+		res.render('fysiak-03', { 
+		    title: 'fySIAK on-line v. 0.3',
+		    fysiak_version: '0.3',
                     udata : req.session.user,
 		    word_list : word_list,
 		    game_word_list : game_word_list,
@@ -73,9 +73,9 @@ module.exports = function(app) {
 	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
 		console.log("Rendering:");
 		console.log(e);
-		res.render('fysiak-03', { 
-		    title: 'fySIAK on-line v. 0.3',
-		    fysiak_version: '0.3',
+		res.render('fysiak-04', { 
+		    title: 'fySIAK on-line v. 0.4',
+		    fysiak_version: '0.4',
                     udata : req.session.user,
 		    word_list : word_list,
 		    game_word_list : game_word_list,
