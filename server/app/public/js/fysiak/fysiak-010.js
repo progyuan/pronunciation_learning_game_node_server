@@ -7,6 +7,8 @@ var w = canvas.width,
     h = canvas.height;
 
 
+var audioelements = {};
+
 
 var scaleX = 30, scaleY = -30;
 
@@ -19,14 +21,25 @@ var defaultNodeRadius = 2;
 var defaultStarRadius=0.6;
 var starMass = 5;
 
-circleBodiesArray = [];
+var timepenalties = [ 2000, // 0
+		      1500, // 1 star
+		      2200, // 2 stars
+		      1500, // 3 stars
+		      900, // 4 stars
+		      300 ]; // 5 stars
 
+
+var running_node_id = 0;
+var running_static_id = 1000;
+var running_star_id = 2000;
+
+var editMode = false;
 
 var maxStars = 0;
+var starCount = 0;
 
 var hitNode = null;
 
-var id_to_node = {};
 
 var nodes = {},
     circleBodies = {},
@@ -34,7 +47,8 @@ var nodes = {},
     hangerBodies = [],
     statics = [],
     edges = [],
-    circleBodiesArray = [];
+    circleBodiesArray = [],
+    id_to_node = {};
 
 var build_level = function(new_level) {
 
@@ -44,11 +58,14 @@ var build_level = function(new_level) {
     level = JSON.parse(JSON.stringify(new_level));
     //document.getElementById('leveljson').value=JSON.stringify(level, null, 2);
 
+    nodes = {};
     circleBodies = {};
     starBodies = [];
     hangerBodies = [];
+    statics = [];
+    edges = [];
     circleBodiesArray = [];
-    id_to_node = [];
+    id_to_node = {};
 
     nodes = level.nodes;
     edges = level.edges;
@@ -60,14 +77,22 @@ var build_level = function(new_level) {
 
     starMass = meta.starmass;
     maxStars = 0;
+    starCount = 0;
     //
     // Add nodes:
     //
+
+    running_node_id = 1;
+    running_static_id = 1001;
+    running_star_id = 2001;
+
 
     Object.keys(nodes).forEach(function (key) {
 
 	node = nodes[key];
 	//console.log("Add node", key, node);
+
+	node.name = key;
 	
 	if (! "mass" in node) {
 	    node.mass = 5
@@ -76,6 +101,7 @@ var build_level = function(new_level) {
 	circleBody = new p2.Body({
 	    mass: node.mass,
 	    position: node.position,
+	    id : running_node_id++
 	});
 	
 	var circleShape = new p2.Circle({ radius: defaultNodeRadius });
@@ -93,12 +119,14 @@ var build_level = function(new_level) {
 	    maxStars += 5;
 	    node.type = 'unlocked';
 	    node.word = false;
+	    node.score = 0;
 	}
 	else if (node.type == 'word') 
 	{
 	    maxStars += 5;
 	    node.type = 'locked';
 	    node.word = false;
+	    node.score = 0;
 	}
 	else {
 	    node.word = node.type.toUpperCase();
@@ -194,6 +222,7 @@ var build_level = function(new_level) {
             mass: 0, // Static
             position: statObj.position,
 	    angle: statObj.angle,
+	    id : running_static_id++
 	});
 	staticBody.type = p2.Body.STATIC;
 	var staticShape = new p2.Box({ width: statObj.w , height: statObj.h });
@@ -219,7 +248,19 @@ var maxSubSteps = 10; // Max sub steps to catch up with the wall clock
 var lastTime;
 
 
+
+
+
+// RENDERING
+
+
+
+
+
 // Rendering style:
+
+
+
 
 var nodeColors = {
     'start': { fill: 'lightgreen',
@@ -337,8 +378,19 @@ var pulse_color = function( fillStyle, shift)  {
 
 
 
+
+
 // Animation loop
+
+
+
+
+
 var lastRender = 0;
+var movingStarTargetTime = 0;
+var movingStarCount = 0;
+var movingExtraStars = 0;
+var movingStarCurrentPosition, movingStarTargetPosition;
 
 function animate(time){
     requestAnimationFrame(animate);
@@ -365,23 +417,28 @@ function animate(time){
 }
 
 var render = function(time) {
-   
+  
+
     cyclems = 1200;
     maxshift = 22;
-    
-    moment = time % cyclems;
 
-    colorshift = Math.round(moment%(cyclems/4) * (4 * maxshift / cyclems));
+    if (movingStarTargetTime < time) {
 
-    if (moment < cyclems/4)
-	colorshift = colorshift;
-    else if (moment < cyclems/2)
-	colorshift = maxshift - colorshift
-    else if (moment < 3*cyclems/4)
-	colorshift = - colorshift;  
-    else
-	colorshift = -maxshift + colorshift;  
-
+	moment = time % cyclems;
+	colorshift = Math.round(moment%(cyclems/4) * (4 * maxshift / cyclems));
+	
+	if (moment < cyclems/4)
+	    colorshift = colorshift;
+	else if (moment < cyclems/2)
+	    colorshift = maxshift - colorshift
+	else if (moment < 3*cyclems/4)
+	    colorshift = - colorshift;  
+	else
+	    colorshift = -maxshift + colorshift;  
+    }
+    else {
+	colorshift = -80;
+    }
     // Clear the canvas
     ctx.clearRect(0,0,w,h);
     
@@ -392,6 +449,32 @@ var render = function(time) {
     
 
 
+    if (!audio_ok_for_game) {
+
+	ctx.strokeStyle = 'brown';
+	ctx.fillStyle = 'yellow';
+
+
+
+	ctx.font = 2+"px Arial";
+	ctx.lineWidth = 0.05;
+
+	ctx.scale(1, -1);	   
+
+	txt = "Error accessing microphone.";
+	ctx.fillText(txt, -w/scaleX/3 , -2.5)
+
+	txt = "Please give permission and reload page!";
+	ctx.fillText(txt, -w/scaleX/3 , 2.5)
+
+
+	ctx.scale(1, -1);	   
+	
+    }
+
+
+
+
     // A little frame edge:
 
     ctx.beginPath();
@@ -400,20 +483,62 @@ var render = function(time) {
     ctx.strokeStyle = 'black';
     ctx.stroke();
 
+    
 
+    // Draw scoring:
+    ctx.lineWidth = 0.05;
+  
+    ctx.strokeStyle = 'orange';
+    ctx.fillStyle = 'yellow';
+
+    ptSize = 2;
+    ctx.font = ptSize+"px Arial";	    
+
+    txt = "\u2605";    
+    ctx.strokeText(txt, (-w/2.07)/scaleX , -(h/2.04)/scaleY);
+    ctx.fillText(txt, (-w/2.07)/scaleX , -(h/2.04)/scaleY);
+
+
+    // Small stars:
+
+    ptSize = 0.6;;
+    ctx.font = ptSize+"px Arial";	    
+    ctx.lineWidth = 0.05;
+
+
+    ctx.strokeStyle = 'brown';
+    ctx.fillStyle = 'yellow';
+
+    txt = "";
+    for (i=0; i < maxStars; i++) txt +=  "\u2605";
+
+    ctx.lineWidth = 0.08;
+    ctx.strokeText(txt, (-w/2.25)/scaleX , -(h/2.08)/scaleY);
+
+
+    txt = "";
+    for (i=0; i < starCount-movingExtraStars; i++) txt +=  "\u2605";
+    
+    
+    ctx.fillText(txt, (-w/2.25)/scaleX , -(h/2.08)/scaleY);
+    ctx.strokeStyle = 'yellow';
+    ctx.strokeText(txt, (-w/2.25)/scaleX , -(h/2.08)/scaleY);
 
     // Draw a timer:
+
+    ctx.strokeStyle = 'black';
+    ctx.fillStyle = 'yellow';
 
     ptSize = 2;;
     ctx.font = ptSize+"px Arial";	    
     txt = "\u231A";
 
-    ctx.fillText(txt,(-w/2.08)/scaleX , -(h/2.05)/scaleY) ;
+    ctx.fillText(txt,(-w/2.08)/scaleX , -(h/2.25)/scaleY) ;
 
     if (max_game_time > 0 && game_time_left > 0) {
 
 	ctx.beginPath();
-	ctx.rect( (-w/2.25)/scaleX , -(h/2.08)/scaleY, w * (max_game_time/60) / 1.2 /scaleX, h/60/scaleY);
+	ctx.rect( (-w/2.25)/scaleX , -(h/2.28)/scaleY, w * (max_game_time/60) / 1.2 /scaleX, h/60/scaleY);
 	ctx.lineWidth = 0.15;
 	ctx.strokeStyle = 'brown';
 	ctx.stroke();
@@ -421,14 +546,13 @@ var render = function(time) {
 	ctx.fill();
 
 	ctx.beginPath();
-	ctx.rect( (-w/2.25)/scaleX , -(h/2.08)/scaleY, w * (game_time_left/60) / 1.2 /scaleX, h/60/scaleY);
+	ctx.rect( (-w/2.25)/scaleX , -(h/2.28)/scaleY, w * (game_time_left/60) / 1.2 /scaleX, h/60/scaleY);
 	ctx.lineWidth = 0.15;
 	ctx.strokeStyle = 'brown';
 	ctx.stroke();
 	ctx.fillStyle = 'lightgreen'
 	ctx.fill();
 	
-
     }
 
     
@@ -440,9 +564,69 @@ var render = function(time) {
     drawCircles();
     //drawPlane();
 
+    //movingStarTargetTime = time+100;
+    //movingStarCount = 3;
+
+    if (movingStarTargetTime>time) {
+	ctx.beginPath();
+	ctx.rect(-w/2 /scaleX, -h/2/scaleY, w/scaleX, h/scaleY);
+	ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+	ctx.fill();
+	drawMovingStars(time);
+    }
+    else {
+	movingStarCount = 0;
+	movingExtraStars = 0;
+    }
+
+    if (editMode)
+	drawGrid();
+
+
+
     // Restore transform
     ctx.restore();
     
+
+    // Show grid for editing:
+
+    function drawGrid() {
+	ctx.strokeStyle = 'brown';
+	ctx.lineWidth = 0.03;
+	
+	ptSize = 1.5;
+	ctx.font = ptSize+"px Arial";	    
+
+	for (x=-30; x < 31; x+=5) {
+	    ctx.beginPath();	    
+            ctx.moveTo(x, -h/scaleY);
+	    ctx.lineTo(x, h/scaleY);
+	    ctx.stroke();
+	    
+	    ctx.save();
+	    ctx.scale(1, -1);	   
+	    ctx.fillText(x, x, -h/2.08/scaleY);
+	    ctx.restore();
+
+	}
+
+ 	for (y=-20; y < 21; y+=5) {
+	    ctx.beginPath();	    
+            ctx.moveTo(-w/scaleX, y);
+	    ctx.lineTo(w/scaleX, y);
+	    ctx.stroke();
+	    
+	    ctx.save();
+	    ctx.scale(1, -1);	   
+	    ctx.fillText(-y,  (-w/2.15)/scaleX , y);
+	    ctx.restore();
+
+	}  
+    }
+
+    
+
+
     function drawEdges(){
 		
 	Object.keys(edges).forEach(function (key) {
@@ -686,6 +870,47 @@ var render = function(time) {
 	});
     }
 
+    function drawMovingStars(time) {
+
+	
+	if (!movingStarCurrentPosition)
+	    movingStarCurrentPosition = [0,0];
+
+	if (!movingStarTargetPosition) {	    
+	    ptSize = 0.6;
+	    ctx.font = ptSize+"px Arial";
+	    txt = "";
+	    for (i=0; i < starCount-movingStarCount; i++) txt +=  "\u2605";
+	    starsw = ctx.measureText(txt).width;
+	    movingStarTargetPosition = [(-w/2.25)/scaleX + starsw,
+				    -(h/2.08)/scaleY ] 
+	}
+	
+	
+
+	interpolatedPosition = [
+	    movingStarTargetPosition[0] - ((movingStarTargetTime-time) /  timepenalties[movingStarCount] ) *  movingStarTargetPosition[0],
+	    movingStarTargetPosition[1] - ((movingStarTargetTime-time) / timepenalties[movingStarCount] ) *  movingStarTargetPosition[1]
+	];
+
+	ptSize = 8 * (movingStarTargetTime-time) / ( timepenalties[movingStarCount] ) + 1;
+	ctx.font = ptSize+"px Arial";	    
+	txt = ""
+	for (i=0; i < movingStarCount; i++) txt +=  "\u2605";
+
+	ctx.lineWidth = 0.08;
+	
+	ctx.fillStyle = "yellow";
+	ctx.strokeStyle = "orange";
+
+	ctx.fillText(txt, interpolatedPosition[0], interpolatedPosition[1]);
+	ctx.strokeText(txt, interpolatedPosition[0], interpolatedPosition[1]);
+	
+
+	
+    }
+
+
     function drawPlane(){
 	ctx.strokeStyle= nodeColors[ 'static' ].stroke;
 	ctx.fillStyle = nodeColors[ 'static' ].activeFill;
@@ -706,40 +931,46 @@ var render = function(time) {
 
 canvas.addEventListener('mousedown', function(event){
     
-    // Convert the canvas coordinate to physics coordinates
-    var position = getPhysicsCoord(event);
+    if (movingStarTargetTime < lastTime) { //movingStarCount < 1) {
 
-    console.log("Mouse down at world coords:", position);
-    
-    // Check if the cursor is inside the box
-    var hitBodies = world.hitTest(position, circleBodiesArray);
-    
-    if(hitBodies.length) {
-	node = nodes[id_to_node[hitBodies[0].id]];
-	console.log("hit body:", node.type, node.word);
+	// Convert the canvas coordinate to physics coordinates
+	var position = getPhysicsCoord(event);
+
+	console.log("Mouse down at world coords:", position);
 	
-	if (node.type == 'unlocked' || node.type == 'visited') {
-	    handle_scoring( id_to_node[hitBodies[0].id] );
-	} else 	if (node.type == 'activeExit') {
-	    win_game();
+	// Check if the cursor is inside the box
+	var hitBodies = world.hitTest(position, circleBodiesArray);
+	
+	if(hitBodies.length) {
+	    console.log("hit body id:",hitBodies[0].id, "(", id_to_node[hitBodies[0].id], ")");
+	    node = nodes[id_to_node[hitBodies[0].id]];
+	    console.log("hit body type & word:", node.type, node.word);
+	    
+	    if (node.type == 'unlocked' || node.type == 'visited') {
+		handle_scoring( nodes[id_to_node[hitBodies[0].id]] );
+	    } else 	if (node.type == 'activeExit') {
+		win_game();
+	    }
 	}
-
     }
 });
 
     
 canvas.addEventListener('mousemove', function(event) {
-   
-    // Convert the canvas coordinate to physics coordinates
-    var position = getPhysicsCoord(event);
-    
-    // Check if the cursor is inside the box
-    var hitBodies = world.hitTest(position, circleBodiesArray);
-    
-    hitNode = null;
-    if(hitBodies.length){
-        //console.log("over body!");
-	hitNode = hitBodies[0].id; 
+
+     if (movingStarTargetTime < lastTime) { //   if (movingStarCount < 1) {
+	
+	// Convert the canvas coordinate to physics coordinates
+	var position = getPhysicsCoord(event);
+	
+	// Check if the cursor is inside the box
+	var hitBodies = world.hitTest(position, circleBodiesArray);
+	
+	hitNode = null;
+	if(hitBodies.length){
+            //console.log("over body!");
+	    hitNode = hitBodies[0].id; 
+	}
     }
 });
 
@@ -881,8 +1112,20 @@ var pause_game = function () {
     pause_timer();
 }
 
-var continue_game = function() {
+
+
+var continue_game = function(score, extra_stars) {    
     continue_timer();
+    document.getElementById('scorewrapper').style.visibility = "hidden";
+    document.getElementById('scorecard').style.visibility = "hidden";
+
+    movingStarTargetTime = lastTime + timepenalties[score];
+    movingStarTargetPosition = false;
+    movingStarCount = score;    
+    movingExtraStars = extra_stars;
+
+    update_star_count();
+
 }
 
 var pause_timer = function () {
@@ -897,19 +1140,20 @@ var out_of_time = function(game) {
     document.getElementById('scorewrapper').style.visibility = "visible";
     document.getElementById('scorecard').style.visibility = "visible";
     document.getElementById('score').innerHTML='Out of time! Please try again.';
-    document.getElementById('score').innerHTML+='<input onclick=\'build_level_from_JSON(false);\' type=button value=\'Try again!\'>';
+    document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\'Try again!\'>';
 }
 
 
 var win_game = function(item) {
     pause_timer();
     
-    starscore = parseInt(document.getElementById('starcount').innerHTML)*100;
+    //starscore = parseInt(document.getElementById('starcount').innerHTML)
+    starscore = starCount *100;
     timescore = parseInt(game_time_left*10);
     
     document.getElementById('scorewrapper').style.visibility = "visible";
     document.getElementById('scorecard').style.visibility = "visible";
-    document.getElementById('score').innerHTML='You win! <br>Your score: <br> Stars: '+ starscore + '<br>Time '+ timescore + '<br>Total: '+ (starscore + timescore);
+    document.getElementById('score').innerHTML='You win! <table style="font-size: 1.2em" border=0><tr><td>'+'\u2605:</td><td>' + starscore + '</td></tr><tr><td>' + '\u231A:</td><td>' + timescore + '</td></tr><tr><td colspan=2>' + '\u21D2' +  (starscore + timescore) + " points</td></tr></table>";
 
     document.getElementById('score').innerHTML+='<p><input onclick=\'next_level();\' type=button value=\'Next level\'>';
     document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\'Try again\'>';
@@ -938,87 +1182,154 @@ var next_level = function(item) {
 
 debug_score=0;
 
-var handle_scoring = function(node_id) {
+var handle_playing = function(word, node, callback) { 		    
+
+    document.getElementById('waiting_for_server').style.visibility = "hidden";
+    //node.word = word;
+    document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
+
+    if (typeof(audioelements[word]) == 'undefined') {
+	audiourl=BASEURL + '/audio_files/' + word + '.mp3';
+	audioelements[word] = new Audio(audiourl);
+	
+	var audio_ok = true;
+	audioelements[word].oncanplay = function () { 
+	    document.getElementById('waiting_for_server').style.visibility = "hidden";
+	    document.getElementById('speaker_animation').style.visibility = "visible";
+
+	    var promise = audioelements[word].play();
+	    if(promise instanceof Promise) {
+		promise.catch(function(error) {
+		    // Check if it is the right error
+		    if(error.name == "NotAllowedError") {
+			audio_ok = false;
+			document.getElementById('speaker_animation').style.visibility = "hidden";
+			document.getElementById('score').innerHTML='Your browser does not allow playing sounds without explicit user action.';
+			document.getElementById('score').innerHTML+= "Please override this by going to <p>chrome://flags/#disable-gesture-requirement-for-media-playback";
+		    } else {
+			throw error;
+		    }
+		});
+	    }
+	    
+	    setTimeout( function() {
+		if (audio_ok) {
+		    document.getElementById('speaker_animation').style.visibility = "hidden";
+		    get_score_for_word(word, node, callback);
+		} 
+	    }, audioelements[word].duration*1000 - 800);
+	    
+	};
+    }
+    else {
+	audioelements[word].play();
+	setTimeout( function() {
+	    document.getElementById('speaker_animation').style.visibility = "hidden";
+	    get_score_for_word(word, node, callback);
+	}, audioelements[word].duration*1000 - 800);
+    }
+}
+
+
+
+var handle_scoring = function(node) {
+    console.log("handle scoring node id",node.id);
+
     pause_game();
 
     document.getElementById('scorewrapper').style.visibility = "visible";
     document.getElementById('scorecard').style.visibility = "visible";
-
-    //var score = Math.floor((Math.random() * 5.9999))
-    if (nodes[node_id].word) {
-	var word = nodes[node_id].word;
-	document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>';
-	get_score_for_word(word, node_id, apply_scoring);
-	//apply_scoring(node_id, ++debug_score);
+    document.getElementById('waiting_for_server').style.visibility = "visible";
+    
+    if (node.word) {
+	var word = node.word;
+	handle_playing(word, node, apply_scoring);1
     }
     else {
-	document.getElementById('score').innerHTML='Getting a word for you..';
-	get_word_to_score(node_id, apply_scoring, function(word, node_id, callback) { 		    
-	    //console.log(nodes[node_id]);
-	    nodes[node_id].word = word;
-	    //console.log(nodes[node_id]);
-	    document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
-	    get_score_for_word(word, node_id, callback);
-	    //apply_scoring(node_id, ++debug_score);
-	});
+	document.getElementById('score').innerHTML='Getting a word for you...';
+	get_word_to_score(node, apply_scoring, handle_playing) 
+
     }
 }
 
 
 
-var apply_scoring = function(node_id, score) {
+var apply_scoring = function(node, score) {
 
-    document.getElementById('score').innerHTML +='<br>You scored '+score;
-    setTimeout(function(){ 
-	document.getElementById('scorewrapper').style.visibility = "hidden";
-	document.getElementById('scorecard').style.visibility = "hidden";
-	continue_game();
-    }, 1300);
+    console.log("apply scoring node id",node.id);
 
-    if (score > (nodes[node_id].score | 0 )) {
-	// If the score was good enough, add some stars:
-	addStars(node_id, score);
+    if (score < 0) {
+	txt = error_codes[score.toString()];
+	document.getElementById('score').innerHTML ='<p style="font-size:1.5em">'+txt+'</p>';
+	setTimeout(function( ){ 
+	    document.getElementById('scorewrapper').style.visibility = "hidden";
+	    document.getElementById('scorecard').style.visibility = "hidden";
+	    continue_game(0, 0);
+	}, 4300);
+    }
+    else {
+	txt = "";
+	for (i=0; i < score; i++) txt +=  "\u2605";
 
-	// Mark the node as visited:
-	console.log("Node", node_id, ":",nodes[node_id]);
-	nodes[node_id].type = 'visited';
-	//item.render.fillStyle=box_colors[game.object_properties[ item.id].type];
+	document.getElementById('score').innerHTML +='<br><p style="font-size:3em">'+txt+'</p>';
 
-	// Unlock the close-by edges and nodes 
-	Object.keys(edges).forEach( function(key) {
-	    console.log(edges);
-	    console.log("key:",key);
-	    e=edges[key];
-	    
-	    if (e.from == node_id || e.to == node_id ) {
-		itemA = nodes[ e.from ];
-		itemB = nodes[ e.to ];
-		console.log(itemA, itemB);
-		if (itemA.type == 'locked')
-		    itemA.type = 'unlocked';
-		if  (itemB.type == 'locked')
-		    itemB.type = 'unlocked';
-		if  (itemA.type == 'exit')
-		    itemA.type = 'activeExit';
-		if  (itemB.type == 'exit')
-		    itemB.type = 'activeExit';
-		console.log(itemA, itemB);
+	extra_stars = score - node.score;
+
+	console.log("extra stars:", extra_stars, "for node id:", node.id );
+	//console.log(id_to_node);
+	
+	setTimeout(function( ){ 
+	    document.getElementById('scorewrapper').style.visibility = "hidden";
+	    document.getElementById('scorecard').style.visibility = "hidden";
+	    continue_game(score, Math.max(0, extra_stars ));
+	}, 1300);
+
+	if (score > (node.score | 0 )) {
+	    // If the score was good enough, add some stars:
+	    addStars(node, score);
+
+	    // Mark the node as visited:
+	    //console.log("Node", node_id, ":",node);
+	    node.type = 'visited';
+	    //item.render.fillStyle=box_colors[game.object_properties[ item.id].type];
+
+	    // Unlock the close-by edges and nodes 
+	    Object.keys(edges).forEach( function(key) {
+		//console.log(edges);
+		//console.log("key:",key);
+		e=edges[key];
 		
-	    }
-	});
+		if (e.from == node.name || e.to == node.name ) {
+		    itemA = nodes[ e.from ];
+		    itemB = nodes[ e.to ];
+		    //console.log(itemA, itemB);
+		    if (itemA.type == 'locked')
+			itemA.type = 'unlocked';
+		    if  (itemB.type == 'locked')
+			itemB.type = 'unlocked';
+		    if  (itemA.type == 'exit')
+			itemA.type = 'activeExit';
+		    if  (itemB.type == 'exit')
+			itemB.type = 'activeExit';
+		    //console.log(itemA, itemB);
+		    
+		}
+	    });
 
-	nodes[node_id].score = score;
+	    node.score = score;
+	}
+	if (score > 0 ) {
+	    // Apply force!
+	    //Matter.Body.applyForce(item, item.position, Matter.Vector.create(0, getScoreForce(score)) );
+	}
+
     }
-    if (score > 0 ) {
-	// Apply force!
-	//Matter.Body.applyForce(item, item.position, Matter.Vector.create(0, getScoreForce(score)) );
-    }
-
-
 }
 
 
-var addStars = function(node_id, score) {
+var addStars = function(node, score) {
+    console.log("addStars for node",node.id);
+
 
     // Distance between node and star centres:
     var dist = defaultNodeRadius + 1.5 * defaultStarRadius
@@ -1032,11 +1343,11 @@ var addStars = function(node_id, score) {
 	{x: dist, y: 0}, // 4
     ]
     
-    stars = {}
+    //stars = {}
 
-    item = circleBodies[ nodes[node_id].id ];
+    item = circleBodies[ node.id ];
 
-    for (i= (nodes[node_id].score | 0); i < score; i++) {
+    for (i= (node.score | 0); i < score; i++) {
 c
 	star = {
 	    position : [
@@ -1049,26 +1360,26 @@ c
 	circleBody = new p2.Body({
 	    mass: star.mass,
 	    position: star.position,
+	    id : running_star_id++
 	});
 	
 
 	var circleShape = new p2.Circle({ radius: defaultStarRadius });
 	circleBody.addShape(circleShape);
 	world.addBody(circleBody);
-	starBodies.push({body:  circleBody, parent_id: nodes[node_id].id});
+	starBodies.push({body:  circleBody, parent_id: node.id});
 
 	var hanger = new p2.LinearSpring( item, circleBody, {stiffness: 1000, restLength: defaultNodeRadius + defaultStarRadius} );
 	world.addSpring(hanger);
     }
-    
-    update_star_count();
+
 
 }
 
 
 var update_star_count = function() {
-    var starcount= starBodies.length;
-    document.getElementById('starcount').innerHTML = starcount;
+    starCount= starBodies.length;
+    document.getElementById('starcount').innerHTML = starCount;
 }
 
 
@@ -1260,7 +1571,7 @@ var get_node_editor = function(name, node, id) {
 }
 
 var get_edge_editor = function(edge, id) {
-    console.log("Adding edge editor!");
+    //console.log("Adding edge editor!");
     editor = "<p>"
     editor += " from: ";
     editor += "<input id='edge_from' type=text value='"+ edge.from + "' maxlength=12 size=6 onchange='updateJSON();'>";
@@ -1448,7 +1759,7 @@ var build_level_from_JSON = function (update_editor) {
 
 // Screen size handling: 
 
-var screen_size_setup = function(editing) {
+var screen_size_setup = function() {
 
     // Fiddle with the css of the game container:
 
@@ -1466,7 +1777,7 @@ var screen_size_setup = function(editing) {
     var canvaswi;
     var he, wi;
 
-    if (editing) {
+    if (editMode) {
 	he=400;
 	wi=$(window).width();
     }
@@ -1481,7 +1792,7 @@ var screen_size_setup = function(editing) {
     
     // Option 1: 
     // More vertical space than horisontal space: Toolbar on bottom
-    if (bottom_toolbar_canvaswi > left_toolbar_canvaswi && ! editing) {	    
+    if (bottom_toolbar_canvaswi > left_toolbar_canvaswi && ! editMode) {	    
 
 	canvaswi = bottom_toolbar_canvaswi
 	toolbarstyle.top = ((3.0 / 4.0) * canvaswi) + "px";
@@ -1515,8 +1826,8 @@ var screen_size_setup = function(editing) {
     scaleX = 15.0*canvaswi/800.0;
     scaleY = -scaleX;
 
-    console.log("canvas width:",canvaswi);
-    console.log("scaleX & scaleY: ",scaleX, scaleY);
+    //console.log("canvas width:",canvaswi);
+    //console.log("scaleX & scaleY: ",scaleX, scaleY);
 
 
     w = canvas.width;
@@ -1573,49 +1884,88 @@ else {
     sceneName = $( levelselector ).children()[0].value;
 }
     
-build_level(levels[sceneName]);
 
-// initialise game selector
-levelSelect.value = sceneName;
-document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
-update_level_editor();
 
-levelSelect.addEventListener('change', function(e) {
+// From http://stackoverflow.com/questions/2400935/browser-detection-in-javascript
 
-    if (e.target.value == "levelEditor") {
+
+navigator.sayswho= (function(){
+    var ua= navigator.userAgent, tem,
+    M= ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+    if(/trident/i.test(M[1])){
+        tem=  /\brv[ :]+(\d+)/g.exec(ua) || [];
+        return 'IE '+(tem[1] || '');
+    }
+    if(M[1]=== 'Chrome'){
+        tem= ua.match(/\b(OPR|Edge)\/(\d+)/);
+        if(tem!= null) return tem.slice(1).join(' ').replace('OPR', 'Opera');
+    }
+    M= M[2]? [M[1], M[2]]: [navigator.appName, navigator.appVersion, '-?'];
+    if((tem= ua.match(/version\/(\d+)/i))!= null) M.splice(1, 1, tem[1]);
+    //return M.join(' ');
+    return M;
+})();
+
+
+
+var init_fysiak = function() {
+
+    build_level(levels[sceneName]);
+
+
+    // initialise game selector
+    levelSelect.value = sceneName;
+    document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
+    update_level_editor();
+
+    levelSelect.addEventListener('change', function(e) {
+
+	if (e.target.value == "levelEditor") {
+	    
+	    editMode = true;
+	    $('#editor').show();
+	    screen_size_setup();
+	}
+	else {
+	    sceneName = e.target.value;
+	    window.location.hash = sceneName;
+	    build_level(levels[ sceneName ]);     
+	    update_level_editor( levels[ sceneName ] );
+	    //document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
+	    //update_level_editor();
+	}
+
+
+    });
+
+    levelReset.addEventListener('click', function(e) {
+
+	build_level_from_JSON(false);
+
+	if (e.target.value == "levelEditor") {
+	    $('#editor').show();
+	    screen_size_setup(true);
+	    //$(document).scrollTop( $("#editor").offset().top ); 
+	}
+	/*
+	  if (e.target.value == "levelEditor") {
+	  build_level_from_json();
+	  }
+	  else if ( levelSelect.value != "0") {
+	  build_level(levels[levelSelect.value]);
+	  }*/
+    });
+
+
+
+    browser = navigator.sayswho;
+    if (browser[0] != 'Chrome')  {
 	
-	$('#editor').show();
-	screen_size_setup(true);
+	pause_game();
+	document.getElementById('scorewrapper').style.visibility = "visible";
+	document.getElementById('scorecard').style.visibility = "visible";
+	document.getElementById('score').innerHTML='Your browser claims to be '+browser[0]+ " version " + browser[1]+'. ';
+	document.getElementById('score').innerHTML+= "We recommend using the Chrome browser.";
+	document.getElementById('score').innerHTML+='<input onclick=\'continue_game();\' type=button value=\'Try the game anyway\'>';
     }
-    else {
-	sceneName = e.target.value;
-	window.location.hash = sceneName;
-	build_level(levels[ sceneName ]);     
-	update_level_editor( levels[ sceneName ] );
-	//document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
-	//update_level_editor();
-    }
-
-
-});
-
-levelReset.addEventListener('click', function(e) {
-
-    build_level_from_JSON(false);
-
-    if (e.target.value == "levelEditor") {
-	$('#editor').show();
-	screen_size_setup(true);
-	//$(document).scrollTop( $("#editor").offset().top ); 
-    }
-    /*
-    if (e.target.value == "levelEditor") {
-	build_level_from_json();
-    }
-    else if ( levelSelect.value != "0") {
-	build_level(levels[levelSelect.value]);
-    }*/
-});
-
-
-
+}

@@ -23,6 +23,7 @@ circleBodiesArray = [];
 
 
 var maxStars = 0;
+var starCount = 0;
 
 var hitNode = null;
 
@@ -60,6 +61,7 @@ var build_level = function(new_level) {
 
     starMass = meta.starmass;
     maxStars = 0;
+    starCount = 0;
     //
     // Add nodes:
     //
@@ -250,7 +252,7 @@ var nodeColors = {
 	     },
     'locked': { fill: 'brown', //'darkgreen',
 		stroke: 'black',
-		activeFill: 'darkgreen',
+		activeFill: 'brown',
 		activeStroke: 'black',
 		textFill: 'yellow',
 
@@ -338,7 +340,7 @@ var pulse_color = function( fillStyle, shift)  {
 
 
 // Animation loop
-
+var lastRender = 0;
 
 function animate(time){
     requestAnimationFrame(animate);
@@ -356,12 +358,20 @@ function animate(time){
 	world.step(fixedTimeStep, deltaTime, maxSubSteps);
     }
 
+    lastTime = time;
+    
+    if (time-lastRender > 40 ) {
+	lastRender = time;
+	render(time);
+    }
+}
+
+var render = function(time) {
+   
     cyclems = 1200;
     maxshift = 22;
     
-    
-
-    moment = new Date().getTime() % cyclems;
+    moment = time % cyclems;
 
     colorshift = Math.round(moment%(cyclems/4) * (4 * maxshift / cyclems));
 
@@ -383,11 +393,89 @@ function animate(time){
     ctx.scale(scaleX, scaleY);
     
 
+
+    // A little frame edge:
+
     ctx.beginPath();
     ctx.rect(-w/2 /scaleX, -h/2/scaleY, w/scaleX, h/scaleY);
     ctx.lineWidth = 0.35;
     ctx.strokeStyle = 'black';
     ctx.stroke();
+    
+
+    // Draw scoring:
+    ctx.lineWidth = 0.05;
+  
+    ctx.strokeStyle = 'orange';
+    ctx.fillStyle = 'yellow';
+
+    ptSize = 2;
+    ctx.font = ptSize+"px Arial";	    
+
+    txt = "\u2605";    
+    ctx.strokeText(txt, (-w/2.07)/scaleX , -(h/2.04)/scaleY);
+    ctx.fillText(txt, (-w/2.07)/scaleX , -(h/2.04)/scaleY);
+
+
+    // Small stars:
+
+    ptSize = 0.6;;
+    ctx.font = ptSize+"px Arial";	    
+    ctx.lineWidth = 0.05;
+
+
+    ctx.strokeStyle = 'brown';
+    ctx.fillStyle = 'yellow';
+
+    txt = "";
+    for (i=0; i < maxStars; i++) txt +=  "\u2605";
+
+    ctx.lineWidth = 0.08;
+    ctx.strokeText(txt, (-w/2.25)/scaleX , -(h/2.08)/scaleY);
+
+
+    txt = "";
+    for (i=0; i < starCount; i++) txt +=  "\u2605";
+    
+    
+    ctx.fillText(txt, (-w/2.25)/scaleX , -(h/2.08)/scaleY);
+    ctx.strokeStyle = 'yellow';
+    ctx.strokeText(txt, (-w/2.25)/scaleX , -(h/2.08)/scaleY);
+
+    // Draw a timer:
+
+    ctx.strokeStyle = 'black';
+    ctx.fillStyle = 'yellow';
+
+    ptSize = 2;;
+    ctx.font = ptSize+"px Arial";	    
+    txt = "\u231A";
+
+    ctx.fillText(txt,(-w/2.08)/scaleX , -(h/2.25)/scaleY) ;
+
+    if (max_game_time > 0 && game_time_left > 0) {
+
+	ctx.beginPath();
+	ctx.rect( (-w/2.25)/scaleX , -(h/2.28)/scaleY, w * (max_game_time/60) / 1.2 /scaleX, h/60/scaleY);
+	ctx.lineWidth = 0.15;
+	ctx.strokeStyle = 'brown';
+	ctx.stroke();
+	ctx.fillStyle = 'lightblue'
+	ctx.fill();
+
+	ctx.beginPath();
+	ctx.rect( (-w/2.25)/scaleX , -(h/2.28)/scaleY, w * (game_time_left/60) / 1.2 /scaleX, h/60/scaleY);
+	ctx.lineWidth = 0.15;
+	ctx.strokeStyle = 'brown';
+	ctx.stroke();
+	ctx.fillStyle = 'lightgreen'
+	ctx.fill();
+	
+
+    }
+
+    
+
   
     // Draw all bodies
     drawStatics();
@@ -397,8 +485,6 @@ function animate(time){
 
     // Restore transform
     ctx.restore();
-
-    lastTime = time;
     
     function drawEdges(){
 		
@@ -416,8 +502,27 @@ function animate(time){
 		len =  Math.sqrt( (x1-x2) * (x1-x2) + (y1-y2)*(y1-y2));
 		if (e.type =='spring')  
 		    lenRatio =  (c.restLength / len) * (c.restLength / len);// *  (c.restLength / len);
-		else 
-		    lenRatio = 1;
+
+		else {
+		    ctx.lineWidth = 0.7;
+		    ctx.strokeStyle = 'gray';
+
+		    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+		    ctx.lineTo(x2, y2);
+		    ctx.stroke();
+
+
+		    ctx.lineWidth = 0.6;
+		    ctx.strokeStyle = 'lightgray';
+
+		    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+		    ctx.lineTo(x2, y2);
+		    ctx.stroke();
+
+		    lenRatio = 1;		  
+		}
 
 		ctx.lineWidth = 0.25 * lenRatio;
 		
@@ -781,14 +886,14 @@ world.on('postStep', function(event){
 // Game timer functions:
 //
 
-
+var max_game_time; 
 var game_time_left;
 var timer_running = false;
 var timer_instance = null;
 
 game_timer = function (timelimit) {
 
-
+    max_game_time = timelimit;
     game_time_left = timelimit;
     timer_running = true;
 
@@ -842,12 +947,13 @@ var out_of_time = function(game) {
 var win_game = function(item) {
     pause_timer();
     
-    starscore = parseInt(document.getElementById('starcount').innerHTML);
-    timescore = parseInt(game_time_left*10)/100.0;
+    //starscore = parseInt(document.getElementById('starcount').innerHTML)
+    starscore = starCount *100;
+    timescore = parseInt(game_time_left*10);
     
     document.getElementById('scorewrapper').style.visibility = "visible";
     document.getElementById('scorecard').style.visibility = "visible";
-    document.getElementById('score').innerHTML='You win! <br>Your score: <br> Stars: '+ starscore + '<br>Time '+ timescore + '<br>Total: '+ (starscore + timescore);
+    document.getElementById('score').innerHTML='You win! <table style="font-size: 1.2em" border=0><tr><td>'+'\u2605:</td><td>' + starscore + '</td></tr><tr><td>' + '\u231A:</td><td>' + timescore + '</td></tr><tr><td colspan=2>' + '\u21D2' +  (starscore + timescore) + " points</td></tr></table>";
 
     document.getElementById('score').innerHTML+='<p><input onclick=\'next_level();\' type=button value=\'Next level\'>';
     document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\'Try again\'>';
@@ -856,6 +962,18 @@ var win_game = function(item) {
     
 }
 
+
+var next_level = function(item) {
+    //var selector = $( '#level-select' ); //
+    document.getElementById('level-select').selectedIndex = document.getElementById('level-select').selectedIndex + 1 ;
+    //selector.selectedIndex = ( selector.selectedIndex + 1 );  
+
+    sceneName = document.getElementById('level-select').value;
+    window.location.hash = sceneName;
+  
+    build_level(levels[ sceneName ]);     
+    update_level_editor( levels[ sceneName ] );
+}
 
 
 //
@@ -870,22 +988,62 @@ var handle_scoring = function(node_id) {
     document.getElementById('scorewrapper').style.visibility = "visible";
     document.getElementById('scorecard').style.visibility = "visible";
 
+    document.getElementById('waiting_for_server').style.visibility = "visible";
+    
     //var score = Math.floor((Math.random() * 5.9999))
     if (nodes[node_id].word) {
 	var word = nodes[node_id].word;
+	
+	document.getElementById('waiting_for_server').style.visibility = "hidden";
+	
 	document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>';
-	get_score_for_word(word, node_id, apply_scoring);
+
+	audiourl=BASEURL + '/audio_files/' + word + '.mp3';
+	console.log(audiourl);
+	var audio = new Audio(audiourl);
+	
+	//audio.onended = get_score_for_word(word, node_id, apply_scoring);
+	audio.oncanplay = function () { 
+	    document.getElementById('waiting_for_server').style.visibility = "hidden";
+	    document.getElementById('speaker_animation').style.visibility = "visible";
+	    console.log("play 1!");
+	    audio.play();
+	    setTimeout( function() {
+		document.getElementById('speaker_animation').style.visibility = "hidden";
+		get_score_for_word(word, node_id, apply_scoring);
+	    }, audio.duration*1000 - 800);
+	};
 	//apply_scoring(node_id, ++debug_score);
     }
     else {
 	document.getElementById('score').innerHTML='Getting a word for you..';
 	get_word_to_score(node_id, apply_scoring, function(word, node_id, callback) { 		    
+
+	    document.getElementById('waiting_for_server').style.visibility = "hidden";
+
 	    //console.log(nodes[node_id]);
 	    nodes[node_id].word = word;
 	    //console.log(nodes[node_id]);
+
 	    document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
-	    get_score_for_word(word, node_id, callback);
-	    //apply_scoring(node_id, ++debug_score);
+
+	    audiourl=BASEURL + '/audio_files/' + word + '.mp3';
+	    console.log(audiourl);
+	    var audio = new Audio(audiourl);
+	    
+	    //audio.onended = get_score_for_word(word, node_id, callback);
+	    //audio.onended = get_score_for_word(word, node_id, callback);
+	    audio.oncanplay = function () { 
+		document.getElementById('waiting_for_server').style.visibility = "hidden";
+		document.getElementById('speaker_animation').style.visibility = "visible";
+		console.log("play 2!");
+		audio.play();
+		setTimeout( function() {
+		    document.getElementById('speaker_animation').style.visibility = "hidden";
+		    
+		    get_score_for_word(word, node_id, callback);
+		}, audio.duration*1000 - 800);
+	    };
 	});
     }
 }
@@ -894,7 +1052,10 @@ var handle_scoring = function(node_id) {
 
 var apply_scoring = function(node_id, score) {
 
-    document.getElementById('score').innerHTML +='<br>You scored '+score;
+    txt = "";
+    for (i=0; i < score; i++) txt +=  "\u2605";
+
+    document.getElementById('score').innerHTML +='<br><p style="font-size:3em">'+txt+'</p>';
     setTimeout(function(){ 
 	document.getElementById('scorewrapper').style.visibility = "hidden";
 	document.getElementById('scorecard').style.visibility = "hidden";
@@ -993,8 +1154,8 @@ c
 
 
 var update_star_count = function() {
-    var starcount= starBodies.length;
-    document.getElementById('starcount').innerHTML = starcount;
+    starCount= starBodies.length;
+    document.getElementById('starcount').innerHTML = starCount;
 }
 
 
@@ -1464,7 +1625,7 @@ $( window ).resize(function() {
 
 
 
-document.getElementById('level-select').value;
+//document.getElementById('level-select').value;
 levelselector = document.getElementById('level-select');
 
 

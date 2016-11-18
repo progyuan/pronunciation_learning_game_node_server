@@ -28,8 +28,8 @@ module.exports = function(app) {
 	}
 	else
 	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
-		console.log("Rendering:");
-		console.log(e);
+		//console.log("Rendering:");
+		if (e) console.log(e);
 		res.render('livedemo', { 
 		    title: 'SIAK web demo!',
                     udata : req.session.user,
@@ -49,11 +49,11 @@ module.exports = function(app) {
 	}
 	else
 	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
-		console.log("Rendering:");
-		console.log(e);
-		res.render('fysiak-04', { 
-		    title: 'fySIAK on-line v. 0.4',
-		    fysiak_version: '0.4',
+		//console.log("Rendering:");
+		if (e) console.log(e);
+		res.render('fysiak-09', { 
+		    title: 'fySIAK on-line v. 0.9',
+		    fysiak_version: '0.9',
                     udata : req.session.user,
 		    word_list : word_list,
 		    game_word_list : game_word_list,
@@ -71,11 +71,11 @@ module.exports = function(app) {
 	}
 	else
 	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
-		console.log("Rendering:");
-		console.log(e);
-		res.render('fysiak-05', { 
-		    title: 'fySIAK on-line v. 0.5',
-		    fysiak_version: '0.5',
+		//console.log("Rendering:");
+		if (e) console.log(e);
+		res.render('fysiak-010', { 
+		    title: 'fySIAK on-line v. 010',
+		    fysiak_version: '010',
                     udata : req.session.user,
 		    word_list : word_list,
 		    game_word_list : game_word_list,
@@ -214,7 +214,7 @@ module.exports = function(app) {
 
    		var users = AM.getGameData( filter , 50, 0, function(e, game_data) { 
 		    if (e) console.log(e);
-		    console.log(game_data);
+		    //console.log(game_data);
 		    res.render('userstats', {
 			title : 'User Statistics for '+user,
 			this_user : user,
@@ -240,7 +240,7 @@ module.exports = function(app) {
 		
    		var users = AM.getGameData( {user: user}, 50, 0, function(e, game_data) { 
 		    if (e) console.log(e);
-		    console.log(game_data);
+		    //console.log(game_data);
 		    res.render('userstats', {
 			title : 'User Statistics for '+user,
 			schools : school_list,
@@ -277,7 +277,7 @@ module.exports = function(app) {
 	    else{
    		var users = AM.getAccountsBySimpleQuery( [{school : req.session.user.school }], function(e, users) { 
 		    if (e) console.log(e);
-		    console.log(users);
+		    //console.log(users);
 		    res.render('users', {
 			title : 'User Statistics',
 			schools : school_list,

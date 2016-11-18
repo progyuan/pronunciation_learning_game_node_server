@@ -22,15 +22,17 @@ input(type='hidden', value= user._id)#userId
 		//	a(href="#{baseURL}/sessions") 
 		//		b Session statistics
 		//	p Here you can look at statistics from specific playing sessions
-		div
-			a(href="#{baseURL}/addusers") 
-				b Add new users
-			p Here you can create new user accounts for your pupils
-		div
-			a(href="#{baseURL}/restart-server") 
-				b Restart game application server
-			p Here you (or anyone!) can restart the server in case its stuck - or even if not. 
-				| Remember with great power comes great responsibility! (No questions asked)
+		if (user.role != 'pupil')
+			div
+				a(href="#{baseURL}/addusers") 
+					b Add new users
+				p Here you can create new user accounts for your pupils
+		if (user.role == 'admin')		
+			div
+				a(href="#{baseURL}/restart-server") 
+					b Restart game application server
+				p Here you (or anyone!) can restart the server in case its stuck - or even if not. 
+					| Remember with great power comes great responsibility! (No questions asked)
 		div
 			a(href="#{baseURL}/account") 
 				b Account settings

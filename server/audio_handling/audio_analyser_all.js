@@ -1,11 +1,5 @@
 
 
-if (process.env.NODE_ENV !== 'production'){
-    print_debug('Requiring longjohn:');
-    longjohn = require('longjohn');
-
-    longjohn.async_trace_limit = 25;   // defaults to 10
-}
 var logging = require('../game_data_handling/logging.js');
 
 var featext_command = "./audio_handling/audio_analyser_all.sh";
@@ -137,11 +131,35 @@ function show_exit(exit_code, source) {
 }
 
 
-function print_debug(user,text) {
-    if (DEBUG_TEXTS) 
-    {
-	console.log( "\x1b[37maudio2  %s\x1b[0m", logging.get_date_time().datetime + ' '+user + ': '+text);
+//function print_debug(user,text) {
+//    if (DEBUG_TEXTS) 
+//    {
+//	console.log( "\x1b[37maudio2  %s\x1b[0m", logging.get_date_time().datetime + ' '+user + ': '+text);
+//    }
+//}
+
+function print_debug( text , priority, user, word_id ) {
+
+    printdata = {
+	source: 'audio2',
+	message: text,
     }
+    if (typeof(priority) != 'undefined') 
+	printdata.priority = priority;
+    else
+	printdata.priority = 0;
+
+    if (typeof(user) != 'undefined') 
+	printdata.user = user;
+
+    if (typeof(user) != 'word_id') 
+	printdata.user = word_id;
+    
+    process.emit('print', printdata);
 }
+
+
+
+
 
 module.exports = { compute_features : compute_features };

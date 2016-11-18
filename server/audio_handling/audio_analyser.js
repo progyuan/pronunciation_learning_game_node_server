@@ -72,11 +72,31 @@ function compute_features(audioconf, inputbuffer,outputbuffer, user, word_id, pa
 
 
 
-function debugout(user,text) {
-    if (DEBUG_TEXTS) 
-    {
-	console.log( "\x1b[37maudio1  %s\x1b[0m", logging.get_date_time().datetime + ' '+user + ': '+text);
+//function debugout(user,text) {
+//    if (DEBUG_TEXTS) 
+//    {
+//	console.log( "\x1b[37maudio1  %s\x1b[0m", logging.get_date_time().datetime + ' '+user + ': '+text);
+//    }
+//}
+
+function debugout( text , priority, user, word_id ) {
+
+    printdata = {
+	source: 'audio1',
+	message: text,
     }
+    if (typeof(priority) != 'undefined') 
+	printdata.priority = priority;
+    else
+	printdata.priority = 0;
+
+    if (typeof(user) != 'undefined') 
+	printdata.user = user;
+
+    if (typeof(user) != 'word_id') 
+	printdata.user = word_id;
+    
+    process.emit('print', printdata);
 }
 
 

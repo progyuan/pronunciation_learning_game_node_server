@@ -367,8 +367,28 @@ function SegmentationHandler(user) {
 
 
 
-var debugout = function(user, msg) {
-    console.log("\x1b[34msegmen %s\x1b[0m",logging.get_date_time().datetime + ' '+ user+ ': '+msg);
+//var debugout = function(user, msg) {
+//    console.log("\x1b[34msegmen %s\x1b[0m",logging.get_date_time().datetime + ' '+ user+ ': '+msg);
+//}
+
+function debugout( text , priority, user, word_id ) {
+
+    printdata = {
+	source: 'segmen',
+	message: text,
+    }
+    if (typeof(priority) != 'undefined') 
+	printdata.priority = priority;
+    else
+	printdata.priority = 0;
+
+    if (typeof(user) != 'undefined') 
+	printdata.user = user;
+
+    if (typeof(user) != 'word_id') 
+	printdata.user = word_id;
+    
+    process.emit('print', printdata);
 }
 
 

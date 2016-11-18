@@ -314,10 +314,10 @@ exports.get_word_and_phoneme_counts = function(user, callback) {
 		    console.log(e);
 		if (o) {
 		    user_phoneme_counts=o;		    
-		    console.log(o);
+		    //console.log(o);
 		}
 		else {
-		    console.log("1 No o for user ",user);
+		    //console.log("1 No o for user ",user);
 		    user_phoneme_counts={};
 		}
 		cb(null, user_phoneme_counts);		
@@ -329,11 +329,11 @@ exports.get_word_and_phoneme_counts = function(user, callback) {
 		    console.log(e);
 		if (o) {
 		    user_word_counts=o;
-		    console.log(o);
+		    //console.log(o);
 
 		}
 		else {
-		    console.log("2 No o for user ",user);		
+		    //console.log("2 No o for user ",user);		
 		    user_word_counts={};
 		}
 		cb(null, user_word_counts);

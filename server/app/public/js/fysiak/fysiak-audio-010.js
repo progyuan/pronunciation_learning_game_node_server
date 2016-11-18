@@ -1,6 +1,12 @@
 
 
-
+var error_codes = { "0" :'package_received',
+		    "-1" : 'audio_end',
+		    "-2" : 'segmentation_failure',
+		    "-3" : 'segmentation_error',
+		    "-4" : 'classification_error',
+		    "-5" : 'I heard nothing! Did you say anything?',
+		    "-6" : 'Your micropone does not seem to be on!' }
 
 var testnr = 0;
 
@@ -41,6 +47,12 @@ var total_align_time = 0;
 var total_feat_time = 0;
 var total_dnn_time = 0;
 
+
+
+var audio_ok_for_game = false;
+
+
+
 /* FIRs created by MATLAB 
 
     N    = 80;     % Order
@@ -53,8 +65,6 @@ var total_dnn_time = 0;
     
     set(Hd, 'Arithmetic', 'single');
   
-    
-
 */
 var filters = { "44100_to_16000" :   [-0.000049823647714219987392425537109375,
 				      0.0005366410478018224239349365234375  ,
@@ -375,6 +385,11 @@ var get_score_for_word = function(word, item, callback) {
     }
 
     function success(stream) {
+
+	console.log("Got audio stream, now let's fysiak!");
+	audio_ok_for_game = true;
+	init_fysiak();
+
 	audioContext = window.AudioContext || window.webkitAudioContext;
 	context = new audioContext();
 
@@ -651,7 +666,8 @@ if (1==0) {
 	    }
 	}
 	else {
-	    console.log("sessionstart in state "+this.readyState);
+	    dummy = 1;
+	    //console.log("sessionstart in state "+this.readyState);
 	}
     };
 
@@ -729,7 +745,8 @@ var connect_and_maybe_test = function(test, word, item,  callback) {
 	    }
 	}
 	else {
-	    console.log("sessionstart in state "+this.readyState);
+	    dummy = 1;
+	    //console.log("sessionstart in state "+this.readyState);
 	}
     };
 
@@ -809,7 +826,8 @@ function reinit_and_maybe_test(test, logging, word, item,  callback) {
 	    }
 	}
 	else {
-	    console.log("sessionstart in state "+this.readyState);
+	    dummy = 1;
+	    //console.log("sessionstart in state "+this.readyState);
 	}
     };
 
@@ -959,16 +977,6 @@ function send_file_part(leftaudio, n, callback) {
 			"/"+
 			resj.wavfilename +"\" controls class='small-audio'></audio>";
 
-		    /*
-		    fancy_result_area.innerHTML += "word: "+transcr+" ";
-		    fancy_result_area.innerHTML += "kalles_score: "+resj.kalles_score+" ";
-		    fancy_result_area.innerHTML += "dnn_score: "+resj.dnn_score+" ";
-		    fancy_result_area.innerHTML += "total_score: "+resj.total_score+" ";
-		    fancy_result_area.innerHTML += "partial_score: "+resj.phoneme_scores+" ";
-		    fancy_result_area.innerHTML += "reference: "+resj.reference_phones+" ";
-		    fancy_result_area.innerHTML += "guess: "+resj.guess_phones+" ";
-		    fancy_result_area.innerHTML += "time: "+(time_it_took/1000.0)+"s<br>";
-		    */
 
 		    var profiling_area = document.getElementById("profiling_area");
 		    
@@ -993,7 +1001,7 @@ function send_file_part(leftaudio, n, callback) {
 		    /* update phone counts in side bar: */
 		    if (resj.total_score > 0) {
 			resj.reference_phones.forEach( function (phone, index) {
-			    console.log("Trying to set "+"p_"+phone+"_counter");
+			    //console.log("Trying to set "+"p_"+phone+"_counter");
 			    document.getElementById("p_"+phone+"_counter").innerHTML =
 				parseInt(document.getElementById("p_"+phone+"_counter").innerHTML)+1|1;
 			    document.getElementById("p_"+phone+"_stars").innerHTML =
@@ -1057,6 +1065,8 @@ function recorderProcess(e) {
 
 function get_word_to_score(item, nextcallback, callback) { 
     
+    console.log("get_word_to_score item.id",item.id);
+
     server='/siak-devel/'+'get-next-word';
     
     var test = false;
@@ -1079,8 +1089,8 @@ function get_word_to_score(item, nextcallback, callback) {
 	    if (get_next_word.status === 200) {		
 		word_and_stats =  JSON.parse(get_next_word.responseText);
 		word = word_and_stats.word;
-		console.log("Next word", word);
-		console.log(get_next_word);
+		console.log("callback word, item.id",word,item.id);
+
 		callback(word, item, nextcallback);
 
 	    } else if (get_next_word.status === 502) {

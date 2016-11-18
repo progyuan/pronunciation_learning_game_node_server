@@ -151,9 +151,32 @@ var fur_hat_scorer = function(user, word, wordid, currentword, eventdata) {
 
 
 /* Text output through this function will be green */
-var debugout = function(user,msg) {
-    console.log("\x1b[32mscorer %s\x1b[0m", logging.get_date_time().datetime + ' '+user+': '+ msg);
+//var debugout = function(user,msg) {
+//    console.log("\x1b[32mscorer %s\x1b[0m", logging.get_date_time().datetime + ' '+user+': '+ msg);
+//}
+
+
+function debugout( text , priority, user, word_id ) {
+
+    printdata = {
+	source: 'scorer',
+	message: text,
+    }
+    if (typeof(priority) != 'undefined') 
+	printdata.priority = priority;
+    else
+	printdata.priority = 0;
+
+    if (typeof(user) != 'undefined') 
+	printdata.user = user;
+
+    if (typeof(user) != 'word_id') 
+	printdata.user = word_id;
+    
+    process.emit('print', printdata);
 }
+
+
 
 
 

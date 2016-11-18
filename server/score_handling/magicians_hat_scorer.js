@@ -168,58 +168,66 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
 		else {
 
 		    guess = class_definitions.phone_properties[guess_ipa];
-		    ref = class_definitions.phone_properties[ref_ipa];
+		    if (typeof(guess) == 'undefined') {
+			process.emit('user_event', user, wordid, 'error', { 'error': guess_ipa +" not found in models!",
+									   'source': "magicians_hat_scorer.js" } );			
+			score += 0;
+		    }
+		    else {
+			ref = class_definitions.phone_properties[ref_ipa];
 
-		    //console.log(  parseInt(guess.frontness.value) +  parseInt(ref.frontness.value)  );
+			//console.log(  parseInt(guess.frontness.value) +  parseInt(ref.frontness.value)  );
 
-		    var score = 0.0;
-
-		    if ( guess.type.name == 'consonant' && ref.type.name == 'consonant') {
-			score += 25;
+			var score = 0.0;
 			
-			if (guess.voiced == ref.voiced)
+			
+			if ( guess.type.name == 'consonant' && ref.type.name == 'consonant') {
 			    score += 25;
-			if (guess.place == ref.place)
-			    score += 25;
-			if (guess.manner == ref.manner)
-			    score += 25;
-		    }	    
-		    
-		    else if (guess.type.name === 'vowel' && ref.type.name === 'vowel' ) {
-
-			score += 20;
+			    
+			    if (guess.voiced == ref.voiced)
+				score += 25;
+			    if (guess.place == ref.place)
+				score += 25;
+			    if (guess.manner == ref.manner)
+				score += 25;
+			}	    
 			
-			if (parseInt(guess.vowel_length.value) == parseInt(ref.vowel_length.value) ) 
-			    score += 10;
-			
-			if (parseInt(guess.frontness.value) == parseInt(ref.frontness.value) ) 
-			    score += 10;
+			else if (guess.type.name === 'vowel' && ref.type.name === 'vowel' ) {
 
-			else 
-			    if ( Math.abs( parseInt(guess.frontness.value) - parseInt(ref.frontness.value) )<2 ) 
-				score +=5;
+			    score += 20;
+			    
+			    if (parseInt(guess.vowel_length.value) == parseInt(ref.vowel_length.value) ) 
+				score += 10;
+			    
+			    if (parseInt(guess.frontness.value) == parseInt(ref.frontness.value) ) 
+				score += 10;
 
-			if (guess.openness == ref.openness ) 
-			    score += 10;
-			else 
-			    if ( Math.abs(guess.openness.value - ref.openness.value)<2 ) 
-				score +=5;
-			
-			if (guess.diphtong_frontness == ref.diphtong_frontness ) 
-			    score += 10;
-			else 
-			    if ( Math.abs(guess.diphtong_frontness.value - ref.diphtong_frontness.value)<2 ) 
-				score +=5;
+			    else 
+				if ( Math.abs( parseInt(guess.frontness.value) - parseInt(ref.frontness.value) )<2 ) 
+				    score +=5;
 
-			if (guess.diphtong_openness == ref.diphtong_openness ) 
-			    score += 10;		
-			else 
-			    if ( Math.abs(guess.diphtong_openness.value - ref.diphtong_openness.value)<2 ) 
-				score +=5;
+			    if (guess.openness == ref.openness ) 
+				score += 10;
+			    else 
+				if ( Math.abs(guess.openness.value - ref.openness.value)<2 ) 
+				    score +=5;
+			    
+			    if (guess.diphtong_frontness == ref.diphtong_frontness ) 
+				score += 10;
+			    else 
+				if ( Math.abs(guess.diphtong_frontness.value - ref.diphtong_frontness.value)<2 ) 
+				    score +=5;
 
-			if (guess.roundness == ref.roundness ) 
-			    score += 20;		
+			    if (guess.diphtong_openness == ref.diphtong_openness ) 
+				score += 10;		
+			    else 
+				if ( Math.abs(guess.diphtong_openness.value - ref.diphtong_openness.value)<2 ) 
+				    score +=5;
 
+			    if (guess.roundness == ref.roundness ) 
+				score += 20;		
+
+			}
 		    }
 		    scores.push(score);
 		    total_score += score;
@@ -294,9 +302,39 @@ function indexOfMax(arr) {
 
 
 /* Text output through this function will be green */
-var debugout = function(user,msg) {
-    console.log("\x1b[32mscorer %s\x1b[0m", logging.get_date_time().datetime + ' '+user+': '+ msg);
+//var debugout = function(user,msg) {
+//    console.log("\x1b[32mscorer %s\x1b[0m", logging.get_date_time().datetime + ' '+user+': '+ msg);
+//}
+
+
+
+function debugout( text , priority, user, word_id ) {
+    // Did you set DEBUG_TEXTS == true there at the top?
+    //if (DEBUG_TEXTS) 
+    //{
+    //  var cyan = "\x1b[36m";
+    //	var bright = "\x1b[1m" ;
+    //	var reset = "\x1b[0m";
+    //	console.log(cyan + bright + "aligne " + logging.get_date_time().datetime + " " + text + reset);
+    printdata = {
+	source: 'scorer',
+	message: text,
+    }
+    if (typeof(priority) != 'undefined') 
+	printdata.priority = priority;
+    else
+	printdata.priority = 0;
+
+    if (typeof(user) != 'undefined') 
+	printdata.user = user;
+
+    if (typeof(user) != 'word_id') 
+	printdata.user = word_id;
+    
+    process.emit('print', printdata);
 }
+
+
 
 
 

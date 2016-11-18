@@ -12,11 +12,11 @@ html
 		script.
 			var BASEURL = "#{baseURL}";
 		script(src='#{baseURL}/js/livedemo/RecordRTC.js')
-		script(src='#{baseURL}/js/livedemo/live_test2.js')
+
 		//script(src='#{baseURL}/js/fysiak/matter.js')
 		<!-- matter lib edge master version -->
-		script(type="text/javascript",src="#{baseURL}/js/fysiak/p2.js")
-		script(type="text/javascript",src="#{baseURL}/js/fysiak/jquery-1.11.0.min.js")
+		script(type="text/javascript", src="#{baseURL}/js/fysiak/p2.js")
+		script(type="text/javascript", src="#{baseURL}/js/fysiak/jquery-1.11.0.min.js")
 
 
 
@@ -216,6 +216,8 @@ block scripts
 		//script(src='#{baseURL}/js/views/users.js')
 		//script(src='#{baseURL}/js/controllers/usersController.js')
 		//script(src='#{baseURL}/js/form-validators/accountValidator.js')
+
+		script(src='#{baseURL}/js/fysiak/fysiak-audio-#{fysiak_version}.js')
 
 		//script(src='#{baseURL}/js/livedemo/analyser.js')
 		script(src='#{baseURL}/js/fysiak/fysiak-levels-#{fysiak_version}.js')

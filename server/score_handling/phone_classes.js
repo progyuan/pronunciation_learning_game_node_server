@@ -135,7 +135,8 @@ var aalto_to_arpa = {
     "W": "ea",
     "w": "w",
     "Y": "oh",
-    "z": "z"
+    "z": "z",
+    "Z": "zh",
 };
 
 var arpa_to_festival_unilex = {
@@ -181,7 +182,8 @@ var arpa_to_festival_unilex = {
 "v": "v",
 "w": "w",
 "y": "y",
-"z": "z"
+"z": "z",
+"zh" : "zh"
 };
 
 var festival_unilex_to_ipa= {

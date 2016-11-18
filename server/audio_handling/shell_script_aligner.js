@@ -38,29 +38,13 @@ var wav    = require('wav');
 
 function align_with_shell_script(conf, inputbuffer, word_reference, user, word_id) {
 
-    //DEBUG_TEXTS = audioconf.debug_f0;
-
-    print_debug("== EXCITING!!! user: "+user+" reference: "+word_reference+ " word_id: "+word_id);
-
-    //var frame_step_samples = audioconf.frame_step_samples;
-    //var lsforder = audioconf.lsforder;
-    //var lsflength = audioconf.lsflength; // Should be order +1
-    //var mfccorder = audioconf.mceporder;
-    //var mfcclength = audioconf.mceplength;  // Should be order +1
-    //var lsf_start = 1;
-    //var mfcc_start = lsflength+1;
-    //var features_length = mfcclength+lsflength+1;
-
     var tmpdir = "/dev/shm/siak-"+process.pid+"-"+user+"_"+word_id+"_"+Date.now();
     var wavinput = tmpdir+"/feature_input";
     var labelinput = tmpdir+"/label_input";
     var recipeinput = tmpdir+"/recipe_input";
     var segmentoutput = tmpdir+"/segment_output";
-
  
     fs.mkdirSync(tmpdir);
-    
-
     
     // 1. Write the float data into mem file system as 16bit PCM:
 
@@ -69,13 +53,15 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
     var okcount = 0;
     var notokcount = 0;
     
-    print_debug("Writing "+inputbuffer.length + " bytes of float data into integer buffer");
+    //print_debug("Writing "+inputbuffer.length + " bytes of float data into integer buffer");
 
     pcmbuffer = new Buffer(inputbuffer.length/2);
 
     for (var i = 0; i < inputbuffer.length; i+=4) {
 	try {
-	    pcmbuffer.writeInt16LE( inputbuffer.readFloatLE(i) * 32767 , pcmindex );
+	    fValue = inputbuffer.readFloatLE(i);
+	    
+	    pcmbuffer.writeInt16LE( fValue * 32767 , pcmindex );
 	    pcmindex+=2;
 	    if (debug) okcount++;
 	}
@@ -106,7 +92,7 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
     var adaptation_wavfile = target_dir + '/ada/' + user +'_'+ word_id +'_'+ word_reference  +'_'+ logging.get_date_time().datetime_for_file + ".wav" ;
     var adaptation_matrix_name = target_dir + '/S'
     print_debug("target_wavfile :" + target_wavfile );
-    print_debug("wavinput :" + wavinput );
+    //print_debug("wavinput :" + wavinput );
 
     fs.copy(wavinput, 
 	    target_wavfile, 
@@ -229,15 +215,32 @@ function show_exit(exit_code, source) {
 }
 
 
-function print_debug(text) {
+function print_debug( text , priority, user, word_id ) {
     // Did you set DEBUG_TEXTS == true there at the top?
-    if (DEBUG_TEXTS) 
-    {
-	var cyan="\x1b[36m";
-	var bright=  "\x1b[1m" ;
-	console.log(cyan + bright + "aligne " + logging.get_date_time().datetime + " " + text);
+    //if (DEBUG_TEXTS) 
+    //{
+    //  var cyan = "\x1b[36m";
+    //	var bright = "\x1b[1m" ;
+    //	var reset = "\x1b[0m";
+    //	console.log(cyan + bright + "aligne " + logging.get_date_time().datetime + " " + text + reset);
+    printdata = {
+	source: 'aligner',
+	message: text,
     }
+    if (typeof(priority) != 'undefined') 
+	printdata.priority = priority;
+    else
+	printdata.priority = 0;
+
+    if (typeof(user) != 'undefined') 
+	printdata.user = user;
+
+    if (typeof(user) != 'word_id') 
+	printdata.user = word_id;
+    
+    process.emit('print', printdata);
 }
+
 
 
 
