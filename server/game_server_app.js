@@ -146,6 +146,8 @@ http.createServer(function (req, res) {
 
 }).listen(process.env.PORT || 8001);
 
+
+
 debugout('If you don\'t see errors above, you should have a server running on port '+ (process.env.PORT || 8001) );
 
 
@@ -173,7 +175,7 @@ debugout('If you don\'t see errors above, you should have a server running on po
 
 process.on('user_event', function(user, wordid, eventname, eventdata) {
 
-    //debugout(colorcodes.event, user + ': EVENT: wordid '+wordid +" eventname "+eventname); 
+    debugout(colorcodes.event, user + ': EVENT: wordid '+wordid +" eventname "+eventname); 
 
     if (eventname == 'timestamp') {
 	userdata[user].timestamps[eventdata.name] =   new Date().getTime();
@@ -366,7 +368,7 @@ process.on('print', function(printdata) {
 	}
 	else color = "";
 
-	console.log(color + printdata.source + logging.get_date_time().datetime + " " + printadata.message + reset);
+	console.log(color + printdata.source + logging.get_date_time().datetime + " " + printdata.message + reset);
     }
     
 
@@ -456,7 +458,6 @@ function send_score_and_clear(user, score_object) {
 	    userdata[user].lastPacketRes.end( JSON.stringify( score_object ) );
 	}
 	else {
-	    debugout("Sending score to player: " + score_object.total_score );
 	    userdata[user].lastPacketRes.end( "" + score_object.total_score );
 	}
 	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Sending score for user: "+user + " word: "+ userdata[user].currentword.reference + " score: "+  score_object.total_score );
@@ -477,6 +478,7 @@ function send_score_and_clear(user, score_object) {
 			     //classification: userdata[user].currentword.phoneme_classes 
 			    });
 
+	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Clearing user: "+user);
 	clearUpload(user)
     }    
 }
@@ -497,10 +499,13 @@ var operate_recognition = function (req,res) {
 
     finalpacket = req.headers['x-siak-final-packet'];
 
+    //debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Got packet nr "+  packetnr +" for "+user + " word: "+ userdata[user].currentword.reference );
 
     if (packetnr == 0) {
 	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Starting ASR for user: "+user + " word: "+ userdata[user].currentword.reference );
     }
+
+    
     
     // If recovering from a server crash or otherwise lost:
     if (!userdata.hasOwnProperty(user)) {	
@@ -564,6 +569,8 @@ var operate_recognition = function (req,res) {
 	finalpacket = req.headers['x-siak-final-packet'];
 
 	if (finalpacket == "true") {
+	    debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": "+packetnr +" is the last packet for user: "+user + " word "+ userdata[user].currentword.reference);
+
 	    userdata[user].currentword.lastpacketnr=packetnr;
 	}	    
 	
@@ -602,7 +609,13 @@ var operate_recognition = function (req,res) {
 
 	}	    
 	else {
-	    if (array_contains(userdata[user].currentword.analysedpackets, packetnr))
+	    // If we already have the reply, let's send it:
+	    if (userdata[user].lastPacketReply) {
+
+		send_score_and_clear(user, userdata[user].lastPacketReply);
+		return false;
+	    }
+	    else  if (array_contains(userdata[user].currentword.analysedpackets, packetnr))
 	    {
 		/* Sometimes we fail to reply, and some nosy clients try to resend their call.
 		   That would mess up our careful data processing system, so let's ignore those
@@ -844,8 +857,9 @@ function processDataChunks(user, wordid, res, packetnr) {
 	userdata[user].currentword.analysedpackets.push(packetnr);
 	//debugout(user + ': Processing packet '+packetnr);
 
+	if ( userdata[user].currentword.vad.speechend < 0 )
 	// Call the asyncAudioAnalysis function (asynchronous processing of new audio data)
-	process.emit('user_event', user, wordid,'send_audio_for_analysis', null);
+	    process.emit('user_event', user, wordid,'send_audio_for_analysis', null);
 
 	if (userdata[user].currentword.lastpacketnr < 0) {
 	    // We do not know yet what is the last packet.
@@ -861,14 +875,9 @@ function processDataChunks(user, wordid, res, packetnr) {
 		audio_packet_reply(user,res,packetnr, false);
 	    }
 	    else {
-		// We're dealing with the last packet; Store the reply object in a safe place
-		if (userdata[user].lastPacketReply) {
-
-		    send_score_and_clear(user, userdata[user].lastPacketReply);
-		    return false;
-		}
-		else 
-		    userdata[user].lastPacketRes=res;
+		// We're dealing with the last packet;		
+		// store the reply object in a safe place
+		userdata[user].lastPacketRes=res;
 	    }
 	    // Let's see if we have received all packets:
 	    // Send an event to count packets and proceed

@@ -1,11 +1,11 @@
 
-
+/*
 if (process.env.NODE_ENV !== 'production'){
     print_debug('Requiring longjohn:');
     longjohn = require('longjohn');
 
     longjohn.async_trace_limit = 25;   // defaults to 10
-}
+}*/
 
 var logging = require('../game_data_handling/logging.js');
 
@@ -205,11 +205,11 @@ function show_exit(exit_code, source) {
     if (DEBUG_TEXTS) {
 	if (exit_code==0) 
 	{
-	    print_debug(source + " exited with code "+exit_code);
+	    print_debug(source + " exited with code "+exit_code, 0);
 	}
 	else 
 	{
-	    print_debug(source + " exited with code "+exit_code);
+	    print_debug(source + " exited with code "+exit_code, 0);
 	}
     }
 }
@@ -230,7 +230,7 @@ function print_debug( text , priority, user, word_id ) {
     if (typeof(priority) != 'undefined') 
 	printdata.priority = priority;
     else
-	printdata.priority = 0;
+	printdata.priority = 1;
 
     if (typeof(user) != 'undefined') 
 	printdata.user = user;

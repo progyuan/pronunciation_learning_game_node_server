@@ -49,8 +49,6 @@ var total_dnn_time = 0;
 
 
 
-var audio_ok_for_game = false;
-
 
 
 /* FIRs created by MATLAB 
@@ -332,12 +330,13 @@ var foo = function () {
 
 
 var connect_and_test = function(word, item, callback) {
-    word = 
+    //word = 
     connect_and_maybe_test(true, document.getElementById("transcription").value, null,  null);
 }
 
 
 var get_score_for_word = function(word, item, callback) {
+    //console.log("get_score_for_word item.id:",item.id);
     connect_and_maybe_test(true, word, item,  callback);
 };
 
@@ -363,11 +362,13 @@ var get_score_for_word = function(word, item, callback) {
     var global_item, global_callback;
 
     window.setItemAndCallback = function(item, callback) {
+	//console.log("setting callback for item.id:", item.id);
 	global_item = item;
 	global_callback = callback;
     }
 
     window.getItemAndCallback = function() {
+	//console.log("getting callback for item.id:", global_item.id);
 	return {item: global_item, callback: global_callback }
     }
 
@@ -444,8 +445,10 @@ var get_score_for_word = function(word, item, callback) {
 	    //console.log(left);
 	    //console.log(dataview);
 
+	    
 	    send_file_part( new Blob([buffer], { type: "application/octet-stream" }),
 			    packetn++);
+
 	}
 
 	audioInput.connect(recorder)
@@ -617,68 +620,12 @@ function reinit_and_test() {
 */
 
 
-if (1==0) {
-    server='/siak-devel/start-level';
-    
-    var test = false;
-    var username = "foo1";
-    var password = "bar1";
-    
-    var formData = new FormData();
-
-    var sessionstart = new XMLHttpRequest();
-
-    sessionstart.open('POST', server, true);
-
-    sessionstart.setRequestHeader("x-siak-user", username);
-    sessionstart.setRequestHeader("x-siak-password", password);
-    sessionstart.setRequestHeader("x-siak-packetnr", "-2");
-
-    sessionstart.onreadystatechange = function(e) {
-        if ( 4 == this.readyState ) {
-	
-	    if (sessionstart.status === 200) {
-
-		server_ok = true;
-		if (logging == null) {
-		    logging = get_new_logdiv();
-		}
-
-		logging.innerHTML += "<br>" + timestamp() + " Server started ok!";
-
-		// Check for the various File API support.
-		if (window.File && window.FileReader && window.FileList && window.Blob) {
-		    // Great success! All the File APIs are supported.
-		} else {
-		    alert('The File APIs are not fully supported in this browser.');
-		}
-		
-		if (test) {
-		    reinit_and_maybe_test(test, logging, word, item, callback); //send_file(logging);
-		}
-		
-	    } else if (sessionstart.status === 502) {
-		server_ok=false;
-		logging.innerHTML += "<br>-2 Problem: Server down!";
-
-	    } else {
-		logging.innerHTML += '<br>-2 Problem: Server responded '+sessionstart.status;
-	    }
-	}
-	else {
-	    dummy = 1;
-	    //console.log("sessionstart in state "+this.readyState);
-	}
-    };
-
-    sessionstart.send(formData);
-    
-}
-
 
 
 var connect_and_maybe_test = function(test, word, item,  callback) {
     
+    //console.log("connect_and_maybe_test item.id:",item.id);
+
     // Set up the request.
 
     logging = get_new_logdiv();
@@ -723,8 +670,6 @@ var connect_and_maybe_test = function(test, word, item,  callback) {
 
 		logging.innerHTML += "<br>" + timestamp() + " Server started ok!";
 
-		
-
 		// Check for the various File API support.
 		if (window.File && window.FileReader && window.FileList && window.Blob) {
 		    // Great success! All the File APIs are supported.
@@ -733,6 +678,7 @@ var connect_and_maybe_test = function(test, word, item,  callback) {
 		}
 		
 		if (test) {
+		    //console.log("connect_and_maybe_test: Got reply for item.id:",item.id);
 		    reinit_and_maybe_test(test, logging, word, item, callback); //send_file(logging);
 		}
 		
@@ -756,7 +702,7 @@ var connect_and_maybe_test = function(test, word, item,  callback) {
 }
 
 function reinit_and_maybe_test(test, logging, word, item,  callback) {
-    
+    //console.log("reinit_and_maybe_test item.id:",item.id);
     // Set up the request.
 
     if (logging == null) {
@@ -812,7 +758,7 @@ function reinit_and_maybe_test(test, logging, word, item,  callback) {
 		
 		if (test) {
 		    logging.innerHTML += "<br>" + timestamp() + " Starting file upload!";		
-		    
+		    //console.log("Start upload for item.id:",item.id);
 		    //send_file(logging);
 		    start_rec_and_upload(logging, item, callback);
 		}
@@ -852,6 +798,7 @@ function send_file(logging) {
 var session, recordRTC;
 
 function start_rec_and_upload(logging, item, callback) {
+    //console.log("start rec and upload for item.id:", item.id);
     setItemAndCallback(item, callback);
     startRecording();
     starttime = (new Date()).getTime();    
@@ -864,6 +811,7 @@ var n = 0;
 
 var lastpacket = false;
 var time_to_send_the_final_packet = false;
+var lastpacketnr = -1;
 
 function send_file_part(leftaudio, n, callback) {
 
@@ -873,11 +821,17 @@ function send_file_part(leftaudio, n, callback) {
     }
 
     if (n > 10)
-	time_to_send_the_final_packet = true;
+	time_to_send_the_final_packet = true;    
 
     if (time_to_send_the_final_packet == true) {
+	console.log("Recording and sending packet packetnr ",n, "LAST!");
 	lastpacket = true;
 	stopRecording();
+	lastpacketnr = n;
+    }
+    else {
+	console.log("Recording and sending packet packetnr ",n);
+	
     }
 
     //reader.readAsDataURL(left); 
@@ -923,8 +877,10 @@ function send_file_part(leftaudio, n, callback) {
 	// Set up a handler for when the request finishes.
 	xhr.onload = function (reply) {
 	    if (xhr.status === 200) {
+		console.log("Got reply to packet nr ",n, xhr.responseText);
 		logging.innerHTML += "<br>" + timestamp() + " Server says ok!";	
-		if (lastpacket) {
+		if (lastpacketnr == n) {
+		    console.log("Last packet reply packetnr");
 		    time_it_took = timestamp()-lastpacketsenttime;
 
 		    document.getElementById("waiting_for_server").style.visibility = "hidden";
@@ -934,6 +890,7 @@ function send_file_part(leftaudio, n, callback) {
 		    time_to_send_the_final_packet = false;
 		    finalpacketsent=false;
 		    lastpacket =false;
+		    lastpacketnr = -1;
 		    packetn=0;
 
 		    logging.innerHTML += "<br><b>Last packet sent:</b> After "+(time_it_took/1000.0)+"s server returns <b>" + xhr.responseText.toString().replace(/,/g, ',<br>') +"</b>";
@@ -1039,10 +996,9 @@ function send_file_part(leftaudio, n, callback) {
 	};
 	
 	// Send the Data.
-	xhr.send( base64data );
+	xhr.send( base64data ) }, 
 	lastpacketsenttime=timestamp();	
 	
-    }
 }
 
 /* If I at some point switch from float to 16bit signed integer 
@@ -1065,7 +1021,7 @@ function recorderProcess(e) {
 
 function get_word_to_score(item, nextcallback, callback) { 
     
-    console.log("get_word_to_score item.id",item.id);
+    //console.log("get_word_to_score item.id",item.id);
 
     server='/siak-devel/'+'get-next-word';
     
@@ -1089,8 +1045,8 @@ function get_word_to_score(item, nextcallback, callback) {
 	    if (get_next_word.status === 200) {		
 		word_and_stats =  JSON.parse(get_next_word.responseText);
 		word = word_and_stats.word;
-		console.log("callback word, item.id",word,item.id);
-
+		
+		//console.log("callback word:",word,"item.id:",item.id);
 		callback(word, item, nextcallback);
 
 	    } else if (get_next_word.status === 502) {

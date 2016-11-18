@@ -7,7 +7,8 @@ var w = canvas.width,
     h = canvas.height;
 
 
-var audioelements = {};
+var audio_ok_for_game = false;
+
 
 
 var scaleX = 30, scaleY = -30;
@@ -39,7 +40,6 @@ var maxStars = 0;
 var starCount = 0;
 
 var hitNode = null;
-
 
 var nodes = {},
     circleBodies = {},
@@ -1183,23 +1183,33 @@ var next_level = function(item) {
 debug_score=0;
 
 var handle_playing = function(word, node, callback) { 		    
+    //console.log("handle_playing start for item.id", node.id);
 
-    document.getElementById('waiting_for_server').style.visibility = "hidden";
-    //node.word = word;
-    document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
+    
 
-    if (typeof(audioelements[word]) == 'undefined') {
-	audiourl=BASEURL + '/audio_files/' + word + '.mp3';
-	audioelements[word] = new Audio(audiourl);
+    node.word = word;
+    
+    
+
+    if (typeof(node.audioelement) == 'undefined') {
 	
+	console.log("audioelements[",word,"] does not exist for node.id", node.id);
+	audiourl=BASEURL + '/audio_files/' + word + '.mp3';
+	node.audioelement = new Audio();
+	
+	console.log("Got audio:", node.audioelement);
+
 	var audio_ok = true;
-	audioelements[word].oncanplay = function () { 
+
+	node.audioelement.oncanplaythrough = function () { 
+	    document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
+
 	    document.getElementById('waiting_for_server').style.visibility = "hidden";
 	    document.getElementById('speaker_animation').style.visibility = "visible";
 
-	    var promise = audioelements[word].play();
+	    var promise = node.audioelement.play();
 	    if(promise instanceof Promise) {
-		promise.catch(function(error) {
+		promise.catch(function(error) {		    
 		    // Check if it is the right error
 		    if(error.name == "NotAllowedError") {
 			audio_ok = false;
@@ -1212,28 +1222,40 @@ var handle_playing = function(word, node, callback) {
 		});
 	    }
 	    
+	    console.log("set timeout for handle_playing 1 for item.id", node.id);	    
+
 	    setTimeout( function() {
 		if (audio_ok) {
+		    //console.log("handle_playing 2 for node.id", node.id);		    
 		    document.getElementById('speaker_animation').style.visibility = "hidden";
 		    get_score_for_word(word, node, callback);
 		} 
-	    }, audioelements[word].duration*1000 - 800);
+	    }, node.audioelement.duration*1000 - 800);
 	    
 	};
+	node.audioelement.src=audiourl;
+	node.audioelement.load();
+
     }
     else {
-	audioelements[word].play();
+	document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
+	document.getElementById('waiting_for_server').style.visibility = "hidden";
+	//console.log("audioelements[",word,"] exists for node.id", node.id);
+	node.audioelement.oncanplay = null;
+	node.audioelement.play();
+	//console.log("set timeout for handle_playing 2 for node.id", node.id);
 	setTimeout( function() {
+	    //console.log("handle_playing 2 for node.id", node.id);
 	    document.getElementById('speaker_animation').style.visibility = "hidden";
 	    get_score_for_word(word, node, callback);
-	}, audioelements[word].duration*1000 - 800);
+	}, node.audioelement.duration*1000 - 800);
     }
 }
 
 
 
 var handle_scoring = function(node) {
-    console.log("handle scoring node id",node.id);
+    //console.log("handle scoring node id",node.id);
 
     pause_game();
 
@@ -1243,11 +1265,11 @@ var handle_scoring = function(node) {
     
     if (node.word) {
 	var word = node.word;
-	handle_playing(word, node, apply_scoring);1
+	handle_playing(word, node, apply_scoring);
     }
     else {
 	document.getElementById('score').innerHTML='Getting a word for you...';
-	get_word_to_score(node, apply_scoring, handle_playing) 
+	get_word_to_score(node, apply_scoring, handle_playing);
 
     }
 }
@@ -1256,7 +1278,7 @@ var handle_scoring = function(node) {
 
 var apply_scoring = function(node, score) {
 
-    console.log("apply scoring node id",node.id);
+    //console.log("apply scoring node id",node.id);
 
     if (score < 0) {
 	txt = error_codes[score.toString()];
@@ -1275,7 +1297,7 @@ var apply_scoring = function(node, score) {
 
 	extra_stars = score - node.score;
 
-	console.log("extra stars:", extra_stars, "for node id:", node.id );
+	//console.log("node id:", node.id + "extra stars:", extra_stars); 
 	//console.log(id_to_node);
 	
 	setTimeout(function( ){ 
@@ -1315,8 +1337,6 @@ var apply_scoring = function(node, score) {
 		    
 		}
 	    });
-
-	    node.score = score;
 	}
 	if (score > 0 ) {
 	    // Apply force!
@@ -1328,7 +1348,7 @@ var apply_scoring = function(node, score) {
 
 
 var addStars = function(node, score) {
-    console.log("addStars for node",node.id);
+    //console.log("addStars for node",node.id);
 
 
     // Distance between node and star centres:
@@ -1348,7 +1368,7 @@ var addStars = function(node, score) {
     item = circleBodies[ node.id ];
 
     for (i= (node.score | 0); i < score; i++) {
-c
+	
 	star = {
 	    position : [
 		item.position[0]+star_offsets[i].x,
@@ -1372,8 +1392,7 @@ c
 	var hanger = new p2.LinearSpring( item, circleBody, {stiffness: 1000, restLength: defaultNodeRadius + defaultStarRadius} );
 	world.addSpring(hanger);
     }
-
-
+    node.score = score;    
 }
 
 
