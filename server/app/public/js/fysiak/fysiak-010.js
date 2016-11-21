@@ -1,5 +1,35 @@
 
+var messages = {
+    say_this : { en: 'Say this word or phrase:',
+		 fi: 'Sano tämä sana tai lause:' },
+    mic_error:  { en: "Error accessing microphone.",
+		  fi: "Ei lupaa mikrofonin käyttöön" },
+    give_permission: {en: "Please give permission and reload page!",
+		      fi: "Annahan lupa ja lataa sivu uudestaan!" },
+    out_of_time: { en: 'Out of time! Please try again.',
+		   fi: 'Aika loppui! Yritähän uudelleen.' },
+    try_again: { en: 'Try again',
+		 fi: 'Yritä uudestaan' },
+    you_win : { en: 'You win!',
+		fi: 'Voitit!' },
+    points: { en: "points",
+	      fi: "pistettä" },
+    next_level : { en: "Next level",
+		   fi: "Seuraava taso" },
+    getting_word : { en: "Getting a word for you...",
+		     fi: "Haetaan seuraavaa sanaa..."},
+    your_browser : { en: 'Your browser claims to be',
+		     fi: 'Selaimesi väittää olevansa' },
+    version : { en: "version",
+		fi: "versio" },
+    recommend_chrome : { en: "We recommend using the Chrome browser.",
+			 fi: "Suosittelemme Chrome-selainta." },
+    try_anyway : { en: "Try the game anyway", 
+		   fi: "Kokeile siitä huolimatta" }
+    
+}
 
+lng="fi";
 
 var canvas = document.getElementById("gamecanvas");
 
@@ -461,10 +491,10 @@ var render = function(time) {
 
 	ctx.scale(1, -1);	   
 
-	txt = "Error accessing microphone.";
+	txt = messages.mic_error[lng];
 	ctx.fillText(txt, -w/scaleX/3 , -2.5)
 
-	txt = "Please give permission and reload page!";
+	txt = messages.give_permission[lng];
 	ctx.fillText(txt, -w/scaleX/3 , 2.5)
 
 
@@ -1139,8 +1169,8 @@ var continue_timer = function() {
 var out_of_time = function(game) {
     document.getElementById('scorewrapper').style.visibility = "visible";
     document.getElementById('scorecard').style.visibility = "visible";
-    document.getElementById('score').innerHTML='Out of time! Please try again.';
-    document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\'Try again!\'>';
+    document.getElementById('score').innerHTML= messages.out_of_time[lng];
+    document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\''+messages.try_again[lng]+'\'>';
 }
 
 
@@ -1153,10 +1183,10 @@ var win_game = function(item) {
     
     document.getElementById('scorewrapper').style.visibility = "visible";
     document.getElementById('scorecard').style.visibility = "visible";
-    document.getElementById('score').innerHTML='You win! <table style="font-size: 1.2em" border=0><tr><td>'+'\u2605:</td><td>' + starscore + '</td></tr><tr><td>' + '\u231A:</td><td>' + timescore + '</td></tr><tr><td colspan=2>' + '\u21D2' +  (starscore + timescore) + " points</td></tr></table>";
+    document.getElementById('score').innerHTML=messages.you_win[lng] +'<table style="font-size: 1.2em" border=0><tr><td>'+'\u2605:</td><td>' + starscore + '</td></tr><tr><td>' + '\u231A:</td><td>' + timescore + '</td></tr><tr><td colspan=2>' + '\u21D2' +  (starscore + timescore) + " "+ messages.points[lng]+ "</td></tr></table>";
 
-    document.getElementById('score').innerHTML+='<p><input onclick=\'next_level();\' type=button value=\'Next level\'>';
-    document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\'Try again\'>';
+    document.getElementById('score').innerHTML+='<p><input onclick=\'next_level();\' type=button value=\''+ messages.next_level[lng] +'\'>';
+    document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\''+messages.try_again[lng]+'\'>';
 
 
     
@@ -1202,7 +1232,7 @@ var handle_playing = function(word, node, callback) {
 	var audio_ok = true;
 
 	node.audioelement.oncanplaythrough = function () { 
-	    document.getElementById('score').innerHTML='Say this word or phrase: <br><b>'+ word + '</b>'; //"apple";
+	    document.getElementById('score').innerHTML=messages.say_this[lng]+' <br><b>'+ word + '</b>'; //"apple";
 
 	    document.getElementById('waiting_for_server').style.visibility = "hidden";
 	    document.getElementById('speaker_animation').style.visibility = "visible";
@@ -1230,7 +1260,7 @@ var handle_playing = function(word, node, callback) {
 		    document.getElementById('speaker_animation').style.visibility = "hidden";
 		    get_score_for_word(word, node, callback);
 		} 
-	    }, node.audioelement.duration*1000 - 800);
+	    }, node.audioelement.duration*1000 -50 );
 	    
 	};
 	node.audioelement.src=audiourl;
@@ -1248,7 +1278,7 @@ var handle_playing = function(word, node, callback) {
 	    //console.log("handle_playing 2 for node.id", node.id);
 	    document.getElementById('speaker_animation').style.visibility = "hidden";
 	    get_score_for_word(word, node, callback);
-	}, node.audioelement.duration*1000 - 800);
+	}, node.audioelement.duration*1000 - 50 );
     }
 }
 
@@ -1268,7 +1298,7 @@ var handle_scoring = function(node) {
 	handle_playing(word, node, apply_scoring);
     }
     else {
-	document.getElementById('score').innerHTML='Getting a word for you...';
+	document.getElementById('score').innerHTML= messages.getting_word[lng];
 	get_word_to_score(node, apply_scoring, handle_playing);
 
     }
@@ -1983,8 +2013,8 @@ var init_fysiak = function() {
 	pause_game();
 	document.getElementById('scorewrapper').style.visibility = "visible";
 	document.getElementById('scorecard').style.visibility = "visible";
-	document.getElementById('score').innerHTML='Your browser claims to be '+browser[0]+ " version " + browser[1]+'. ';
-	document.getElementById('score').innerHTML+= "We recommend using the Chrome browser.";
-	document.getElementById('score').innerHTML+='<input onclick=\'continue_game();\' type=button value=\'Try the game anyway\'>';
+	document.getElementById('score').innerHTML=messages.your_browser[lng]+ ' ' + browser[0]+ messages.version[lng] + browser[1]+'. ';
+	document.getElementById('score').innerHTML+= messages.recommend_chrome[lng];
+	document.getElementById('score').innerHTML+='<input onclick=\'continue_game();\' type=button value=\'' + messages.try_anyway[lng]+ '\'>';
     }
 }
