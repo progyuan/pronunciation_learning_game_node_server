@@ -25,8 +25,9 @@ var messages = {
     recommend_chrome : { en: "We recommend using the Chrome browser.",
 			 fi: "Suosittelemme Chrome-selainta." },
     try_anyway : { en: "Try the game anyway", 
-		   fi: "Kokeile siitä huolimatta" }
-    
+		   fi: "Kokeile siitä huolimatta" },
+    another_level : { en: "Try another level",
+		      fi: "Kokeile toista kenttää" }
 }
 
 lng="fi";
@@ -36,12 +37,13 @@ var canvas = document.getElementById("gamecanvas");
 var w = canvas.width,
     h = canvas.height;
 
-
+var resized = false;
 var audio_ok_for_game = false;
 
 
 
 var scaleX = 30, scaleY = -30;
+var qmark_font_size = false;
 
 // Create a physics world, where bodies and constraints live
 var world = new p2.World({
@@ -285,7 +287,15 @@ var lastTime;
 
 
 
+var positions = {
+    levelselect: { x:  0.43, 
+		   y: -0.51 }
+}
 
+var scalings = {
+    levelselect: { x:  0.12/1100, 
+		   y:  0.12/1100 }
+}
 
 // Rendering style:
 
@@ -504,7 +514,6 @@ var render = function(time) {
 
 
 
-
     // A little frame edge:
 
     ctx.beginPath();
@@ -531,7 +540,7 @@ var render = function(time) {
 
     // Small stars:
 
-    ptSize = 0.6;;
+    ptSize = 0.6;
     ctx.font = ptSize+"px Arial";	    
     ctx.lineWidth = 0.05;
 
@@ -559,11 +568,19 @@ var render = function(time) {
     ctx.strokeStyle = 'black';
     ctx.fillStyle = 'yellow';
 
-    ptSize = 2;;
-    ctx.font = ptSize+"px Arial";	    
-    txt = "\u231A";
+    ctx.save();
+    ctx.translate( -(0.48 * w)/scaleX , -(0.45* h )/scaleY) ;
+    ctx.scale((w/1100)*0.05/scaleX, (w/1100)*0.05/scaleY );
+    ctx.lineWidth = 4;
 
-    ctx.fillText(txt,(-w/2.08)/scaleX , -(h/2.25)/scaleY) ;
+    var path = new Path2D("M320 25.6c-162.592 0-294.4 131.84-294.4 294.4 0 162.592 131.808 294.4 294.4 294.4s294.4-131.808 294.4-294.4c0-162.592-131.808-294.4-294.4-294.4zM320 550.4c-127.264 0-230.4-103.168-230.4-230.4s103.136-230.4 230.4-230.4 230.4 103.168 230.4 230.4-103.136 230.4-230.4 230.4zM342.4 153.6h-44.8v175.68l108.96 108.96 31.68-31.68-95.84-95.84z");
+    ctx.fill(path);
+    ctx.stroke(path);
+    ctx.restore();
+
+
+
+
 
     if (max_game_time > 0 && game_time_left > 0) {
 
@@ -584,15 +601,45 @@ var render = function(time) {
 	ctx.fill();
 	
     }
+    
+    // Draw microphone levels:
 
+    ctx.strokeStyle = 'black';
+    ctx.fillStyle = 'yellow';
+
+    ctx.save();
+    ctx.translate( (-w/2.07)/scaleX , -(h/2.45)/scaleY) ;
+    ctx.scale( (w/1100)*0.8/scaleX, (w/1100)*0.8/scaleY );
+    ctx.lineWidth = 0.3;
     
 
+    var path = new Path2D("M24 28c3.31 0 5.98-2.69 5.98-6L30 10c0-3.32-2.68-6-6-6-3.31 0-6 2.68-6 6v12c0 3.31 2.69 6 6 6zm10.6-6c0 6-5.07 10.2-10.6 10.2-5.52 0-10.6-4.2-10.6-10.2H10c0 6.83 5.44 12.47 12 13.44V42h4v-6.56c6.56-.97 12-6.61 12-13.44h-3.4z");
+    ctx.fill(path);
+    ctx.stroke(path);
+    //var path = new Path2D("M0 0h48v48H0z");
+    //ctx.stroke(path);
+    //ctx.fill(path);
+    ctx.restore();
+
+
+    if (audio_ok_for_game) {
+	ctx.save();
+	ctx.translate( (-w/2.25)/scaleX , -(h/2.47)/scaleY ); // Translate to the center
+	updateAnalysers(ctx, 0,0, w /8 /scaleX, h/20/scaleY)
+	ctx.restore();
+    }
   
     // Draw all bodies
     drawStatics();
     drawEdges();
     drawCircles();
     //drawPlane();
+
+
+
+    resized = false;    
+
+
 
     //movingStarTargetTime = time+100;
     //movingStarCount = 3;
@@ -609,10 +656,56 @@ var render = function(time) {
 	movingExtraStars = 0;
     }
 
+
     if (editMode)
 	drawGrid();
 
+    drawLevelSelectButton();
 
+
+    function drawLevelSelectButton() {
+
+
+
+	ctx.save();
+	ctx.translate( positions.levelselect.x * w /scaleX,  positions.levelselect.y * h /scaleY );
+	ctx.scale( scalings.levelselect.x * w / scaleX, scalings.levelselect.y * h / scaleY );
+	
+	path3 = new Path2D("m 167.68359,236.64844 c -7.81842,0 -14.11132,6.2929 -14.11132,14.11133 l 0,204.63281 c 0,7.81842 6.2929,14.11328 14.11132,14.11328 l 304.63282,0 c 7.81842,0 14.11132,-6.29486 14.11132,-14.11328 l 0,-204.63281 c 0,-7.81843 -6.2929,-14.11133 -14.11132,-14.11133 l -304.63282,0 z m 215.53125,25.71289 80,0 0,41.42969 -80,0 0,-41.42969 z m -206.78711,0.71484 80,0 0,41.42969 -80,0 0,-41.42969 z m 103.39454,0 80,0 0,41.42969 -80,0 0,-41.42969 z m 103.39257,68.75 80,0 0,41.42969 -80,0 0,-41.42969 z m -206.78711,0.71485 80,0 0,41.42773 -80,0 0,-41.42773 z m 103.39454,0 80,0 0,41.42773 -80,0 0,-41.42773 z m 103.39257,68.75 80,0 0,41.42773 -80,0 0,-41.42773 z m -206.78711,0.71484 80,0 0,41.42773 -80,0 0,-41.42773 z m 103.39454,0 80,0 0,41.42773 -80,0 0,-41.42773 z");
+
+    //var path = new Path2D("M24 28c3.31 0 5.98-2.69 5.98-6L30 10c0-3.32-2.68-6-6-6-3.31 0-6 2.68-6 6v12c0 3.31 2.69 6 6 6zm10.6-6c0 6-5.07 10.2-10.6 10.2-5.52 0-10.6-4.2-10.6-10.2H10c0 6.83 5.44 12.47 12 13.44V42h4v-6.56c6.56-.97 12-6.61 12-13.44h-3.4z");
+
+
+	if (hitNode == -1) {
+	    ctx.fillStyle = 'yellow';
+	    ctx.strokeStyle = 'yellow';  
+	    ctx.lineWidth = 30;	    
+	    ctx.stroke(path3);
+	
+	    ctx.fill(path3);
+
+	    ctx.strokeStyle = 'green';  
+	    ctx.lineWidth = 12;	    
+	    ctx.stroke(path3);
+
+
+	}
+	else {
+	    ctx.strokeStyle = 'black';
+	    ctx.fillStyle = 'lightgreen';
+	    ctx.lineWidth = 4;	    
+	
+	    ctx.fill(path3);
+	    ctx.stroke(path3);
+
+	}
+
+	
+	//ctx.stroke(path);
+	//ctx.fill(path);
+	ctx.restore();    
+    }
+    
 
     // Restore transform
     ctx.restore();
@@ -763,28 +856,51 @@ var render = function(time) {
 		ctx.fillStyle = pulse_color( ctx.fillStyle ,colorshift );
 	    }
 	    
-
 	    if (nodes[key].word) {
-		txt = nodes[key].word; 
-	    }
-	    else txt = '?';
-
-	    if (nodes[key].fontSize)
-		ptSize = nodes[key].fontSize
-	    else {
-		ptSize = 2*defaultNodeRadius;
-		do {
-		    ptSize-=0.2;
-		    ctx.font = ptSize+"px Arial";
+		txt = nodes[key].word;
+		if (nodes[key].fontsize && !resized) {
+		    ptSize=nodes[key].fontsize;
+		    ctx.font = nodes[key].fontsize+"px Arial";
 		    txtw=ctx.measureText(txt).width;
-		} while (txtw > defaultNodeRadius*2)
+		}
+		else {
+		    for (ptSize = 20 * defaultNodeRadius; ptSize > 0.4 ;ptSize-= 0.2) {
+			ctx.font = ptSize+"px Arial";
+			txtw=ctx.measureText(txt).width;
+			if (txtw < defaultNodeRadius*20) {
+			    
+			    nodes[key].fontsize = ptSize;
+			    break;
+			}
+		    }
+		}
+ 
+	    }
+	    else {
+		txt = '?';
+		if (qmark_font_size && !resized) {
+		    ptSize= qmark_font_size;
+		    ctx.font = qmark_font_size+"px Arial";
+		    txtw=ctx.measureText(txt).width;
+		}
+		else
+		    for (ptSize=20*defaultNodeRadius; ptSize > 0.4 ;ptSize-= 0.2) {
+			ctx.font = ptSize+"px Arial";
+			txtw=ctx.measureText(txt).width;
+			if (txtw < defaultNodeRadius*20) {
+			    qmark_font_size = ptSize;
+			    break;
+			}
+		    }
 	    }
 	    
 	    //ctx.save();
 	    ctx.translate(x, y);   // Translate to the center of the box
 	    ctx.rotate(circleBody.angle);  // Rotate to the box body frame
 	    
-	    ctx.scale(1, -1);
+	    ctx.scale(0.1, -0.1);
+	    ctx.lineWidth = 0.5;		
+	    //txtw=ctx.measureText(txt).width;
 	    ctx.fillText(txt, -0.5*txtw, 0.35*ptSize);
 	    ctx.strokeText(txt, -0.5*txtw, 0.35*ptSize);
 
@@ -953,6 +1069,81 @@ var render = function(time) {
     }
     
 
+    function updateAnalysers(analyserContext, ctxx, ctxy,canvasWidth,canvasHeight) {
+
+	/* Modified: Analyser code completely ovarhauled in style of voice-change-o-matic!  */
+
+	{
+	    var bufferLength=analyserNode.frequencyBinCount
+
+	    var dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+	    analyserNode.getByteTimeDomainData(dataArray); 
+
+            //analyserContext.clearRect(0, 0, canvasWidth, canvasHeight);
+            analyserContext.fillStyle = '#F6D565';
+            analyserContext.lineCap = 'round';
+
+	    analyserContext.fillStyle = 'rgb(200, 200, 200)';
+	    //analyserContext.fillRect(x,y,w,h);
+
+	    analyserContext.lineWidth = 0.1;
+	    analyserContext.strokeStyle = 'rgb(0, 0, 0)';
+
+	    analyserContext.beginPath();
+
+	    var sliceWidth = canvasWidth * 1.0 / bufferLength * 32;
+	    var x = 0;
+	    maxVal -= 0.02;
+	    
+	    for(var i = 0; i < bufferLength; i+=32) {
+		
+		var v = dataArray[i] / 128.0;
+		var y = v * canvasHeight/2;
+
+		if (Math.abs(v-1) > maxVal) {
+		    maxVal=Math.abs(v-1);
+		}
+		
+		if(i === 0) {
+		    analyserContext.moveTo(x, y);
+		} else {
+		    analyserContext.lineTo(x, y);
+		}
+		
+		x += sliceWidth;
+	    }
+	    analyserContext.stroke();
+	    
+	    barHeight=maxVal*canvasHeight;
+
+	    if (maxVal>0.8) {
+
+		barHeight=maxVal*canvasHeight*1.2;
+		analyserContext.fillStyle = 'rgba(' + Math.round(maxVal*canvasHeight+100) + ',50,50,0.5)';
+		analyserContext.fillRect(0,canvasHeight/2-barHeight/2, canvasWidth, barHeight );
+	    }
+
+	    if (maxVal>0.5) {
+		barHeight=Math.min(maxVal,0.8)*canvasHeight;
+		
+		analyserContext.fillStyle = 'rgba(255,255,50,0.5)';	
+		analyserContext.fillRect(0,canvasHeight/2-barHeight/2, canvasWidth, barHeight );
+	    }
+
+
+	    barHeight=Math.min(maxVal,0.5)*canvasHeight;
+	    
+	    analyserContext.fillStyle = 'rgba(50,' + Math.round(maxVal*canvasHeight+150) + ',50, 0.5)';	
+	    analyserContext.fillRect(0,canvasHeight/2-barHeight/2, canvasWidth ,barHeight );	
+
+	}
+	
+
+
+	//rafID = window.requestAnimationFrame( updateAnalysers );
+    }
+
+
 }
 
 
@@ -963,23 +1154,31 @@ canvas.addEventListener('mousedown', function(event){
     
     if (movingStarTargetTime < lastTime) { //movingStarCount < 1) {
 
+	
+	
 	// Convert the canvas coordinate to physics coordinates
 	var position = getPhysicsCoord(event);
 
 	console.log("Mouse down at world coords:", position);
+	console.log("Levelselect bounds:", positions.levelselect.x * w / scaleX, positions.levelselect.y *h/scaleY - 0.065*h/scaleX);
+	if (position[0] > positions.levelselect.x * w / scaleX && position[1] > positions.levelselect.y *h/scaleY  - 0.065 *h/scaleX) {
+	    select_level();
+	}
 	
-	// Check if the cursor is inside the box
-	var hitBodies = world.hitTest(position, circleBodiesArray);
-	
-	if(hitBodies.length) {
-	    console.log("hit body id:",hitBodies[0].id, "(", id_to_node[hitBodies[0].id], ")");
-	    node = nodes[id_to_node[hitBodies[0].id]];
-	    console.log("hit body type & word:", node.type, node.word);
+	else {
+	    // Check if the cursor is inside the box
+	    var hitBodies = world.hitTest(position, circleBodiesArray);
 	    
-	    if (node.type == 'unlocked' || node.type == 'visited') {
-		handle_scoring( nodes[id_to_node[hitBodies[0].id]] );
-	    } else 	if (node.type == 'activeExit') {
-		win_game();
+	    if(hitBodies.length) {
+		console.log("hit body id:",hitBodies[0].id, "(", id_to_node[hitBodies[0].id], ")");
+		node = nodes[id_to_node[hitBodies[0].id]];
+		console.log("hit body type & word:", node.type, node.word);
+		
+		if (node.type == 'unlocked' || node.type == 'visited') {
+		    handle_scoring( nodes[id_to_node[hitBodies[0].id]] );
+		} else 	if (node.type == 'activeExit') {
+		    win_game();
+		}
 	    }
 	}
     }
@@ -987,11 +1186,17 @@ canvas.addEventListener('mousedown', function(event){
 
     
 canvas.addEventListener('mousemove', function(event) {
+    
+    // Convert the canvas coordinate to physics coordinates
+    var position = getPhysicsCoord(event);
 
-     if (movingStarTargetTime < lastTime) { //   if (movingStarCount < 1) {
+    // todo: fix these coordinates!
+    if (position[0] > positions.levelselect.x * w / scaleX && position[1] > positions.levelselect.y *h/scaleY  - 0.065 *h/scaleX) {
+	hitNode = -1;
+    }
+    
+    else if (movingStarTargetTime < lastTime) { //   if (movingStarCount < 1) {
 	
-	// Convert the canvas coordinate to physics coordinates
-	var position = getPhysicsCoord(event);
 	
 	// Check if the cursor is inside the box
 	var hitBodies = world.hitTest(position, circleBodiesArray);
@@ -1065,7 +1270,7 @@ world.on("postStep",function(event){
 	for (i=0; i< addableEdges.length; i++) { 
 	    e = addableEdges.pop();
 	    if (e.type == 'spring') {
-		console.log("Adding spring between ",e.from, "and",e.to);
+		//console.log("Adding spring between ",e.from, "and",e.to);
 		e.p2object = new p2.LinearSpring( circleBodies[nodes[e.from].id], circleBodies[nodes[e.to].id] , e.options),
 		world.addSpring(e.p2object);
 		edges.push(e);
@@ -1171,6 +1376,9 @@ var out_of_time = function(game) {
     document.getElementById('scorecard').style.visibility = "visible";
     document.getElementById('score').innerHTML= messages.out_of_time[lng];
     document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\''+messages.try_again[lng]+'\'>';
+    document.getElementById('score').innerHTML+='<p>'+messages.another_level[lng];
+    
+    document.getElementById('score').appendChild( get_level_selection() );
 }
 
 
@@ -1188,10 +1396,31 @@ var win_game = function(item) {
     document.getElementById('score').innerHTML+='<p><input onclick=\'next_level();\' type=button value=\''+ messages.next_level[lng] +'\'>';
     document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\''+messages.try_again[lng]+'\'>';
 
+    document.getElementById('score').innerHTML+='<p>'+messages.another_level[lng];
+    document.getElementById('score').appendChild( get_level_selection() );
 
     
 }
 
+var select_level = function(item) {
+    pause_timer();
+    
+    //starscore = starCount *100;
+    //timescore = parseInt(game_time_left*10);
+    
+    document.getElementById('scorewrapper').style.visibility = "visible";
+    document.getElementById('scorecard').style.visibility = "visible";
+    document.getElementById('score').innerHTML = "";
+    //document.getElementById('score').innerHTML=messages.you_win[lng] +'<table style="font-size: 1.2em" border=0><tr><td>'+'\u2605:</td><td>' + starscore + '</td></tr><tr><td>' + '\u231A:</td><td>' + timescore + '</td></tr><tr><td colspan=2>' + '\u21D2' +  (starscore + timescore) + " "+ messages.points[lng]+ "</td></tr></table>";
+
+    //document.getElementById('score').innerHTML+='<p><input onclick=\'next_level();\' type=button value=\''+ messages.next_level[lng] +'\'>';
+    document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\''+messages.try_again[lng]+'\'>';
+
+    document.getElementById('score').innerHTML+='<p>'+messages.another_level[lng];
+    document.getElementById('score').appendChild( get_level_selection() );
+
+    
+}
 
 var next_level = function(item) {
     //var selector = $( '#level-select' ); //
@@ -1252,8 +1481,6 @@ var handle_playing = function(word, node, callback) {
 		});
 	    }
 	    
-	    console.log("set timeout for handle_playing 1 for item.id", node.id);	    
-
 	    setTimeout( function() {
 		if (audio_ok) {
 		    //console.log("handle_playing 2 for node.id", node.id);		    
@@ -1817,8 +2044,8 @@ var screen_size_setup = function() {
     cover = document.getElementById("scorewrapper");
 
     
-    var toolbarwi = 200,
-    toolbarhe = 200,
+    var toolbarwi = 0,
+    toolbarhe = 0,
     toolbarstyle = {
 	position: "absolute"
     };
@@ -1889,6 +2116,11 @@ var screen_size_setup = function() {
     cover.style.width = canvaswi + "px";
     cover.style.height = 3*canvaswi/4 + "px";
 
+    document.getElementById('scorecard').style.top = Math.max(0, (( h - 400 )/2)) + "px";
+    document.getElementById('scorecard').style.left = Math.max(0, (( w - 400 )/2)) + "px";
+
+    resized = true;
+
 }
 screen_size_setup();
 $( window ).resize(function() {
@@ -1918,7 +2150,43 @@ opt.innerHTML = "Edit this level" ; // whatever property it has
 levelselector.appendChild(opt);
 
 
+var get_level_selection = function() {
 
+    selector = document.createElement("select");
+    selector.id = "selector";
+
+    Object.keys(levels).forEach ( function(key) {
+	var opt = document.createElement("option");
+	opt.value= key;
+	opt.innerHTML = key+ " - " + levels[key].meta.levelname; // whatever property it has
+	
+	// then append it to the select element
+	selector.appendChild(opt);
+    });
+
+    selector.value = sceneName;
+    document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
+    update_level_editor();
+
+    selector.addEventListener('change', function(e) {
+
+	if (e.target.value == "levelEditor") {
+	    
+	    editMode = true;
+	    $('#editor').show();
+	    screen_size_setup();
+	}
+	else {
+	    sceneName = e.target.value;
+	    window.location.hash = sceneName;
+	    build_level(levels[ sceneName ]);     
+	    update_level_editor( levels[ sceneName ] );
+	    //document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
+	    //update_level_editor();
+	}
+    });
+    return selector;
+}
 
 // Everything set, let's run the game!
 
@@ -1954,8 +2222,6 @@ navigator.sayswho= (function(){
     //return M.join(' ');
     return M;
 })();
-
-
 
 var init_fysiak = function() {
 

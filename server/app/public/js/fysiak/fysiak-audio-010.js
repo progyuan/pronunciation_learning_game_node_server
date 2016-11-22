@@ -414,7 +414,7 @@ var get_score_for_word = function(word, item, callback) {
 	zeroGain.gain.value = 0.0;
 	inputPoint.connect( zeroGain );
 	zeroGain.connect( context.destination );
-	updateAnalysers();
+	//updateAnalysers();
 
 
 	//var bufferSize = 4096;
@@ -505,85 +505,6 @@ function _arrayBufferToBase64( buffer ) {
 
 
 
-function updateAnalysers(time) {
-    if (!analyserContext) {
-	var canvas = document.getElementById("analyser");
-	canvasWidth = canvas.width;
-	canvasHeight = canvas.height;
-	analyserContext = canvas.getContext('2d');
-	
-    }
-
-
-    /* Modified: Analyser code completely ovarhauled in style of voice-change-o-matic!  */
-
-    {
-	var bufferLength=analyserNode.frequencyBinCount
-
-	var dataArray = new Uint8Array(analyserNode.frequencyBinCount);
-	analyserNode.getByteTimeDomainData(dataArray); 
-
-        analyserContext.clearRect(0, 0, canvasWidth, canvasHeight);
-        analyserContext.fillStyle = '#F6D565';
-        analyserContext.lineCap = 'round';
-
-	analyserContext.fillStyle = 'rgb(200, 200, 200)';
-	analyserContext.fillRect(0, 0, canvasWidth, canvasHeight);
-
-	analyserContext.lineWidth = 2;
-	analyserContext.strokeStyle = 'rgb(0, 0, 0)';
-
-	analyserContext.beginPath();
-
-	var sliceWidth = canvasWidth * 1.0 / bufferLength * 32;
-	var x = 0;
-	maxVal -= 0.02;
-	
-	for(var i = 0; i < bufferLength; i+=32) {
-	    
-	    var v = dataArray[i] / 128.0;
-	    var y = v * canvasHeight/2;
-
-	    if (Math.abs(v-1) > maxVal) {
-		maxVal=Math.abs(v-1);
-	    }
-	    
-	    if(i === 0) {
-		analyserContext.moveTo(x, y);
-	    } else {
-		analyserContext.lineTo(x, y);
-	    }
-	    
-	    x += sliceWidth;
-	}
-	
-	analyserContext.stroke();
-	barHeight=maxVal*canvasHeight;
-
-	if (maxVal>0.8) {
-
-	    barHeight=maxVal*canvasHeight;
-	    analyserContext.fillStyle = 'rgb(' + Math.round(maxVal*canvasHeight+100) + ',50,50)';
-	    analyserContext.fillRect(0,canvasHeight/2-barHeight/2,20,barHeight );
-	}
-
-	if (maxVal>0.5) {
-	    barHeight=Math.min(maxVal,0.8)*canvasHeight;
-	    
-	    analyserContext.fillStyle = 'rgb(255,255,50)';	
-	    analyserContext.fillRect(0,canvasHeight/2-barHeight/2,20,barHeight );
-	}
-
-
-	barHeight=Math.min(maxVal,0.5)*canvasHeight;
-	
-	analyserContext.fillStyle = 'rgb(50,' + Math.round(maxVal*canvasHeight+150) + ',50)';	
-	analyserContext.fillRect(0,canvasHeight/2-barHeight/2,20,barHeight );	
-
-    }
-    
-    rafID = window.requestAnimationFrame( updateAnalysers );
-}
 
 
 
