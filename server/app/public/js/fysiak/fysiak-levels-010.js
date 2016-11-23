@@ -5,7 +5,7 @@ level_super_basic =
 		"0",
 		"-9.82"
 	    ],
-	    "levelname": "Intro: Basics",
+	    "levelname": "Basics",
 	    "author": "Reima",
 	    "timelimit": "20",
 	    "starmass": "5"
@@ -89,7 +89,7 @@ level_easy_connections =
 		"0",
 		"-9.82"
 	    ],
-	    "levelname": "Intro: Connections 1",
+	    "levelname": "Connections",
 	    "author": "Reima",
 	    "timelimit": "15",
 	    "starmass": "5"
@@ -151,7 +151,7 @@ level_hard_and_soft =
       "0",
       "-9.82"
     ],
-    "levelname": "Intro: Hard & Soft",
+    "levelname": "Hard & Soft",
     "author": "Reima",
     "timelimit": "60",
     "starmass": "5"
@@ -422,7 +422,7 @@ level_gravity1 =
 		"0",
 		"-9.82"
 	    ],
-	    "levelname": "Intro: Gravity 1",
+	    "levelname": "Gravity 2",
 	    "author": "Reima",
 	    "timelimit": "21",
 	    "starmass": "5"
@@ -560,114 +560,132 @@ level_gravity1 =
 
 
 level_gravity2 = 
+{
+  "meta": {
+    "gravity": [
+      "0",
+      "-9.82"
+    ],
+    "levelname": "Gravity 1",
+    "author": "Reima",
+    "timelimit": "20",
+    "starmass": "5"
+  },
+  "nodes": {
+    "START": {
+      "position": [
+        -20,
+        -6
+      ],
+      "mass": 5,
+      "type": "start"
+    },
+    "EXIT": {
+      "position": [
+        20,
+        -6
+      ],
+      "mass": 5,
+      "type": "exit"
+    },
+    "A": {
+      "position": [
+        -10,
+        -5
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "B": {
+      "position": [
+        10,
+        -5
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "C": {
+      "position": [
+        0,
+        -6
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "BONUS": {
+      "position": [
+        -7,
+        -14
+      ],
+      "mass": 5,
+      "type": "word"
+    }
+  },
+  "edges": [
     {
-	"meta": {
-	    "gravity": [
-		"0",
-		"-9.82"
-	    ],
-	    "levelname": "Intro: Gravity 2",
-	    "author": "Reima",
-	    "timelimit": "20",
-	    "starmass": "5"
-	},
-	"nodes": {
-	    "START": {
-		"position": [
-			-20,
-			-6
-		],
-		"mass": 5,
-		"type": "start"
-	    },
-	    "EXIT": {
-		"position": [
-		    20,
-			-6
-		],
-		"mass": 5,
-		"type": "exit"
-	    },
-	    "A": {
-		"position": [
-			-10,
-			-5
-		],
-		"mass": 5,
-		"type": "word"
-	    },
-	    "B": {
-		"position": [
-		    10,
-			-5
-		],
-		"mass": 5,
-		"type": "word"
-	    },
-	    "C": {
-		"position": [
-		    0,
-			-6
-		],
-		"mass": 5,
-		"type": "word"
-	    }
-	},
-	"edges": [
-	    {
-		"options": {
-		    "stiffness": "1000"
-		},
-		"from": "START",
-		"to": "A",
-		"type": "spring"
-	    },
-	    {
-		"options": {
-		    "stiffness": "1000"
-		},
-		"from": "A",
-		"to": "C",
-		"type": "spring"
-	    },
-	    {
-		"options": {
-		    "stiffness": "1000"
-		},
-		"from": "B",
-		"to": "EXIT",
-		"type": "spring"
-	    },
-	    {
-		"options": {
-		    "stiffness": "1000"
-		},
-		"from": "B",
-		"to": "C",
-		"type": "spring"
-	    }
-	],
-	"statics": [
-	    {
-		"position": [
-			-18,
-			-12
-		],
-		"h": 5,
-		"w": 30,
-		"angle": 0.3
-	    },
-	    {
-		"position": [
-		    18,
-			-12
-		],
-		"h": 5,
-		"w": 30,
-		"angle": -0.3
-	    }
-	]
-    };
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "START",
+      "to": "A",
+      "type": "spring"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "A",
+      "to": "C",
+      "type": "spring"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "B",
+      "to": "EXIT",
+      "type": "spring"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "B",
+      "to": "C",
+      "type": "spring"
+    }
+  ],
+  "statics": [
+    {
+      "position": [
+        -18,
+        -12
+      ],
+      "h": 5,
+      "w": 30,
+      "angle": 0.3
+    },
+    {
+      "position": [
+        18,
+        -12
+      ],
+      "h": 5,
+      "w": 30,
+      "angle": -0.3
+    },
+    {
+      "position": [
+        -7,
+        -17
+      ],
+      "h": 1,
+      "w": 3,
+      "angle": 0
+    }
+  ]
+};
+
 
 
 level_structures_bonus = 
@@ -677,7 +695,7 @@ level_structures_bonus =
 		"0",
 		"-9.82"
 	    ],
-	    "levelname": "Reach the bonus!",
+	    "levelname": "Tilt!",
 	    "author": "Reima",
 	    "timelimit": "30",
 	    "starmass": "5"
@@ -971,7 +989,7 @@ level_reach_the_exit =
       "0",
       "-9.82"
     ],
-    "levelname": "Reach the exit!",
+    "levelname": "Exit reach!",
     "author": "Reima",
     "timelimit": "30",
     "starmass": "5"
@@ -1422,7 +1440,7 @@ level_connect_bom =
       "0",
       "-9.82"
     ],
-    "levelname": "Connect bom!",
+    "levelname": "Conet bom",
     "author": "Reima",
     "timelimit": "25",
     "starmass": "5"
@@ -1683,17 +1701,624 @@ level_connect_bom =
   ]
 }
 
+level_short_cuts = {
+  "meta": {
+    "gravity": [
+      "0",
+      "-9.82"
+    ],
+    "levelname": "Short cuts",
+    "author": "Reima",
+    "timelimit": "40",
+    "starmass": "5"
+  },
+  "nodes": {
+    "START": {
+      "position": [
+        19,
+        20
+      ],
+      "mass": 5,
+      "type": "start"
+    },
+    "A": {
+      "position": [
+        13,
+        20
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "B": {
+      "position": [
+        16.5,
+        25
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "C": {
+      "position": [
+        -0.5,
+        -8
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "D": {
+      "position": [
+        3.5,
+        0
+      ],
+      "mass": 5,
+      "type": "exit"
+    },
+    "EXIT": {
+      "position": [
+        22,
+        -12
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "F": {
+      "position": [
+        -8.5,
+        4
+      ],
+      "mass": 5,
+      "type": "word"
+    }
+  },
+  "edges": [
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "START",
+      "to": "A",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "START",
+      "to": "B",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "A",
+      "to": "B",
+      "type": "fixed"
+    }
+  ],
+  "statics": [
+    {
+      "position": [
+        10,
+        12
+      ],
+      "h": 1,
+      "w": 40,
+      "angle": 0.1
+    },
+    {
+      "position": [
+        -5,
+        -1
+      ],
+      "h": 1,
+      "w": 18.5,
+      "angle": -0.15
+    },
+    {
+      "position": [
+        -2,
+        -12
+      ],
+      "h": 1,
+      "w": 47,
+      "angle": -0.15
+    },
+    {
+      "position": [
+        -0.5,
+        -12
+      ],
+      "h": 1,
+      "w": 2,
+      "angle": 0
+    },
+    {
+      "position": [
+        3.5,
+        -2.2
+      ],
+      "h": 1,
+      "w": 2,
+      "angle": 0
+    },
+    {
+      "position": [
+        22.5,
+        -15.5
+      ],
+      "h": 1,
+      "w": 3,
+      "angle": 0
+    },
+    {
+      "position": [
+        -8.5,
+        -0.3
+      ],
+      "h": 1,
+      "w": 2,
+      "angle": 0
+    },
+    {
+      "position": [
+        27.3,
+        -10.6
+      ],
+      "h": 1,
+      "w": 12,
+      "angle": 0.9
+    },
+    {
+      "position": [
+        -15,
+        1
+      ],
+      "h": 1,
+      "w": 3,
+      "angle": -0.5
+    }
+  ]
+};
 
-levels = { "L0-0" : level_super_basic,
-	   "L0-1" : level_easy_connections,
-	   "L0-2" : level_hard_and_soft,
-	   "L0-3" : level_gravity2,
-	   "L0-4" : level_gravity1,
-	   "L4-0" : level_structures_bonus,
-	   "L4-1" : level_life_from_above,
-	   "L8-0" : level_reach_the_exit,
-	   "L8-1" : level_atapult,
-	   "L8-2" : level_connect_bom
+
+
+level_balancia = {
+  "meta": {
+    "gravity": [
+      "0",
+      "-9.82"
+    ],
+    "levelname": "Balancia",
+    "author": "Reima",
+    "timelimit": "21",
+    "starmass": "5"
+  },
+  "nodes": {
+    "START": {
+      "position": [
+        -22,
+        8
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "A": {
+      "position": [
+        -18,
+        0
+      ],
+      "mass": 5,
+      "type": "start"
+    },
+    "B": {
+      "position": [
+        -15,
+        5
+      ],
+      "mass": 5,
+      "type": "start"
+    },
+    "C": {
+      "position": [
+        -12,
+        3
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "EXIT": {
+      "position": [
+        22,
+        -15
+      ],
+      "mass": 5,
+      "type": "exit"
+    },
+    "BONUS1": {
+      "position": [
+        22,
+        20
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "BONUS2": {
+      "position": [
+        22,
+        400
+      ],
+      "mass": 5,
+      "type": "word"
+    }
+  },
+  "edges": [
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "START",
+      "to": "A",
+      "type": "spring"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "A",
+      "to": "C",
+      "type": "spring"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "START",
+      "to": "B",
+      "type": "spring"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "B",
+      "to": "C",
+      "type": "spring"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "A",
+      "to": "B",
+      "type": "fixed"
+    }
+  ],
+  "statics": [
+    {
+      "position": [
+        -12,
+        -8
+      ],
+      "h": 2.3,
+      "w": 65,
+      "angle": -0.3
+    },
+    {
+      "position": [
+        25,
+        -16.6
+      ],
+      "h": 2.4,
+      "w": 16,
+      "angle": 0.4
+    },
+    {
+      "position": [
+        23,
+        -9
+      ],
+      "h": 1,
+      "w": 7,
+      "angle": 0
+    }
+  ]
+}
+
+
+
+
+level_libro = {
+  "meta": {
+    "gravity": [
+      "0",
+      "-9.82"
+    ],
+    "levelname": "Libro",
+    "author": "Reima",
+    "timelimit": "30",
+    "starmass": "5"
+  },
+  "nodes": {
+    "M": {
+      "position": [
+        0,
+        4
+      ],
+      "mass": 5,
+      "type": "start"
+    },
+    "L": {
+      "position": [
+        -9,
+        4
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "LL": {
+      "position": [
+        -18,
+        4
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "R": {
+      "position": [
+        9,
+        4
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "RR": {
+      "position": [
+        18.1,
+        4
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "U": {
+      "position": [
+        0,
+        9.5
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "UU": {
+      "position": [
+        0,
+        15
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "EXIT": {
+      "position": [
+        -4,
+        -14
+      ],
+      "mass": 5,
+      "type": "exit"
+    },
+    "BONUS": {
+      "position": [
+        4,
+        -14
+      ],
+      "mass": 5,
+      "type": "word"
+    }
+  },
+  "edges": [
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "M",
+      "to": "L",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "L",
+      "to": "LL",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "M",
+      "to": "R",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "R",
+      "to": "RR",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "M",
+      "to": "U",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "U",
+      "to": "UU",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "L",
+      "to": "U",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "LL",
+      "to": "UU",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "R",
+      "to": "U",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "RR",
+      "to": "UU",
+      "type": "fixed"
+    },
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "LL",
+      "to": "RR",
+      "type": "fixed"
+    }
+  ],
+  "statics": [
+    {
+      "position": [
+        0,
+        0.25
+      ],
+      "h": 0.5,
+      "w": 3,
+      "angle": 0
+    },
+    {
+      "position": [
+        -2.35,
+        2.5
+      ],
+      "h": 3,
+      "w": 0.5,
+      "angle": 0
+    },
+    {
+      "position": [
+        2.35,
+        2.5
+      ],
+      "h": 3,
+      "w": 0.5,
+      "angle": 0
+    },
+    {
+      "position": [
+        -4,
+        -17
+      ],
+      "h": 0.5,
+      "w": 3,
+      "angle": 0
+    },
+    {
+      "position": [
+        0,
+        4.75
+      ],
+      "h": 0.5,
+      "w": 3,
+      "angle": 0
+    },
+    {
+      "position": [
+        -1.7,
+        -14.8
+      ],
+      "h": 2,
+      "w": 0.5,
+      "angle": 0
+    },
+    {
+      "position": [
+        1.7,
+        -14.8
+      ],
+      "h": 2,
+      "w": 0.5,
+      "angle": 0
+    },
+    {
+      "position": [
+        4,
+        -17
+      ],
+      "h": 0.5,
+      "w": 3,
+      "angle": 0
+    }
+  ]
+};
+
+
+
+levels = { "L0-0" : { level : level_super_basic,
+		      wordlist : 'L0' },
+
+	   "L0-1" :  { level : level_easy_connections,
+		      wordlist : 'L0' },
+
+	   //"L0-2" :  { level : level_hard_and_soft,
+	   //          wordlist : 'L0' },
+
+	   "L0-2" :  { level : level_libro,
+	             wordlist : 'L0' },
+
+	   "L1-0" :  { level : level_gravity2,
+		      wordlist : 'L1' },
+
+	   "L1-1" :  { level : level_gravity1,
+		      wordlist : 'L1' },
+
+	   "L1-2" :  { level : level_structures_bonus,
+		      wordlist : 'L1' },
+
+	   "L2-0" :  { level : level_life_from_above,
+		      wordlist : 'L2' },
+
+	   "L2-1" :  { level : level_short_cuts,
+		      wordlist : 'L2' },
+
+	   "L2-2" :  { level : level_balancia,
+		      wordlist : 'L2' },
+
+	   "L3-0" :  { level : level_reach_the_exit,
+		      wordlist : 'L3' },
+
+	   "L3-1" :  { level : level_atapult,
+		      wordlist : 'L3' },
+	   
+	   "L3-2" :  { level : level_connect_bom,
+		      wordlist : 'L3' },
 	 }
 
 

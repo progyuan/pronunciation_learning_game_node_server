@@ -58,16 +58,20 @@ function authenticate(req, res, callback) {
     //debugout("Authenticating >"+username + "< >" + password +"<!");       
 
     var tS = cookie.parse(req.headers.cookie)['connect.sid'];
-    var sessionID = tS.split(".")[0].split(":")[1];
-    mongoStore.get(sessionID,function(err,session){
-	if (err || session.user.user != username) 
-	    AM.gamedataLogin(username, password, req, res, callback );    	
-	else 
-	    callback(null, username, req, res);
-    });	
 
+    if (tS) {
+	var sessionID = tS.split(".")[0].split(":")[1];
+	mongoStore.get(sessionID,function(err,session){
+	    if (err || session.user.user != username) 
+		AM.gamedataLogin(username, password, req, res, callback );    	
+	    else 
+		callback(null, username, req, res);
+	});	
+    }
+    else {
+	callback("Session expired", null, req, res);
+    }
 
-    
 }
 
 

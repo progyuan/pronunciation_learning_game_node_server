@@ -344,4 +344,67 @@ exports.get_word_and_phoneme_counts = function(user, callback) {
 
 }
 
+var user_high_scores = db.collection('user_high_scores');
 
+
+exports.get_high_scores = function(user, callback) {
+
+    filters = {user: user};
+
+    user_high_scores.find( filters ).toArray(
+	function(e, o) {
+	    if (e) 
+		callback(e)
+	    else 
+		callback(null, o)
+	});
+}
+
+exports.set_high_scores = function(user, userdata, callback) { 
+
+    console.log("Inserting: ",
+		user,
+		userdata);
+
+    filters = {user: user,
+	       level: userdata.level_key};
+
+    user_high_scores.findOne( 
+	filters , 
+	function(e, o) {
+	    if (e) 
+		callback(e)
+	    else {
+		console.log("o",o);
+		if (o) {
+		    if (o.time_score + o.star_score > userdata.time_score + userdata.star_score) {
+			o.time_score = userdata.time_score;
+			o.star_score = userdata.star_score;
+			o.overall_performance = userdata.overall_performance;
+			
+			user_high_scores.save(o, {safe: true}, function(e) {
+			    if (e) 
+				callback(e);
+			    else 
+				callback(null, o);
+			});
+		    }
+		}
+		else {
+		    o =  {level : userdata.level_key }
+		    o.time_score = userdata.time_score;
+		    o.star_score = userdata.star_score;
+		    o.user = user;
+		    o.overall_performance = userdata.overall_performance;
+		    
+		    user_high_scores.save(o, {safe: true}, function(e) {
+			if (e) 
+			    callback(e);
+			else 
+			    callback(null, o);
+		    });
+		}
+	    }
+	});
+}
+							 

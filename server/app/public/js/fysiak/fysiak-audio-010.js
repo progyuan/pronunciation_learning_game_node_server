@@ -1,12 +1,18 @@
 
 
-var error_codes = { "0" :'package_received',
-		    "-1" : 'audio_end',
-		    "-2" : 'segmentation_failure',
-		    "-3" : 'segmentation_error',
-		    "-4" : 'classification_error',
-		    "-5" : 'I heard nothing! Did you say anything?',
-		    "-6" : 'Your micropone does not seem to be on!' }
+var error_codes = { "0" : { en : 'package_received'},
+		    "-1" : { en : 'audio_end'},
+		    "-2" : {en : 'segmentation_failure'},
+		    "-3" : {en: 'segmentation_error'},
+		    "-4" : {en : 'classification_error' },
+		    "-5" : {
+			boring: 'VAD detected no activity',
+			en : 'I heard nothing! Did you say anything?',
+			fi : 'Ei kuulu mitään! Sanoitko jotain?' },
+		    "-6" : { boring : 'No mic activity',
+			     en: 'Your micropone does not seem to be on!',
+			     fi: 'Mikrofonisi ei kuulu olevan päällä!'}
+		  };
 
 var testnr = 0;
 

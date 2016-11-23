@@ -16,6 +16,10 @@ var phoneme_list = require('./modules/phoneme-list');
 
 var async = require('async');
 
+
+var bodyParser = require('body-parser');
+
+
 module.exports = function(app) {
 
 
@@ -51,9 +55,9 @@ module.exports = function(app) {
 	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
 		//console.log("Rendering:");
 		if (e) console.log(e);
-		res.render('fysiak-09', { 
-		    title: 'fySIAK on-line v. 0.9',
-		    fysiak_version: '0.9',
+		res.render('fysiak-010', { 
+		    title: 'fySIAK on-line v. 0.10',
+		    fysiak_version: '010',
                     udata : req.session.user,
 		    word_list : word_list,
 		    game_word_list : game_word_list,
@@ -73,9 +77,9 @@ module.exports = function(app) {
 	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
 		//console.log("Rendering:");
 		if (e) console.log(e);
-		res.render('fysiak-010', { 
-		    title: 'fySIAK on-line v. 010',
-		    fysiak_version: '010',
+		res.render('fysiak-011', { 
+		    title: 'fySIAK on-line v. 0.11',
+		    fysiak_version: '011',
                     udata : req.session.user,
 		    word_list : word_list,
 		    game_word_list : game_word_list,
@@ -194,7 +198,7 @@ module.exports = function(app) {
     app.get('/users/name/:username/:filtertype1/:filtervalue1/:filtertype2/:filtervalue2/', function(req, res) {
 	    if (req.session.user == null){
 		// if user is not logged-in redirect back to login page //
-		res.redirect('/');
+		res.redirect(app.locals.baseURL);
 	    }	
 	    else{
 		var user = req.params.username;
@@ -233,7 +237,7 @@ module.exports = function(app) {
     	app.get('/users/name/:username', function(req, res) {
 	    if (req.session.user == null){
 		// if user is not logged-in redirect back to login page //
-		res.redirect('/');
+		res.redirect(app.locals.baseURL);
 	    }	
 	    else{
 		var user = req.params.username;
@@ -258,7 +262,7 @@ module.exports = function(app) {
     	app.get('/audio/:username/:audiofile', function(req, res) {
 	    if (req.session.user == null){
 		// if user is not logged-in redirect back to login page //
-		res.redirect('/');
+		res.redirect(app.locals.baseURL);
 	    }	
 	    else{
 		username = req.params.username;
@@ -272,7 +276,7 @@ module.exports = function(app) {
     	app.get('/users', function(req, res) {
 	    if (req.session.user == null){
 		// if user is not logged-in redirect back to login page //
-		res.redirect('/');
+		res.redirect(app.locals.baseURL);
 	    }	
 	    else{
    		var users = AM.getAccountsBySimpleQuery( [{school : req.session.user.school }], function(e, users) { 
@@ -292,7 +296,7 @@ module.exports = function(app) {
     	app.get('/sessions', function(req, res) {
 		if (req.session.user == null){
 	// if user is not logged-in redirect back to login page //
-			res.redirect('/');
+			res.redirect(app.locals.baseURL);
 		}	else{
 			res.render('sessions', {
 				title : 'Session Statistics',
@@ -307,7 +311,7 @@ module.exports = function(app) {
     	app.get('/restart-server', function(req, res) {
 		if (req.session.user == null){
 	// if user is not logged-in redirect back to login page //
-			res.redirect('/');
+			res.redirect(app.locals.baseURL);
 		} 	else{
 		                app.locals.game_server_child.kill();
 		                var fork = require('child_process').fork;
@@ -322,26 +326,59 @@ module.exports = function(app) {
 		}
 	});
 
+// Scores: Set and get //
 
 
+    app.post('/level_scores', function(req, res) {
+	if (req.session.user == null){
+	    res.status(401).send('forbidden');
+	    // if user is not logged-in redirect back to login page //
+	} 	
+	else{
+	    AM.set_high_scores(req.session.user.user, req.body, function(o) {
+		res.json({status: 'ok'});
+	    });
+	}
+    });
+
+    app.get('/level_scores', function(req, res) {
+	if (req.session.user == null){
+	    // if user is not logged-in redirect back to login page //
+	    //res.redirect(app.locals.baseURL);
+	    res.status(401).send('forbidden');
+	} 	
+	else{
+	    AM.get_high_scores(req.session.user.user, function(e,o){
+		res.json(o);
+	    });
+	}
+    });
 
 
 // main login page //
 	app.get('/', function(req, res){
-	// check if the user's credentials are saved in a cookie //
+	    if (req.session.user) {
+		res.redirect(app.locals.baseURL+"/home/");
+	    }
+	    else {
+		// check if the user's credentials are saved in a cookie //
 		if (req.cookies.user == undefined || req.cookies.pass == undefined){
-			res.render('login', { title: 'Hello - Please Login To Your Account' });
-		}	else{
-	// attempt automatic login //
-			AM.autoLogin(req.cookies.user, req.cookies.pass, function(o){
-				if (o != null){
-				    req.session.user = o;
-					res.redirect(app.locals.baseURL+'/home');
-				}	else{
-					res.render('login', { title: 'Hello - Please Login To Your Account' });
-				}
-			});
+		    console.log("Home page but no req.cookies.user or no re.cookies.pass!");
+		    res.render('login', { title: 'Hello - Please Login To Your Account' });
+		}	
+		else{
+		    // attempt automatic login //
+		    AM.autoLogin(req.cookies.user, req.cookies.pass, function(o){
+			if (o != null){
+			    req.session.user = o;
+			    res.redirect(app.locals.baseURL+'/home');
+			}	else{
+			    console.log("Home page autologin based on session failed!");
+			    res.render('login', { title: 'Hello - Please Login To Your Account' });
+			}
+		    });
 		}
+	    }
 	});
 	
 	app.post('/', function(req, res){
@@ -364,7 +401,7 @@ module.exports = function(app) {
         app.get('/home', function(req, res) {
 		if (req.session.user == null){
 	// if user is not logged-in redirect back to login page //
-			res.redirect('/');
+			res.redirect(app.locals.baseURL);
 		}	else{
 			res.render('home', {
 				title : 'Home',
@@ -376,7 +413,7 @@ module.exports = function(app) {
 	app.get('/account', function(req, res) {
 		if (req.session.user == null){
 	// if user is not logged-in redirect back to login page //
-			res.redirect('/');
+			res.redirect(app.locals.baseURL);
 		}	else{
 			res.render('myaccount', {
 				title : 'My account',
@@ -394,7 +431,7 @@ module.exports = function(app) {
     	app.get('/addusers', function(req, res) {
 		if (req.session.user == null){
 	// if user is not logged-in redirect back to login page //
-			res.redirect('/');
+			res.redirect(app.locals.baseURL);
 		}	else{
 			res.render('addusers', {
 				title : 'Add New Users',
@@ -409,7 +446,7 @@ module.exports = function(app) {
 
 	app.post('/account', function(req, res){
 		if (req.session.user == null){
-			res.redirect('/');
+			res.redirect(app.locals.baseURL);
 		}	else{
 			AM.updateAccount({
 				id		: req.session.user._id,
@@ -440,7 +477,12 @@ module.exports = function(app) {
 		res.clearCookie('pass');
 		req.session.destroy(function(e){ res.status(200).send('ok'); });
 	})
-	
+
+	app.get('/logout', function(req, res){
+	    res.clearCookie('user');
+	    res.clearCookie('pass');
+	    req.session.destroy(function(e){ res.redirect(app.locals.baseURL); });
+	})	
 // creating new accounts //
 	
 	app.get('/signup', function(req, res) {
@@ -518,7 +560,7 @@ module.exports = function(app) {
 		var passH = req.query["p"];
 		AM.validateResetLink(email, passH, function(e){
 			if (e != 'ok'){
-				res.redirect('/');
+				res.redirect(app.locals.baseURL);
 			} else{
 	// save the user's email in a session instead of sending to the client //
 				req.session.reset = { email:email, passHash:passH };

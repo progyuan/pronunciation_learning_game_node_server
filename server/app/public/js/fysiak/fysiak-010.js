@@ -27,7 +27,18 @@ var messages = {
     try_anyway : { en: "Try the game anyway", 
 		   fi: "Kokeile siitä huolimatta" },
     another_level : { en: "Try another level",
-		      fi: "Kokeile toista kenttää" }
+		      fi: "Kokeile toista kenttää" },
+    logout : { en: "Log out",
+	       fi: "Kirjaudu ulos" },
+    browser_sound_permission : { 
+	en : 'Your browser does not allow playing sounds without explicit user action.',
+	fi : 'Selaimesi ei anna soittaa ääniä ilman käyttäjän selkeää toimintaa.'
+    },
+    browser_sound_fix : {
+	en : "Please override this by tweaking this setting:",
+	fi: "Ohita tämä kielto tästä asetuksesta:"
+    }
+
 }
 
 lng="fi";
@@ -1376,29 +1387,52 @@ var out_of_time = function(game) {
     document.getElementById('scorecard').style.visibility = "visible";
     document.getElementById('score').innerHTML= messages.out_of_time[lng];
     document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\''+messages.try_again[lng]+'\'>';
-    document.getElementById('score').innerHTML+='<p>'+messages.another_level[lng];
     
-    document.getElementById('score').appendChild( get_level_selection() );
+    document.getElementById('score').innerHTML+='<p><input onClick=\'select_level()\' type=button value=\''+messages.another_level[lng]+'\'>';
+
+    //document.getElementById('score').innerHTML+='<p>'+messages.another_level[lng];
+    
+    //document.getElementById('score').appendChild( get_level_selection() );
+
+    document.getElementById('score').innerHTML+='<p><input onclick="location.href=\''+BASEURL+'/logout\';" type=button value=\''+messages.logout[lng]+'\'>';
 }
 
 
 var win_game = function(item) {
+
+
     pause_timer();
     
     //starscore = parseInt(document.getElementById('starcount').innerHTML)
     starscore = starCount *100;
     timescore = parseInt(game_time_left*10);
+
+    overall_performance = Math.ceil( (starscore + timescore) / (maxStars * 100) * 5 );
+    
+    // Tell the server we're done with this level:
+    send_level_score(sceneName, starscore, timescore, overall_performance);
+
+    console.log("Overall performance:", overall_performance);
+    console.log( (starscore + timescore) / (maxStars * 100) * 5 );
+    
     
     document.getElementById('scorewrapper').style.visibility = "visible";
     document.getElementById('scorecard').style.visibility = "visible";
     document.getElementById('score').innerHTML=messages.you_win[lng] +'<table style="font-size: 1.2em" border=0><tr><td>'+'\u2605:</td><td>' + starscore + '</td></tr><tr><td>' + '\u231A:</td><td>' + timescore + '</td></tr><tr><td colspan=2>' + '\u21D2' +  (starscore + timescore) + " "+ messages.points[lng]+ "</td></tr></table>";
 
+    document.getElementById('score').innerHTML+='<p>';
+    for (n = 1; n <= overall_performance; n++) 	
+	document.getElementById('score').innerHTML+='\u2605';
+    for (n = overall_performance+1; n <= 5; n++)
+	document.getElementById('score').innerHTML+='\u2606';
+    document.getElementById('score').innerHTML+='</p>'; 
+    
     document.getElementById('score').innerHTML+='<p><input onclick=\'next_level();\' type=button value=\''+ messages.next_level[lng] +'\'>';
     document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\''+messages.try_again[lng]+'\'>';
 
-    document.getElementById('score').innerHTML+='<p>'+messages.another_level[lng];
-    document.getElementById('score').appendChild( get_level_selection() );
-
+    document.getElementById('score').innerHTML+='<p><input onClick=\'select_level()\' type=button value=\''+messages.another_level[lng]+'\'>';
+    //document.getElementById('score').appendChild( get_level_selection() );
+    document.getElementById('score').innerHTML+='<p><input onClick="location.href=\''+BASEURL+'/logout\';" type=button value=\''+messages.logout[lng]+'\'>';
     
 }
 
@@ -1414,12 +1448,16 @@ var select_level = function(item) {
     //document.getElementById('score').innerHTML=messages.you_win[lng] +'<table style="font-size: 1.2em" border=0><tr><td>'+'\u2605:</td><td>' + starscore + '</td></tr><tr><td>' + '\u231A:</td><td>' + timescore + '</td></tr><tr><td colspan=2>' + '\u21D2' +  (starscore + timescore) + " "+ messages.points[lng]+ "</td></tr></table>";
 
     //document.getElementById('score').innerHTML+='<p><input onclick=\'next_level();\' type=button value=\''+ messages.next_level[lng] +'\'>';
+
+
     document.getElementById('score').innerHTML+='<p><input onclick=\'build_level_from_JSON(false);\' type=button value=\''+messages.try_again[lng]+'\'>';
 
-    document.getElementById('score').innerHTML+='<p>'+messages.another_level[lng];
-    document.getElementById('score').appendChild( get_level_selection() );
 
-    
+    document.getElementById('score').innerHTML+='<p><input onClick="location.href=\''+BASEURL+'/logout\';" type=button value=\''+messages.logout[lng]+'\'>';
+
+    document.getElementById('score').innerHTML+='<p>'+messages.another_level[lng];
+    document.getElementById('score').appendChild( get_level_selection("boxes") );
+
 }
 
 var next_level = function(item) {
@@ -1430,8 +1468,8 @@ var next_level = function(item) {
     sceneName = document.getElementById('level-select').value;
     window.location.hash = sceneName;
   
-    build_level(levels[ sceneName ]);     
-    update_level_editor( levels[ sceneName ] );
+    build_level(levels[ sceneName ].level);     
+    update_level_editor( levels[ sceneName ].level );
 }
 
 
@@ -1473,8 +1511,9 @@ var handle_playing = function(word, node, callback) {
 		    if(error.name == "NotAllowedError") {
 			audio_ok = false;
 			document.getElementById('speaker_animation').style.visibility = "hidden";
-			document.getElementById('score').innerHTML='Your browser does not allow playing sounds without explicit user action.';
-			document.getElementById('score').innerHTML+= "Please override this by going to <p>chrome://flags/#disable-gesture-requirement-for-media-playback";
+			document.getElementById('score').innerHTML=messages.browser_sound_permission[lng];
+			document.getElementById('score').innerHTML+= messages.browser_sound_fix[lng];
+			document.getElementById('score').innerHTML+= "<p>chrome://flags/#disable-gesture-requirement-for-media-playback";
 		    } else {
 			throw error;
 		    }
@@ -1538,7 +1577,7 @@ var apply_scoring = function(node, score) {
     //console.log("apply scoring node id",node.id);
 
     if (score < 0) {
-	txt = error_codes[score.toString()];
+	txt = error_codes[score.toString()][lng];
 	document.getElementById('score').innerHTML ='<p style="font-size:1.5em">'+txt+'</p>';
 	setTimeout(function( ){ 
 	    document.getElementById('scorewrapper').style.visibility = "hidden";
@@ -1676,6 +1715,7 @@ var update_level_editor = function (level) {
     }
 
     counter=0;
+
 
     console.log("UPDATING LEVEL EDITOR");
     $('#edit-meta').empty();
@@ -2138,7 +2178,7 @@ levelselector = document.getElementById('level-select');
 Object.keys(levels).forEach ( function(key) {
 	var opt = document.createElement("option");
 	opt.value= key;
-	opt.innerHTML = key+ " - " + levels[key].meta.levelname; // whatever property it has
+	opt.innerHTML = key+ " - " + levels[key].level.meta.levelname; // whatever property it has
 	
 	// then append it to the select element
 	levelselector.appendChild(opt);
@@ -2150,45 +2190,162 @@ opt.innerHTML = "Edit this level" ; // whatever property it has
 levelselector.appendChild(opt);
 
 
-var get_level_selection = function() {
+var get_level_selection = function(type) {
 
-    selector = document.createElement("select");
-    selector.id = "selector";
-
-    Object.keys(levels).forEach ( function(key) {
-	var opt = document.createElement("option");
-	opt.value= key;
-	opt.innerHTML = key+ " - " + levels[key].meta.levelname; // whatever property it has
+    lcounter = 1;
+    if (type == "boxes") {
+	selector = document.createElement("div");
+	selector.id = "levelselect-box";
+	Object.keys(levels).forEach ( function(key) {
+	    var opt = document.createElement("button");
+	    opt.className = "level";
+	    opt.id = "levelselect-"+key;
+	    opt.innerHTML = key; //+ " - " + levels[key].meta.levelname; // whatever property it has	   
+	    opt.innerHTML = (lcounter++) + '. ' + levels[key].level.meta.levelname; // whatever property it has	   
+	    opt.innerHTML += "<br>";//+"\u2606"+"\u2606"+"\u2606"+"\u2606"+"\u2606";
+	    // then append it to the select element
+	    opt.onclick = function() {console.log("Pressed", key); switch_to_level(key)};
+	    selector.appendChild(opt);
+	});
 	
-	// then append it to the select element
-	selector.appendChild(opt);
-    });
+	// Get level scores from server:
 
-    selector.value = sceneName;
-    document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
-    update_level_editor();
+	var get_scores_xhr = new XMLHttpRequest();
+	// Open the connection.
+	get_scores_xhr.open('GET', BASEURL+'/level_scores', true);
+	get_scores_xhr.setRequestHeader("x-siak-user", username);
+	get_scores_xhr.setRequestHeader("x-siak-password", password);
 
-    selector.addEventListener('change', function(e) {
+	get_scores_xhr.onreadystatechange = function(e) {	    
+            if ( 4 == this.readyState ) {
+		if (get_scores_xhr.status === 200) {
 
-	if (e.target.value == "levelEditor") {
+		    scores = JSON.parse(get_scores_xhr.responseText);
+		    console.log(scores);
+		    scores.forEach( function(l) {
+			console.log(l.level);
+			key = l.level;
+			oid =  "levelselect-"+key;
+			if (document.getElementById(oid)) {
+			    console.log("exists:",oid);
+			    for (n = 1; n <= l.overall_performance; n++) 	
+				document.getElementById(oid).innerHTML+='\u2605';
+			    for (n = l.overall_performance+1; n <= 5; n++)
+				document.getElementById(oid).innerHTML+='\u2606';
+			}
+			else {
+			    console.log("does not exist:",oid);
+			}
+		    });
+		} else if (get_scores_xhr.status === 502) {
+		    server_ok=false;
+		    logging.innerHTML += "<br>-2 Problem: Server down!";
+		    
+		} else {
+		    logging.innerHTML += '<br>-2 Problem: Server responded '+get_scores_xhr.status;
+		}
+	    }
+	    else {
+		dummy = 1;
+		//console.log("get_scores_xhr in state "+this.readyState);
+	    }
+	};
+	get_scores_xhr.send()
+
+	return selector;
+    }
+    else {
+	selector = document.createElement("select");
+	selector.id = "selector";
+
+	Object.keys(levels).forEach ( function(key) {
+	    var opt = document.createElement("option");
+	    opt.value= key;
+	    opt.innerHTML = key+ " - " + levels[key].level.meta.levelname; // whatever property it has
 	    
-	    editMode = true;
-	    $('#editor').show();
-	    screen_size_setup();
-	}
-	else {
-	    sceneName = e.target.value;
-	    window.location.hash = sceneName;
-	    build_level(levels[ sceneName ]);     
-	    update_level_editor( levels[ sceneName ] );
-	    //document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
-	    //update_level_editor();
-	}
-    });
-    return selector;
+	    // then append it to the select element
+	    selector.appendChild(opt);
+	});
+
+	selector.value = sceneName;
+	document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName].level, null, 2);
+	update_level_editor();
+
+	selector.addEventListener('change', function(e) {
+
+	    if (e.target.value == "levelEditor") {
+		
+		editMode = true;
+		$('#editor').show();
+		screen_size_setup();
+	    }
+	    else {
+		sceneName = e.target.value;
+		window.location.hash = sceneName;
+		build_level(levels[ sceneName ].level);     
+		update_level_editor( levels[ sceneName ].level );
+		//document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
+		//update_level_editor();
+	    }
+	});
+	return selector;
+    }
 }
 
+var switch_to_level = function(levelkey) {
+    sceneName = levelkey;
+    window.location.hash = sceneName;
+    build_level(levels[ sceneName ].level);     
+    update_level_editor( levels[ sceneName ].level );
+}
+
+
+var send_level_score = function(levelkey, starscore, timescore, overall_performance) {
+
+    var set_scores_xhr = new XMLHttpRequest();
+
+    //var formData = new FormData();   
+    //formData.append("star_score", starscore);
+    //formData.append("time_score", timescore);
+    //formData.append("overall_performance", overall_performance );
+    //formData.append("level_key", levelkey);
+    
+    formData = { level_key: levelkey,
+		 star_score: starscore,
+		 time_score: timescore,
+		 overall_performance: overall_performance };
+
+
+    // Open the connection.
+    set_scores_xhr.open('POST', BASEURL+'/level_scores', true);
+    set_scores_xhr.setRequestHeader("x-siak-user", username);
+    set_scores_xhr.setRequestHeader("x-siak-password", password);
+    set_scores_xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+    set_scores_xhr.onreadystatechange = function(e) {	    
+        if ( 4 == this.readyState ) {
+	    if (set_scores_xhr.status === 200) {
+		console.log("score sent ok!");
+	    } else if (set_scores_xhr.status === 502) {
+		server_ok=false;
+		logging.innerHTML += "<br>-2 Problem: Server down!";
+		
+	    } else {
+		logging.innerHTML += '<br>-2 Problem: Server responded '+set_scores_xhr.status;
+	    }
+	}
+	else {
+	    dummy = 1;
+	    //console.log("set_scores_xhr in state "+this.readyState);
+	}
+    };
+    set_scores_xhr.send(JSON.stringify(formData));
+}
+
+
 // Everything set, let's run the game!
+
+
 
 var levelSelect = document.getElementById('level-select'),
 levelReset = document.getElementById('level-reset');
@@ -2225,12 +2382,12 @@ navigator.sayswho= (function(){
 
 var init_fysiak = function() {
 
-    build_level(levels[sceneName]);
+    build_level(levels[sceneName].level);
 
 
     // initialise game selector
     levelSelect.value = sceneName;
-    document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
+    document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName].level, null, 2);
     update_level_editor();
 
     levelSelect.addEventListener('change', function(e) {
@@ -2244,8 +2401,8 @@ var init_fysiak = function() {
 	else {
 	    sceneName = e.target.value;
 	    window.location.hash = sceneName;
-	    build_level(levels[ sceneName ]);     
-	    update_level_editor( levels[ sceneName ] );
+	    build_level(levels[ sceneName ].level);     
+	    update_level_editor( levels[ sceneName ].level );
 	    //document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
 	    //update_level_editor();
 	}
