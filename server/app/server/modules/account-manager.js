@@ -36,7 +36,7 @@ db.open(function(e, d){
 
 
 var accounts = db.collection('accounts');
-
+var activation_codes = db.collection('activation_codes');
 
 /* login validation methods */
 
@@ -99,9 +99,10 @@ exports.addNewAccount = function(newData, callback)
 		if (o){
 			callback('username-taken');
 		}	else{
-			accounts.findOne({email:newData.email}, function(e, o) {
-				if (o){
-					callback('email-taken');
+			activation_codes.findOne({code:newData.activationcode, 
+						  status:"active" }, function(e, o) {
+				if (!o){
+					callback('bad-activation-code');
 				}	else{
 					saltAndHash(newData.pass, function(hash){
 						newData.pass = hash;
@@ -345,7 +346,119 @@ exports.get_word_and_phoneme_counts = function(user, callback) {
 }
 
 var user_high_scores = db.collection('user_high_scores');
+var user_level_scores = db.collection('user_level_scores');
 
+exports.get_user_high_scores = function(user, callback) {
+
+    filters = {user: user};
+
+    user_high_scores.find( filters ).toArray(
+	function(e, o) {
+	    if (e) 
+		callback(e)
+	    else 
+		callback(null, o)
+	});
+}
+
+exports.get_level_high_scores = function(level, callback1) {
+
+    filters = {level: level};
+
+    user_high_scores.find( filters ).sort( { total_score : -1, star_score : -1 } ).limit( 10 ).toArray(
+	function(e, o) {
+	    if (e) 
+		callback(e)
+	    else 
+		callback(null, o)
+	});
+}
+
+exports.set_high_scores = function(user, userdata, callback) { 
+
+
+    thismoment =  moment().format('MMMM Do YYYY, h:mm:ss a')
+
+    console.log(thismoment,
+		"Inserting: ",
+		user,
+		userdata );
+    
+    filters = {user: user,
+	       level: userdata.level_key};
+
+
+    
+    u =  {level : userdata.level_key }
+    u.time_score = userdata.time_score;
+    u.star_score = userdata.star_score;
+    u.user = user;
+    u.date = thismoment;
+    u.overall_performance = userdata.overall_performance;
+    u.total_score =  userdata.star_score +  userdata.time_score;
+    
+    user_level_scores.insert(u, {safe: true}, function(e) {
+	if (e) 
+	    console.log(e);
+    });
+
+    async.series([
+	user_high_scores.findOne( 
+	    filters , 
+	    function(e, o) {
+		if (e) 
+		    callback(e)
+		else {
+		    if (o) {
+			if (o.time_score + o.star_score < userdata.time_score + userdata.star_score) {
+			    o.time_score = userdata.time_score;
+			    o.star_score = userdata.star_score;
+			    o.total_score =  userdata.star_score +  userdata.time_score;
+			    o.date =thismoment;
+			    o.overall_performance = userdata.overall_performance;
+
+			    user_high_scores.save(o, {safe: true}, function(e) {
+				if (e) 
+				    console.log(e);
+				//callback(e);
+				else 
+				    callback(null, o);
+			    });
+			}
+		    }
+		    else {
+			o =  {level : userdata.level_key }
+			o.time_score = userdata.time_score;
+			o.star_score = userdata.star_score;
+			o.user = user;
+			o.date = thismoment;
+			o.overall_performance = userdata.overall_performance;
+			o.total_score =  userdata.star_score +  userdata.time_score;
+			
+			user_high_scores.save(o, {safe: true}, function(e) {
+			    if (e)
+				console.log(e)
+			    //callback(e);
+			    else 
+				callback(null, o);
+			});
+			
+		    }
+		}
+	    }),
+	user_high_scores.find(  {level : userdata.level_key } ).sort( { total_score : -1, star_score : -1 } ).limit( 10 ).toArray(
+	    function(e, o) {
+		if (e) 
+		    callback(e)
+		else 
+		    callback(null, o)
+	    })
+    ], function(err, results) {
+	// results is now equal to ['one', 'two']
+	callback1(null, results[1])
+    });
+}
+							 
 
 exports.get_high_scores = function(user, callback) {
 
@@ -359,52 +472,3 @@ exports.get_high_scores = function(user, callback) {
 		callback(null, o)
 	});
 }
-
-exports.set_high_scores = function(user, userdata, callback) { 
-
-    console.log("Inserting: ",
-		user,
-		userdata);
-
-    filters = {user: user,
-	       level: userdata.level_key};
-
-    user_high_scores.findOne( 
-	filters , 
-	function(e, o) {
-	    if (e) 
-		callback(e)
-	    else {
-		console.log("o",o);
-		if (o) {
-		    if (o.time_score + o.star_score > userdata.time_score + userdata.star_score) {
-			o.time_score = userdata.time_score;
-			o.star_score = userdata.star_score;
-			o.overall_performance = userdata.overall_performance;
-			
-			user_high_scores.save(o, {safe: true}, function(e) {
-			    if (e) 
-				callback(e);
-			    else 
-				callback(null, o);
-			});
-		    }
-		}
-		else {
-		    o =  {level : userdata.level_key }
-		    o.time_score = userdata.time_score;
-		    o.star_score = userdata.star_score;
-		    o.user = user;
-		    o.overall_performance = userdata.overall_performance;
-		    
-		    user_high_scores.save(o, {safe: true}, function(e) {
-			if (e) 
-			    callback(e);
-			else 
-			    callback(null, o);
-		    });
-		}
-	    }
-	});
-}
-							 

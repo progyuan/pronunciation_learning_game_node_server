@@ -13,6 +13,7 @@ var word_list = require('./modules/word-list');
 
 var game_word_list = require('./modules/game-word-list');
 var phoneme_list = require('./modules/phoneme-list');
+var age_group_list = require('./modules/age-group-list');
 
 var async = require('async');
 
@@ -51,7 +52,13 @@ module.exports = function(app) {
 	    // if user is not logged-in redirect back to login page //
 	    res.redirect(app.locals.baseURL);
 	}
-	else
+	else {
+	    if (req.session.user.ui_lng == "Finnish")
+		ui_lng = "fi"
+	    else
+		ui_lng = "en"
+	    
+
 	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
 		//console.log("Rendering:");
 		if (e) console.log(e);
@@ -63,9 +70,11 @@ module.exports = function(app) {
 		    game_word_list : game_word_list,
 		    phoneme_list : phoneme_list,
 		    phoneme_counts : phoneme_counts,
-		    word_counts : word_counts
+		    word_counts : word_counts,
+		    ui_lng : ui_lng
 		});
 	    });
+	}
     });
 
     app.get('/fysiak-dev', function(req,res) {
@@ -335,8 +344,8 @@ module.exports = function(app) {
 	    // if user is not logged-in redirect back to login page //
 	} 	
 	else{
-	    AM.set_high_scores(req.session.user.user, req.body, function(o) {
-		res.json({status: 'ok'});
+	    AM.set_high_scores(req.session.user.user, req.body, function(e,o) {
+		res.json(o);
 	    });
 	}
     });
@@ -348,30 +357,47 @@ module.exports = function(app) {
 	    res.status(401).send('forbidden');
 	} 	
 	else{
-	    AM.get_high_scores(req.session.user.user, function(e,o){
+	    AM.get_user_high_scores(req.session.user.user, function(e,o){
+		res.json(o);
+	    });
+	}
+    });
+   app.get('/high_scores/:level', function(req, res) {
+	if (req.session.user == null){
+	    // if user is not logged-in redirect back to login page //
+	    //res.redirect(app.locals.baseURL);
+	    res.status(401).send('forbidden');
+	} 	
+	else{
+	    AM.get_level_high_scores(req.params.level, function(e,o){
 		res.json(o);
 	    });
 	}
     });
 
-
 // main login page //
 	app.get('/', function(req, res){
 	    if (req.session.user) {
-		res.redirect(app.locals.baseURL+"/home/");
+		if (req.session.user.role == 'player')
+		    res.redirect(app.locals.baseURL+"/fysiak/");
+		else
+		    res.redirect(app.locals.baseURL+"/home/");
 	    }
 	    else {
 		// check if the user's credentials are saved in a cookie //
 		if (req.cookies.user == undefined || req.cookies.pass == undefined){
 		    console.log("Home page but no req.cookies.user or no re.cookies.pass!");
-		    res.render('login', { title: 'Hello - Please Login To Your Account' });
+		    res.render('siaklogin', { title: 'Hello - Please Login To Your Account' });
 		}	
 		else{
 		    // attempt automatic login //
 		    AM.autoLogin(req.cookies.user, req.cookies.pass, function(o){
 			if (o != null){
 			    req.session.user = o;
-			    res.redirect(app.locals.baseURL+'/home');
+			    if (req.session.user.role == 'player')
+				res.redirect(app.locals.baseURL+"/fysiak/");
+			    else
+				res.redirect(app.locals.baseURL+"/home/");			    
 			}	else{
 			    console.log("Home page autologin based on session failed!");
 			    res.render('login', { title: 'Hello - Please Login To Your Account' });
@@ -397,18 +423,24 @@ module.exports = function(app) {
 	});
 	
 // logged-in user homepage //
-	
-        app.get('/home', function(req, res) {
-		if (req.session.user == null){
-	// if user is not logged-in redirect back to login page //
-			res.redirect(app.locals.baseURL);
-		}	else{
-			res.render('home', {
-				title : 'Home',
-				udata : req.session.user
-			});
-		}
-	});
+    
+    app.get('/home', function(req, res) {
+	if (req.session.user == null){
+	    // if user is not logged-in redirect back to login page //
+	    res.redirect(app.locals.baseURL);
+	}	
+	else {
+	    if (req.session.user.role == 'player')
+		res.redirect(app.locals.baseURL+"/fysiak/");
+	    else
+	    {
+		res.render('home', {
+		    title : 'Home',
+		    udata : req.session.user
+		});
+	    }
+	}
+    });
 
 	app.get('/account', function(req, res) {
 		if (req.session.user == null){
@@ -449,12 +481,24 @@ module.exports = function(app) {
 			res.redirect(app.locals.baseURL);
 		}	else{
 			AM.updateAccount({
-				id		: req.session.user._id,
-				name	: req.body['name'],
-				email	: req.body['email'],
-				pass	: req.body['pass'],
-			        role    : req.body['role'],
-			        school  : req.body['school'],
+			    id		: req.session.user._id,
+			    name	: req.body['name'],
+			    email	: req.body['email'],
+			    pass	: req.body['pass'],
+			    role    : req.body['role'],
+			    school  : req.body['school'],
+			    languages: [ {'code': 'en_rp', 
+					  'en': 'English, southern UK dialect',
+					  'fi' : 'Englanti, Etelä-Englannin murre'},
+					 {'code':'en_other',
+					  'en': 'English, other dialect',
+					  'fi': 'Englanti, muu murre'},
+					 {'code':'fi',
+					  'en': 'Finnish',
+					  'fi' : 'Suomi'},
+					 {'code': 'other',
+					  'en': 'Other language',
+					  'fi': 'Muu kieli'}], 
 			}, function(e, o){
 				if (e){
 					res.status(400).send('error-updating-account');
@@ -486,24 +530,43 @@ module.exports = function(app) {
 // creating new accounts //
 	
 	app.get('/signup', function(req, res) {
-		res.render('signup', {  
+		res.render('siaksignup', {  
 		    title: 'Signup', 
 		    schools : school_list, 
-  		    roles : role_list
+  		    roles : role_list,
+		    languages: [ {'code': 'en_rp', 
+					  'en': 'English, southern UK dialect',
+					  'fi' : 'Englanti, Etelä-Englannin murre'},
+					 {'code':'en_other',
+					  'en': 'English, other dialect',
+					  'fi': 'Englanti, muu murre'},
+					 {'code':'fi',
+					  'en': 'Finnish',
+					  'fi' : 'Suomi'},
+					 {'code': 'other',
+					  'en': 'Other language',
+					  'fi': 'Muu kieli'}],  
+		    age_groups : age_group_list
 		});
 	});
 	
 	app.post('/signup', function(req, res){
 	        var now = new Date();
 		AM.addNewAccount({
-			name 	: req.body['name'],
-			email 	: req.body['email'],
-			user 	: req.body['user'],
-			pass	: req.body['pass'],
-		        school  : req.body['school'],
-		        role    : req.body['role'],
-		        created : now,
-		        last_active :  now,
+		    age           : req.body['age'],
+		    name           : req.body['name'],
+		    email          : req.body['email'],
+		    user           : req.body['user'],
+		    pass           : req.body['pass'],
+		    school         : req.body['school'],
+		    role           : req.body['role'],
+		    nativelanguage : req.body['nativelanguage'],
+		    otherlanguage  : req.body['otherlanguage'],
+		    ui_lng         : req.body['ui_lng'],
+		    created        : now,
+		    last_active    : now,
+		    activationcode : req.body['activationcode'],
+		    role: 'player'
 		}, function(e){
 			if (e){
 				res.status(400).send(e);

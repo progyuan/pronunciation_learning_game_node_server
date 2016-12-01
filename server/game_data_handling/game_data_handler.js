@@ -80,7 +80,7 @@ var get_and_somehow_order_words_for_level = function(user, level, req, res, call
 	keys = Object.keys(wordcounts);
 	shuffle(keys);
 	keys.forEach( function(key) {
-	    word = wordcounts[key];	    
+	    word = wordcounts[key];
 	    if (word) {		
 		word.word = key;
 		word_array.push(word);
@@ -90,17 +90,21 @@ var get_and_somehow_order_words_for_level = function(user, level, req, res, call
 		}
 		else {
 		    moving_average_array.push(0);
-		    if ("best_score" in word) {
-		//	console.log(key, "\t", word.best_score, "\t", word.count, "\t", word.best_score/word.count );
-		    }
+		    //if ("best_score" in word) {
+		    //	console.log(key, "\t", word.best_score, "\t", word.count, "\t", word.best_score/word.count );
+		    //}
 		}
+	    }
+	    else {
+		console.log("key",key,"word:",word,"is not, how is that?")
 	    }
 	});
 	indices = sort_with_indices(moving_average_array);
 	returnable_word_array = [];
 
-	//console.log("Working on getting the next words");
-	//console.log(word_array);
+	word_txt = "Words for this level: ";
+	word_array.forEach( function(item) { word_txt += item.word+ " " } )
+	console.log(word_txt);
 
 	indices.forEach( function(i1, i2) {
 	    //console.log(i2);
@@ -120,12 +124,23 @@ var get_word_counts_for_level = function(user, level, req, res, callback) {
 	    callback(e, null)
 	}
 	else {
-	    Object.keys(words).forEach( function(word) {
-		if (word in words) {
-		    wordcounts[word] = o[word];
-		}	    
-	    });
-	    callback(null, req, res, user, level ,  wordcounts);
+	    if (o) {
+		Object.keys(words).forEach( function(word) {
+		    if (word in words) {
+			if (typeof(o[word]) != 'undefined')
+			    wordcounts[word] = o[word];
+			else
+			    wordcounts[word] = {count: 0};
+		    }	    
+		});
+		callback(null, req, res, user, level ,  wordcounts);
+	    }
+	    else {
+		Object.keys(words).forEach( function(word) {  
+		    wordcounts[word] = {count: 0};
+		});
+		callback(null, req, res, user, level ,  wordcounts);
+	    }
 	}
     });    
 }

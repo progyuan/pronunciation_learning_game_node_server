@@ -62,6 +62,7 @@ def collect_audio_file_names(adaptation_path, word, n_anchors, flag_verbose):
 	return name_chosen
 
 def get_likelihood(f_name):
+        #sys.stderr.write("\nLikelihood from "+f_name+"\n")
 	# parses the likelihood from the aligner output
 	with open(f_name,'r') as f_rob:
 		for line in f_rob:

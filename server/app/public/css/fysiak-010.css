@@ -6,13 +6,22 @@
     display: block;
 }
 
-
+#highscores {    
+    position: absolute;
+    top: 20px;
+    right: 10px;
+    font-size: 0.7em;
+    width: 120px
+}
+#highscores-box li {    
+    list-style-type: none;
+}
 #score {
     background-color: pink;
     padding: 20px;
     margin: 10px;
     font-size: 22px;
-    width: 250px;
+    width: 350px;
     display: inline-block;
     vertical-align: top;
 }

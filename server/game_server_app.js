@@ -175,7 +175,7 @@ debugout('If you don\'t see errors above, you should have a server running on po
 
 process.on('user_event', function(user, wordid, eventname, eventdata) {
 
-    debugout(colorcodes.event, user + ': EVENT: wordid '+wordid +" eventname "+eventname); 
+    //debugout(colorcodes.event, user + ': EVENT: wordid '+wordid +" eventname "+eventname); 
 
     if (eventname == 'timestamp') {
 	userdata[user].timestamps[eventdata.name] =   new Date().getTime();
@@ -368,7 +368,7 @@ process.on('print', function(printdata) {
 	}
 	else color = "";
 
-	console.log(color + printdata.source + logging.get_date_time().datetime + " " + printdata.message + reset);
+	console.log(color , printdata.source , logging.get_date_time().datetime , printdata.message + reset);
     }
     
 
@@ -410,11 +410,11 @@ function audio_packet_reply(user,res, packetnr, usevad) {
     */
     if ( (userdata[user].currentword.vad.speechend > 0 ) ||
  	 (packetnr == conf.audioconf.packets_per_second * conf.temp_devel_stuff.good_utterance_length_s ) ) {
-	debugout('\x1b[33m\x1b[1mserver %s\x1b[0m', user + ":" +" Packet nr "+packetnr+": Replying -1")
+	//debugout('\x1b[33m\x1b[1mserver %s\x1b[0m', user + ":" +" Packet nr "+packetnr+": Replying -1")
 	res.end( "-1" );
     }
     else if (packetnr > -1) {
-	debugout('\x1b[33m\x1b[1mserver %s\x1b[0m', user + ":" +" Packet nr "+packetnr+": Replying 0")
+	//debugout('\x1b[33m\x1b[1mserver %s\x1b[0m', user + ":" +" Packet nr "+packetnr+": Replying 0")
 	res.end( "0" );
     } 
 }

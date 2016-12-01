@@ -2,9 +2,13 @@
 
 var error_codes = { "0" : { en : 'package_received'},
 		    "-1" : { en : 'audio_end'},
-		    "-2" : {en : 'segmentation_failure'},
+		    "-2" : {boring: "segmentation_error",
+			    en : 'Were you saying something else?',
+			    fi: "Taisit sanoa jotain ihan muuta?"},
 		    "-3" : {en: 'segmentation_error'},
-		    "-4" : {en : 'classification_error' },
+		    "-4" : {boring: "classification_error",
+			    en : 'Sorry, my fault: I fumbled the classification. You can try again!',
+			    fi: 'Anteeksi, minun virheeni: Sähläsin luokittelun. Voit yrittää uudestaan.'},
 		    "-5" : {
 			boring: 'VAD detected no activity',
 			en : 'I heard nothing! Did you say anything?',
@@ -945,6 +949,51 @@ function recorderProcess(e) {
   window.Stream.write(convertFloat32ToInt16(left));
 }*/
 
+var username;
+
+function tell_the_server_we_are_on_a_new_level(levelkey) {
+
+
+    sceneName = levelkey;    
+    window.location.hash = sceneName;         
+    siak_level = levels[ sceneName ].wordlist;
+    
+ 
+    server='/siak-devel/'+'start-level';
+
+    var username = document.getElementById("username").value;
+    var password = document.getElementById("password").value;
+
+
+    next_level = new XMLHttpRequest();
+    next_level.open('POST', server, true);
+
+    next_level.setRequestHeader("x-siak-user", username);
+    next_level.setRequestHeader("x-siak-password", password);
+    next_level.setRequestHeader("x-siak-packetnr", "-3");  
+    next_level.setRequestHeader("x-siak-level", siak_level);
+    
+    next_level.onreadystatechange = function(e) {
+        if ( 4 == this.readyState ) {
+	    if (next_level.status === 502) {
+		document.getElementById('scorewrapper').style.visibility = "visible";
+		document.getElementById('scorecard').style.visibility = "visible";
+		document.getElementById('scorecard').innerHTML += "<h4>-2 Problem: Speech server down!</h4>";
+	    }
+	    else if (next_level.status != 200) {		
+		document.getElementById('scorewrapper').style.visibility = "visible";
+		document.getElementById('scorecard').style.visibility = "visible";
+		document.getElementById('scorecard').innerHTML += "<h4>-2 Problem: Server responded "+ next_level.status +"</h4>";
+	    }
+	    else {
+		build_level(levels[ sceneName ].level);
+		update_level_editor( levels[ sceneName ].level )
+	    }
+	}
+    };
+    next_level.send();
+}
+
 
 function get_word_to_score(item, nextcallback, callback) { 
     
@@ -953,8 +1002,9 @@ function get_word_to_score(item, nextcallback, callback) {
     server='/siak-devel/'+'get-next-word';
     
     var test = false;
-    var username = "foo1";
-    var password = "bar1";
+
+    var username = document.getElementById("username").value;
+    var password = document.getElementById("password").value;
     
     var formData = new FormData();
 
@@ -965,6 +1015,8 @@ function get_word_to_score(item, nextcallback, callback) {
     get_next_word.setRequestHeader("x-siak-user", username);
     get_next_word.setRequestHeader("x-siak-password", password);
     get_next_word.setRequestHeader("x-siak-packetnr", "-2");
+    
+    get_next_word.setRequestHeader("x-siak-level", siak_level);
 
     get_next_word.onreadystatechange = function(e) {
         if ( 4 == this.readyState ) {

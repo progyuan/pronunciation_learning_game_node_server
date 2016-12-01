@@ -121,7 +121,8 @@ function align_with_shell_script(conf, inputbuffer, word_reference, user, word_i
     // (This will be done by the script itself)
 
 
-    var lexicon = conf.recogconf.lexicon;
+    //var lexicon = conf.recogconf.lexicon;
+    var lexicon = conf.recogconf.word_modeldir + word_reference + '/' + word_reference +'.lex';
     var model = conf.recogconf.model
     var flag_use_adaptation = conf.recogconf.flag_use_adaptation;
     var featext_command = "./audio_handling/shell_script_aligner_quick.sh";
@@ -230,7 +231,7 @@ function print_debug( text , priority, user, word_id ) {
     if (typeof(priority) != 'undefined') 
 	printdata.priority = priority;
     else
-	printdata.priority = 1;
+	printdata.priority = 0;
 
     if (typeof(user) != 'undefined') 
 	printdata.user = user;

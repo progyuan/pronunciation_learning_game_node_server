@@ -96,6 +96,7 @@ var class_definitions = require('./phone_classes.js');
 
 var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, likelihood) {
 
+
     scores=[];
 
     reference_phones=[];
@@ -131,9 +132,13 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
 	    guess_class = indexOfMax(target_guesses);
 
 	    if (guess_class < 0 ) {
-		scores.push(-1);
-		total_score =0;
-		break;
+
+		process.emit('user_event', user, wordid,'classification_error', score_event_object );
+		return false;
+		//scores.push(-1);
+		//total_score =0;
+		
+		//break;
 	    }
 
 	    //debugout(user, " Guess class "+guess_class);
@@ -308,7 +313,7 @@ function indexOfMax(arr) {
 
 
 
-function debugout( text , priority, user, word_id ) {
+function debugout( user, text , priority, word_id ) {
     // Did you set DEBUG_TEXTS == true there at the top?
     //if (DEBUG_TEXTS) 
     //{

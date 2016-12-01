@@ -1,9 +1,5 @@
 
 
-
-
-
-
 /**
         * Node.js Login Boilerplate
         * More Info : http://kitchen.braitsch.io/building-a-login-system-in-node-js-and-mongodb/
@@ -47,7 +43,22 @@ app.locals.asrURL = process.env.ASRURL || '';
  */ 
 
 var fork = require('child_process').fork;
-app.locals.game_server_child = fork('./game_server_app.js');
+var waitForPort = require('wait-for-port');
+
+var start_game_server = function() {
+    console.log('Waiting for port', (process.env.PORT || 8001) );
+    waitForPort('localhost',  (process.env.PORT || 8001), function(err) {
+	console.log('Port free, starting!');
+	app.locals.game_server_child = fork('./game_server_app.js');
+	app.locals.game_server_child.on('exit', function() {
+	    console.log('The asr server died. Let\'s restart...' );		
+	    start_game_server();
+
+	});
+    });
+}
+
+start_game_server();
 
 
 

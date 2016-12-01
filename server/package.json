@@ -6,26 +6,25 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "bson": "^0.4.22",
-    "fs-extra": "^0.30.0",
-    "fs-sync": "^1.0.2",
-    "longjohn": "^0.2.11",
-    "mathjs": "^3.2.1",
-    "mkdirp": "^0.5.1",
-    "mongodb": "~2.0.33",
-    "monk": "~1.0.1",
-    "wav": "^1.0.0",
-
     "body-parser": "1.14.1",
+    "bson": "^0.4.22",
     "connect-mongo": "0.8.2",
     "cookie-parser": "1.4.0",
     "emailjs": "^1.0.4",
     "errorhandler": "1.4.2",
     "express": "4.13.3",
     "express-session": "1.11.3",
+    "fs-extra": "^0.30.0",
+    "fs-sync": "^1.0.2",
     "jade": "1.11.0",
+    "longjohn": "^0.2.11",
+    "mathjs": "^3.2.1",
+    "mkdirp": "^0.5.1",
     "moment": "2.10.3",
     "mongodb": "2.0.45",
-    "stylus": "0.52.4"
+    "monk": "~1.0.1",
+    "stylus": "0.52.4",
+    "wait-for-port": "0.0.2",
+    "wav": "^1.0.0"
   }
 }

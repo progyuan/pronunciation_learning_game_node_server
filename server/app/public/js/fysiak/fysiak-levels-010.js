@@ -33,7 +33,7 @@ level_super_basic =
 		    6
 		],
 		"mass": 5,
-		"type": "word"
+		"type": "start"
 	    },
 	    "B": {
 		"position": [
@@ -83,65 +83,105 @@ level_super_basic =
 	]
     };
 level_easy_connections = 
-    {
-	"meta": {
-	    "gravity": [
-		"0",
-		"-9.82"
-	    ],
-	    "levelname": "Connections",
-	    "author": "Reima",
-	    "timelimit": "15",
-	    "starmass": "5"
-	},
-	"nodes": {
-	    "START": {
-		"position": [
-		    4,
-		    6
-		],
-		"mass": 5,
-		"type": "start"
-	    },
-	    "EXIT": {
-		"position": [
-			-3,
-		    6
-		],
-		"mass": 5,
-		"type": "exit"
-	    },
-	    "B": {
-		"position": [
-		    2,
-		    19
-		],
-		"mass": 5,
-		"type": "word"
-	    }
-	},
-	"edges": [
-	    {
-		"options": {
-		    "stiffness": "1000"
-		},
-		"from": "EXIT",
-		"to": "A",
-		"type": "spring"
-	    }
-	],
-	"statics": [
-	    {
-		"position": [
-		    0,
-			-15
-		],
-		"h": 20,
-		"w": 60,
-		"angle": 0
-	    }
-	]
+{
+  "meta": {
+    "gravity": [
+      "0",
+      "-9.82"
+    ],
+    "levelname": "Connections",
+    "author": "Reima",
+    "timelimit": "15",
+    "starmass": "5"
+  },
+  "nodes": {
+    "START": {
+      "position": [
+        4,
+        6
+      ],
+      "mass": 5,
+      "type": "start"
     },
+    "EXIT": {
+      "position": [
+        -3,
+        6
+      ],
+      "mass": 5,
+      "type": "exit"
+    },
+    "B": {
+      "position": [
+        2,
+        19
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "zmjmj": {
+      "position": [
+        11,
+        6
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "jwisf": {
+      "position": [
+        21,
+        6
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "601r3": {
+      "position": [
+        30,
+        6
+      ],
+      "mass": 5,
+      "type": "start"
+    },
+    "b10ye": {
+      "position": [
+        -22,
+        12
+      ],
+      "mass": 5,
+      "type": "start"
+    },
+    "01bka": {
+      "position": [
+        -19,
+        6
+      ],
+      "mass": 5,
+      "type": "word"
+    }
+  },
+  "edges": [
+    {
+      "options": {
+        "stiffness": "1000"
+      },
+      "from": "EXIT",
+      "to": "A",
+      "type": "spring"
+    }
+  ],
+  "statics": [
+    {
+      "position": [
+        0,
+        -15
+      ],
+      "h": 20,
+      "w": 80,
+      "angle": 0.01
+    }
+  ]
+},
 
 level_hard_and_soft =  
 
@@ -920,6 +960,9 @@ level_structures_bonus =
 	]
     },
     
+
+
+
 level_life_from_above = 
     {
 	"meta": {
@@ -980,6 +1023,108 @@ level_life_from_above =
 	    }
 	]
     };
+
+level_life_from_above2 = {
+  "meta": {
+    "gravity": [
+      "0",
+      "-9.82"
+    ],
+    "levelname": "Wait 2!",
+    "author": "Reima",
+    "timelimit": "20",
+    "starmass": "5"
+  },
+  "nodes": {
+    "START": {
+      "position": [
+        10,
+        6
+      ],
+      "mass": 5,
+      "type": "start"
+    },
+    "EXIT": {
+      "position": [
+        -3,
+        6
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "B": {
+      "position": [
+        5,
+        78
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "yn5qo": {
+      "position": [
+        -9,
+        7
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "7fvht": {
+      "position": [
+        -15,
+        8
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "0uifr": {
+      "position": [
+        -21,
+        9
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "48w40": {
+      "position": [
+        -27,
+        10
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "bau1c": {
+      "position": [
+        -18,
+        340
+      ],
+      "mass": 5,
+      "type": "word"
+    },
+    "h66f6": {
+      "position": [
+        -24,
+        370
+      ],
+      "mass": 5,
+      "type": "exit"
+    }
+  },
+  "edges": [ ],
+  "statics": [
+    {
+      "position": [
+        0,
+        -15
+      ],
+      "h": 20,
+      "w": 120,
+      "angle": -0.1
+    }
+  ]
+};
+
+
+
 
 level_reach_the_exit =
 
@@ -2282,43 +2427,43 @@ level_libro = {
 
 
 levels = { "L0-0" : { level : level_super_basic,
-		      wordlist : 'L0' },
+		      wordlist : 'L1' },
 
 	   "L0-1" :  { level : level_easy_connections,
-		      wordlist : 'L0' },
+		      wordlist : 'L2' },
 
 	   //"L0-2" :  { level : level_hard_and_soft,
 	   //          wordlist : 'L0' },
 
 	   "L0-2" :  { level : level_libro,
-	             wordlist : 'L0' },
+	             wordlist : 'L3' },
 
 	   "L1-0" :  { level : level_gravity2,
-		      wordlist : 'L1' },
+		      wordlist : 'L4' },
 
 	   "L1-1" :  { level : level_gravity1,
-		      wordlist : 'L1' },
+		      wordlist : 'L5' },
 
 	   "L1-2" :  { level : level_structures_bonus,
-		      wordlist : 'L1' },
+		      wordlist : 'L6' },
 
-	   "L2-0" :  { level : level_life_from_above,
-		      wordlist : 'L2' },
+	   "L2-0" :  { level : level_life_from_above2,
+		      wordlist : 'L7' },
 
 	   "L2-1" :  { level : level_short_cuts,
-		      wordlist : 'L2' },
+		      wordlist : 'L8' },
 
 	   "L2-2" :  { level : level_balancia,
-		      wordlist : 'L2' },
+		      wordlist : 'L9' },
 
 	   "L3-0" :  { level : level_reach_the_exit,
-		      wordlist : 'L3' },
+		      wordlist : 'L10' },
 
 	   "L3-1" :  { level : level_atapult,
-		      wordlist : 'L3' },
+		      wordlist : 'L11' },
 	   
 	   "L3-2" :  { level : level_connect_bom,
-		      wordlist : 'L3' },
+		      wordlist : 'L27' },
 	 }
 
 

@@ -37,11 +37,13 @@ var messages = {
     browser_sound_fix : {
 	en : "Please override this by tweaking this setting:",
 	fi: "Ohita tämä kielto tästä asetuksesta:"
+    },
+    high_scores : {
+	en : "High scores:",
+	fi: "Parhaat pisteet:"
     }
-
 }
 
-lng="fi";
 
 var canvas = document.getElementById("gamecanvas");
 
@@ -51,7 +53,7 @@ var w = canvas.width,
 var resized = false;
 var audio_ok_for_game = false;
 
-
+var siak_level = "L0";
 
 var scaleX = 30, scaleY = -30;
 var qmark_font_size = false;
@@ -866,9 +868,9 @@ var render = function(time) {
 	    if (nodes[key].type == 'visited' || nodes[key].type == 'unlocked' || nodes[key].type == 'activeExit' ) {
 		ctx.fillStyle = pulse_color( ctx.fillStyle ,colorshift );
 	    }
-	    
+
 	    if (nodes[key].word) {
-		txt = nodes[key].word;
+		txt = format_word(nodes[key].word);
 		if (nodes[key].fontsize && !resized) {
 		    ptSize=nodes[key].fontsize;
 		    ctx.font = nodes[key].fontsize+"px Arial";
@@ -1365,13 +1367,17 @@ var continue_game = function(score, extra_stars) {
     document.getElementById('scorewrapper').style.visibility = "hidden";
     document.getElementById('scorecard').style.visibility = "hidden";
 
-    movingStarTargetTime = lastTime + timepenalties[score];
-    movingStarTargetPosition = false;
-    movingStarCount = score;    
-    movingExtraStars = extra_stars;
+    if (score != -4) {
+	movingStarTargetTime = lastTime + timepenalties[Math.max(score, 0)];
+	movingStarTargetPosition = false;
 
-    update_star_count();
-
+	if (score > 0) {
+	    movingStarCount = score;    
+	    movingExtraStars = extra_stars;
+	
+	    update_star_count();
+	}
+    }
 }
 
 var pause_timer = function () {
@@ -1409,8 +1415,6 @@ var win_game = function(item) {
 
     overall_performance = Math.ceil( (starscore + timescore) / (maxStars * 100) * 5 );
     
-    // Tell the server we're done with this level:
-    send_level_score(sceneName, starscore, timescore, overall_performance);
 
     console.log("Overall performance:", overall_performance);
     console.log( (starscore + timescore) / (maxStars * 100) * 5 );
@@ -1433,6 +1437,10 @@ var win_game = function(item) {
     document.getElementById('score').innerHTML+='<p><input onClick=\'select_level()\' type=button value=\''+messages.another_level[lng]+'\'>';
     //document.getElementById('score').appendChild( get_level_selection() );
     document.getElementById('score').innerHTML+='<p><input onClick="location.href=\''+BASEURL+'/logout\';" type=button value=\''+messages.logout[lng]+'\'>';
+    //document.getElementById('score').appendChild( get_high_scores(sceneName) );
+
+    // Tell the server we're done with this level:
+    document.getElementById('score').appendChild( send_level_score(sceneName, starscore, timescore, overall_performance) );
     
 }
 
@@ -1499,7 +1507,7 @@ var handle_playing = function(word, node, callback) {
 	var audio_ok = true;
 
 	node.audioelement.oncanplaythrough = function () { 
-	    document.getElementById('score').innerHTML=messages.say_this[lng]+' <br><b>'+ word + '</b>'; //"apple";
+	    document.getElementById('score').innerHTML=messages.say_this[lng]+' <br><b>'+ format_word(word) + '</b>'; //"apple";
 
 	    document.getElementById('waiting_for_server').style.visibility = "hidden";
 	    document.getElementById('speaker_animation').style.visibility = "visible";
@@ -1582,8 +1590,8 @@ var apply_scoring = function(node, score) {
 	setTimeout(function( ){ 
 	    document.getElementById('scorewrapper').style.visibility = "hidden";
 	    document.getElementById('scorecard').style.visibility = "hidden";
-	    continue_game(0, 0);
-	}, 4300);
+	    continue_game(score, 0);
+	}, 3300);
     }
     else {
 	txt = "";
@@ -1697,6 +1705,11 @@ var update_star_count = function() {
     document.getElementById('starcount').innerHTML = starCount;
 }
 
+var format_word = function(word) {    
+    word = word.replace(/_/g,' ');
+    word = word.replace(/ i /, 'I');
+    return word.charAt(0).toUpperCase() + word.slice(1);
+}
 
 
 //
@@ -2293,16 +2306,23 @@ var get_level_selection = function(type) {
 }
 
 var switch_to_level = function(levelkey) {
-    sceneName = levelkey;
-    window.location.hash = sceneName;
-    build_level(levels[ sceneName ].level);     
-    update_level_editor( levels[ sceneName ].level );
+
+    tell_the_server_we_are_on_a_new_level( levelkey );
+
 }
 
 
 var send_level_score = function(levelkey, starscore, timescore, overall_performance) {
 
     var set_scores_xhr = new XMLHttpRequest();
+
+    scoresdiv = document.createElement("div");
+    scoresdiv.innerHTML = "<h4>"+ messages.high_scores[lng] + "</h4>";
+    scoresdiv.id =  "highscores";
+    scores = document.createElement("ol");
+    scores.id = "highscores-box";
+
+    scoresdiv.appendChild(scores);
 
     //var formData = new FormData();   
     //formData.append("star_score", starscore);
@@ -2326,6 +2346,20 @@ var send_level_score = function(levelkey, starscore, timescore, overall_performa
         if ( 4 == this.readyState ) {
 	    if (set_scores_xhr.status === 200) {
 		console.log("score sent ok!");
+		
+		
+		high_scores = JSON.parse(set_scores_xhr.responseText);
+
+		high_scores.forEach( function(item) {
+		    var sc = document.createElement("li");		
+		    sc.innerHTML = (item.star_score + item.time_score)+" "+ item.user ;
+		    if (item.user == document.getElementById("username").value)
+			sc.innerHTML = "<b>"+sc.innerHTML+"</b>";
+		    scores.appendChild(sc);
+		});
+		
+		console.log("High scores: ",high_scores)
+
 	    } else if (set_scores_xhr.status === 502) {
 		server_ok=false;
 		logging.innerHTML += "<br>-2 Problem: Server down!";
@@ -2340,8 +2374,71 @@ var send_level_score = function(levelkey, starscore, timescore, overall_performa
 	}
     };
     set_scores_xhr.send(JSON.stringify(formData));
+
+    return scoresdiv;
 }
 
+
+var get_high_scores = function(levelkey) {
+
+
+    scoresdiv = document.createElement("div");
+    scoresdiv.innerHTML = "<h4>"+ messages.high_scores[lng] + "</h4>";
+    scoresdiv.id =  "highscores";
+    scores = document.createElement("ol");
+    scores.id = "highscores-box";
+
+    scoresdiv.appendChild(scores);
+
+    //Object.keys(levels).forEach ( function(key) {
+    //	var opt = document.createElement("button");
+    //	opt.className = "level";
+    //	opt.id = "levelselect-"+key;
+    //	opt.innerHTML = key; //+ " - " + levels[key].meta.levelname; // whatever property it has	   
+    //	opt.innerHTML = (lcounter++) + '. ' + levels[key].level.meta.levelname; // whatever property it has	   
+    //	opt.innerHTML += "<br>";//+"\u2606"+"\u2606"+"\u2606"+"\u2606"+"\u2606";
+    // then append it to the select element
+    //	opt.onclick = function() {console.log("Pressed", key); switch_to_level(key)};
+
+    //   });
+
+    var get_scores_xhr = new XMLHttpRequest();
+    // Open the connection.
+    get_scores_xhr.open('GET', BASEURL+'/high_scores/'+ levelkey, true);
+    
+    get_scores_xhr.onreadystatechange = function(e) {	    
+        if ( 4 == this.readyState ) {
+	    if (get_scores_xhr.status === 200) {
+
+		high_scores = JSON.parse(get_scores_xhr.responseText);
+
+		high_scores.forEach( function(item) {
+		    var sc = document.createElement("li");
+		    sc.innerHTML = (item.star_score + item.time_score)+" "+ item.user ;
+		    scores.appendChild(sc);
+		});
+		
+		console.log("High scores: ",high_scores)
+		
+	    } else if (get_scores_xhr.status === 502) {
+		server_ok=false;
+		logging.innerHTML += "<br>-2 Problem: Server down!";
+		
+	    } else {
+		logging.innerHTML += '<br>-2 Problem: Server responded '+get_scores_xhr.status;
+	    }
+	}
+	else {
+	    dummy = 1;
+	    //console.log("set_scores_xhr in state "+this.readyState);
+	}
+    }
+    
+    get_scores_xhr.send();
+    
+    return scoresdiv;
+    
+}
 
 // Everything set, let's run the game!
 
@@ -2382,8 +2479,6 @@ navigator.sayswho= (function(){
 
 var init_fysiak = function() {
 
-    build_level(levels[sceneName].level);
-
 
     // initialise game selector
     levelSelect.value = sceneName;
@@ -2403,6 +2498,7 @@ var init_fysiak = function() {
 	    window.location.hash = sceneName;
 	    build_level(levels[ sceneName ].level);     
 	    update_level_editor( levels[ sceneName ].level );
+	    siak_level = levels[ sceneName ].wordlist;
 	    //document.getElementById('leveljson').value =  JSON.stringify(levels[sceneName], null, 2);
 	    //update_level_editor();
 	}
@@ -2429,6 +2525,8 @@ var init_fysiak = function() {
     });
 
 
+    
+
 
     browser = navigator.sayswho;
     if (browser[0] != 'Chrome')  {
@@ -2436,8 +2534,12 @@ var init_fysiak = function() {
 	pause_game();
 	document.getElementById('scorewrapper').style.visibility = "visible";
 	document.getElementById('scorecard').style.visibility = "visible";
-	document.getElementById('score').innerHTML=messages.your_browser[lng]+ ' ' + browser[0]+ messages.version[lng] + browser[1]+'. ';
+	document.getElementById('score').innerHTML=messages.your_browser[lng]+ ' ' + browser[0]+ ' ' + messages.version[lng] + ' '+ browser[1]+'. ';
 	document.getElementById('score').innerHTML+= messages.recommend_chrome[lng];
-	document.getElementById('score').innerHTML+='<input onclick=\'continue_game();\' type=button value=\'' + messages.try_anyway[lng]+ '\'>';
+	document.getElementById('score').innerHTML+='<p><input onclick=\'switch_to_level("'+sceneName+'");\' type=button value=\'' + messages.try_anyway[lng]+ '\'>';
     }
+    
+    else 
+	tell_the_server_we_are_on_a_new_level( sceneName );
+
 }

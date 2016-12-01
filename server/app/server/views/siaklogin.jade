@@ -1,0 +1,130 @@
+
+extends layout
+
+block content
+
+
+
+
+	//#login.center-vertical
+	#login.actionbox
+		form(id='form-login', method='post')
+			h2 
+				#en Welcome
+				#fi Tervetuloa
+			//h4 Englanniksi mennään, sorppa vaan.
+			h6
+				#en Please Login To Your Account 
+				#fi Ole ystävällinen ja kirjaudu sisään
+			.form-group
+				label Username - Käyttäjätunnus
+				input.form-control(type='text', maxlength='32', id='user-tf', name='user')
+			.form-group
+				label Password - Salasana
+				input.form-control(type='password', maxlength='32', id='pass-tf', name='pass')
+			.controls
+				button(type='button').btn.btn-default.button-rememember-me
+					span.glyphicon.glyphicon-unchecked.button-rememember-me-glyph
+					| Remember Me<br>- Muista minut
+				button(type='submit').btn.btn-primary.button-sign-in
+					span.glyphicon.glyphicon-lock
+					| Sign In<br>- Kirjaudu
+			.clearfix
+			hr
+			.btm-links
+				//#forgot-password
+				//	a(href='#') Forgot Your Password? - Unohtuiko salasana?
+				//#create-account
+				//	a(href='#{baseURL}/signup') Create An Account
+			.clearfix
+
+			h3 
+				a(href="signup") 
+					#en Register
+					#fi Rekisteröidy
+
+
+	#how_to_play.actionbox
+		h2
+			#en How to play
+			#fi Näin pelaat
+
+		hr
+		h4 1
+		#en Use a headset microphone. If you absolutely have no access to a working headset, find a very quiet space
+		#fi Käytä headset-mikrofonia. Jos et mistään saa sellaista käsiisi, etsi erittäin hiljainen tila.
+
+		hr
+		h4 2
+		#en Register and login.
+		#fi Rekisteröidy ja kirjaudu sisään.
+
+		hr
+		h4 3
+		#how_to_image
+			img(src='images/how_to_play_1.gif')
+		#en You start from the green nodes, and your goal is to reach the exit before the time runs out.
+		#fi Aloitat vihreistä ympyröistä. Tehtäväsi on päästä exit-ruudulle ennen kuin aika loppuu.
+
+		hr
+		h4 4
+		#how_to_image
+			img(src='images/how_to_play_2.gif')
+		#en When you click or tap on a green node, you are asked to repeat a word or phrase. First you will hear a model pronunciation.
+		#fi Kun klikkaat tai täppäät vihreää ympyrää, pääset toistamaan englanninkielisen sanan tai fraasi. Kuuntele ensin mallilausunta.
+
+		hr
+		h4 5
+		#how_to_image
+			img(src='images/how_to_play_3.gif')
+		#en When the recording indicator blinks, speak the word, trying to mimic the model pronunciation.
+		#fi Kun rec-valo palaa, lausu sana yrittäen matkia mallilausuntaa.
+
+		hr
+		h4 6
+		#how_to_image
+			img(src='images/how_to_play_4.gif')
+		#en The server will process your utterance.
+		#fi Palvelin arvioi lausuntaasi.
+		
+
+		hr
+		h4 7
+		#how_to_image
+			img(src='images/how_to_play_5.gif')
+		#en You will get 1-5 stars depending on the quality of your pronunciation and new nodes open on the board. The more stars you get, the faster you can continue playing!
+		#fi Saat 1-5 tähteä riippuen lausumisesi laadusta, ja laudalla aukeaa uusia ympyröitä klikattavaksi. Mitä enemmän tähtiä saat, sitä nopeammin voit jatkaa peliä!
+
+		hr
+		h4 8
+		#how_to_image
+			img(src='images/how_to_play_6.gif')
+		#en The stars attach to the word and are heavy! They might tilt your playing board! Continue by clicking the next node, where you get to repeat a new word. 
+		#fi Tähdet kiinnittyvät sanaympyrään ja ovat painavia! Ne voivat liikuttaa pelilautaasi!	Jatka seuraavaan sanaympyrään, jossa pääset toistamaan uuden sanan.
+
+		hr
+		h4 9
+		#how_to_image
+			img(src='images/how_to_play_7.gif')
+		#en Try to collect as many stars as you can and reach the exit before you run out of time!
+		#fi Yritä kerätä mahdollisimman paljon tähtiä ja ehtiä exit-ympyrään ennen kuin aika loppuu!
+
+	#how_to_play.actionbox
+		h2 
+			#en What is happening?
+			#fi Mitä tapahtuu?
+		#en We are currently collecting speech data to tune the parameters of the pronunciation evaluation engine for different voices. The data collection is done with this game. The game is obviously in beta, under development like research systems always. Submit bug reports to reima.karhila (at) aalto.fi.
+
+		#fi Keräämme puheaineistoa parantaaksemme lausumista arvioijaa härpäkettä, niin että se toimisi laajemmalle puhujajoukolle. Keräys tapahtuu tämän pelin avulla. Peli on vielä työn alla, valmista ei koskaan tulekaan, koska tämä on tutkimyskäyttöä varten tehty. Bugiraportit voi laittaa osoitteeseen reima.karhila (at) aalto.fi.
+
+	include modals/alert
+	include modals/lost-password
+
+block scripts
+	script(src='#{baseURL}/vendor/jquery-2.2.3.min.js')
+	script(src='#{baseURL}/vendor/jquery.form.min.js')
+	script(src='#{baseURL}/vendor/bootstrap.min.js')
+	script(src='#{baseURL}/js/views/login.js')
+	script(src='#{baseURL}/js/controllers/loginController.js')
+	script(src='#{baseURL}/js/form-validators/loginValidator.js')
+	script(src='#{baseURL}/js/form-validators/emailValidator.js')

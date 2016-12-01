@@ -1,0 +1,103 @@
+
+// preset form values if we receive a userdata object //
+- user = typeof(udata) != 'undefined' ? udata : { }
+// store the userId on the client side in a hidden input field //
+input(type='hidden', value= user._id)#userId
+
+#account-form-container
+	form(method="post")#account-form
+		h2
+		h6#sub1 Please tell us a little about yourself.
+			|<br>Kerro hieman itsestäsi.
+		hr
+		.form-group
+			label.control-label-row 
+				div#en Age (years)
+				div#fi Ikä (vuosina)
+			select.form-control#age-list(name='age')
+				each item in age_groups
+					option(selected=item == user.age)= item
+		.form-group
+			label.control-label-row 
+				div#en Native language
+				div#fi Äidinkieli
+			each item in languages
+				#radio-option
+					#en #{item.en}
+					input.button-control(type="radio",name="nativelanguage",value=item.code,selected=item.code == user.nativelanguage)
+					#fi #{item.fi}
+			#other
+				label.control-label-row 
+					div#en Please specify:
+					div#fi Tarkenna:
+				input.form-control#otherlanguage-tf(type='text', maxlength='32', name='otherlanguage', value= user.otherlanguage)
+		.form-group
+			label.control-label-row 
+				div#en Preferred language
+				div#fi Pelin kieli
+			each item in [ ["Finnish", "Suomi"], ["English", "Englanti"]]
+				#radio-option
+					#en #{item[0]}
+					input.button-control(type="radio",name="ui_lng",value=item[0],selected=item[0] == user.ui_lng)
+					#fi #{item[1]}
+
+		if (user.user)
+			.form-group
+				label.control-label-row 
+					#en Email adress (only for password resets)
+					#fi Sähköpostiosoite (vain salasanamuistuksia varten)
+				input.form-control#email-tf(type='text', maxlength='32', name='email', value= user.email)
+
+		hr
+		h6#sub2
+		.form-group
+			label.control-label-row
+				#en Username 
+				#fi Käyttäjätunnus
+			input.form-control#user-tf(type='text', maxlength='32', name='user', value= user.user).disabled
+
+		.form-group
+			label.control-label-row
+				#en Password
+				#fi Salasana
+			input.form-control#pass-tf(type='password', maxlength='32', name='pass', value='')
+
+		hr
+
+		.form-group
+			//label.control-label-row Permission - Lupa
+			label.control-label 
+				#en I grant permission to (1) store my speech data, (2) to use it to improve
+					| computer models of spoken language; and (3) to use it for other educational
+					| and research purposes.
+				input.button-control#permission-tf(type='checkbox', name='permission', checked, disabled)
+				#fi
+					| Annan luvan (1) säilyttää puhedatani, (2) käyttää sitä puhutun kielen laskennallisten
+					| mallien parantamiseen ja (3) käyttää sitä muihin opetus- tai tutkimustarkoituksiin. 
+
+		hr
+
+		.form-group
+
+			label.control-label
+				#en In case I am under 18 years old I have my custodian's approval to use the system.
+				input.button-control#under18-tf(type='checkbox', name='under18', checked, disabled)
+				#fi Jos olen alle 18-vuotias minulla on huoltajani hyväksyntä järjestelmän käyttöön.
+			.col-sm-9
+				
+
+		hr
+		.form-group
+			label.control-label-row
+				#en Activation code
+				#fi Aktivointikoodi
+			input.form-control#activation-tf(type='text', maxlength='32', name='activationcode')
+
+		.form-buttons
+			button(type='button')#account-form-btn1.btn.btn-default
+			button(type='submit')#account-form-btn2.btn.btn-primary
+		.clearfix
+
+// display form errors in a custom modal window //
+
+include modals/form-errors

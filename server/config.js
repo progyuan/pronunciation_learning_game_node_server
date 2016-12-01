@@ -64,9 +64,9 @@ module.exports = {
 	'extra_end_sil' : 12800, // 200ms => 3200 samples => 3200 * 4 bits 
 	'extra_start_sil' : 12800 // 200ms => 3200 samples => 3200 * 4 bits 
     },
-    word_lists: 
-    {
-	L0: {
+    word_lists: {
+
+        L0: {
 	    apple: {en: "apple", fi: "omena", count: 0 },
 	    baseball: {en: "baseball", fi: "baseball", count: 0 },
 	    age: {en: "age", fi: "ikä", count: 0 },
@@ -95,7 +95,9 @@ module.exports = {
 	    come_on : { en: "come on", fi: "tule", count: 0 },
 	    sorry : { en: "sorry", fi: "anteeksi", count: 0 },
 	    read : { en: "read", fi: "lukea", count: 0 },
-	    write : { en: "write", fi: "kirjoittaa", count: 0 }
+	    write : { en: "write", fi: "kirjoittaa", count: 0 },
+	    learn : { en: "learn", fi: "oppia", count: 0 },
+	    come : { en: "come", fi: "tulla", count: 0 }
 	},
 
 
@@ -114,7 +116,7 @@ module.exports = {
 	    rock : { en: "rock", fi: "kivi", count: 0 },
 	    sand : { en: "sand", fi: "hiekka", count: 0 },
 	    sea : { en: "sea", fi: "meri", count: 0 },
-	    river : { en: "river", fi: "joki", count: 0 },
+	    river : { en: "river", fi: "joki", count: 0, random_feedback: true },
 	    sun : {en: "sun", fi: "aurinko", count : 0 }
 	},
 
@@ -139,7 +141,7 @@ module.exports = {
 
 	L4: {
 	    farmer : { en: "farmer", fi: "maanviljelijä", count: 0 },
-	    pig : { en: "pig", fi: "sika", count: 0 },
+	    pig : { en: "pig", fi: "sika", count: 0 , random_feedback: true},
 	    sheep : { en: "sheep", fi: "lammas", count: 0 },
 	    mouse : { en: "mouse", fi: "hiiri", count: 0 },
 	    horse : { en: "horse", fi: "hevonen", count: 0 },
@@ -147,7 +149,7 @@ module.exports = {
 	    cow : { en: "cow", fi: "lehmä", count: 0 },
 	    dog : { en: "dog", fi: "koira", count: 0 },
 	    hen : { en: "hen", fi: "kana", count: 0 },
-	    chicken : { en: "chicken", fi: "tipu, kana", count: 0 },
+	    chicken : { en: "chicken", fi: "tipu, kana", count: 0 , random_feedback: true},
 	    country : { en: "country", fi: "maaseutu", count: 0 },
 	    field : { en: "field", fi: "pelto", count: 0 },
 	    grass : { en: "grass", fi: "ruoho/nurmi", count: 0 },
@@ -170,14 +172,15 @@ module.exports = {
 	    cook : { en: "cook", fi: "laittaa ruokaa", count: 0 },
 	    cut : { en: "cut", fi: "leikata", count: 0 },
 	    drink : { en: "drink", fi: "juoda", count: 0 },
-	    eat : { en: "#eat", fi: "syödä", count: 0 },
-	    lunch : { en: "lunch", fi: "lounas" , count: 0 }
+	    eat : { en: "eat", fi: "syödä", count: 0, random_feedback: true },
+	    lunch : { en: "lunch", fi: "lounas" , count: 0 },
+	    want : { en: "want", fi: "haluta", count : 0 }
 	},
 
 	L6: {
 	    shirt : { en: "shirt", fi: "paita", count: 0 },
-	    Shoe : { en: "Shoe", fi: "kenkä", count: 0 },
-	    Socks : { en: "Socks", fi: "sukat", count: 0 },
+	    shoe : { en: "shoe", fi: "kenkä", count: 0 },
+	    socks : { en: "socks", fi: "sukat", count: 0 },
 	    cap : { en: "cap", fi: "lippalakki", count: 0 },
 	    coat : { en: "coat", fi: "takki", count: 0 },
 	    hat : { en: "hat", fi: "hattu", count: 0 },
@@ -185,8 +188,8 @@ module.exports = {
 	    wash  : { en: "wash ", fi: "pestä", count: 0 },
 	    money : { en: "money", fi: "raha", count: 0 },
 	    belt : { en: "belt", fi: "vyö", count: 0 },
-	    Wear : { en: "Wear", fi: "käyttää", count: 0 },
-	    fit : { en: "fit", fi: "mahtua/sopia", count: 0 },
+	    wear : { en: "wear", fi: "käyttää", count: 0 },
+	    fit : { en: "fit", fi: "mahtua/sopia", count: 0, random_feedback: true },
 	    shop : { en: "shop", fi: "kauppa", count: 0 },
 	    best  : { en: "best ", fi: "paras", count: 0 },    
 	},
@@ -202,11 +205,11 @@ module.exports = {
 	    ice_hockey : { en: "ice hockey", fi: "jääkiekko", count: 0 },
 	    ice_skating : { en: "ice skating", fi: "luistelu", count: 0 },
 	    movie : { en: "movie", fi: "elokuva", count: 0 },
-	    music : { en: "music", fi: "musiikki", count: 0 },
-	    sing : { en: "sing", fi: "laulaa", count: 0 },
+	    music : { en: "music", fi: "musiikki", count: 0 , random_feedback: true},
+	    sing : { en: "sing", fi: "laulaa", count: 0, random_feedback: true },
 	    ski : { en: "ski", fi: "hiihtää", count: 0 },
-	    swim : { en: "swim", fi: "uida", count: 0 },
-	    win : { en: "win", fi: "voittaa", count: 0 },
+	    swim : { en: "swim", fi: "uida", count: 0 , random_feedback: true},
+	    win : { en: "win", fi: "voittaa", count: 0, random_feedback: true },
 	    party : { en: "party", fi: "juhlat", count: 0 },
 	},
 
@@ -215,10 +218,10 @@ module.exports = {
 	    pet : { en: "pet", fi: "lemmikki", count: 0 },
 	    neighbour : { en: "neighbour", fi: "naapuri", count: 0 },
 	    classmate : { en: "classmate", fi: "luokkatoveri/luokkakaveri", count: 0 },
-	    sister : { en: "sister", fi: "sisko", count: 0 },
+	    sister : { en: "sister", fi: "sisko", count: 0, random_feedback: true },
 	    teacher : { en: "teacher", fi: "opettaja", count: 0 },
 	    child : { en: "child", fi: "lapsi", count: 0 },
-	    children : { en: "children", fi: "lapset", count: 0 },
+	    children : { en: "children", fi: "lapset", count: 0 , random_feedback: true},
 	    family : { en: "family", fi: "perhe", count: 0 },
 	    man : { en: "man", fi: "mies", count: 0 },
 	    woman : { en: "woman", fi: "nainen", count: 0 },
@@ -230,11 +233,11 @@ module.exports = {
 	},
 
 	L9: {
-	    dessert : { en: "dessert", fi: "jälkiruoka", count: 0 },
+	    dessert : { en: "dessert", fi: "jälkiruoka", count: 0, random_feedback: true },
 	    fork : { en: "fork", fi: "haarukka", count: 0 },
 	    glass : { en: "glass", fi: "lasi", count: 0 },
 	    knife : { en: "knife", fi: "veitsi", count: 0 },
-	    lick : { en: "lick", fi: "nuolaista/nuolla", count: 0 },
+	    lick : { en: "lick", fi: "nuolaista/nuolla", count: 0 , random_feedback: true},
 	    make : { en: "make", fi: "tehdä/valmistaa", count: 0 },
 	    more : { en: "more", fi: "lisää/enemmän", count: 0 },
 	    plate : { en: "plate", fi: "lautanen", count: 0 },
@@ -245,17 +248,17 @@ module.exports = {
 	    meat : { en: "meat", fi: "liha", count: 0 },
 	    cup : { en: "cup", fi: "kuppi", count: 0 },
 	    water : { en: "water", fi: "vesi", count: 0 },
-	    milk: { en: "milk", fi: "maito", count: 0 }
+	    milk: { en: "milk", fi: "maito", count: 0 , random_feedback: true}
 	},
 
 	L10: {
 	    cheek : { en: "cheek", fi: "poski", count: 0 },
-	    chin : { en: "chin", fi: "leuka", count: 0 },
+	    chin : { en: "chin", fi: "leuka", count: 0 , random_feedback: true},
 	    ear : { en: "ear", fi: "korva", count: 0 },
 	    eye : { en: "eye", fi: "silmä", count: 0 },
 	    face : { en: "face", fi: "kasvot", count: 0 },
 	    nose : { en: "nose", fi: "nenä", count: 0 },
-	    lips : { en: "lips", fi: "huulet", count: 0 },
+	    lips : { en: "lips", fi: "huulet", count: 0 , random_feedback: true},
 	    tongue : { en: "tongue", fi: "kieli", count: 0 },
 	    hear : { en: "hear", fi: "kuulla", count: 0 },
 	    feel : { en: "feel", fi: "tuntea", count: 0 },
@@ -263,7 +266,7 @@ module.exports = {
 	    smell  : { en: "smell ", fi: "haistaa/haju", count: 0 },
 	    sound : { en: "sound", fi: "ääni", count: 0 },
 	    look : { en: "look", fi: "katsoa/katso", count: 0 },
-	    listen : { en: "listen", fi: "kuunnella/kuuntele", count: 0 }
+	    listen : { en: "listen", fi: "kuunnella/kuuntele", count: 0 , random_feedback: true}
 	},
 
 	L11: {
@@ -271,7 +274,7 @@ module.exports = {
 	    back : { en: "back", fi: "selkä", count: 0 },
 	    elbow : { en: "elbow", fi: "kyynärpää", count: 0 },
 	    feet : { en: "feet", fi: "jalat/jalkaterät", count: 0 },
-	    finger : { en: "finger", fi: "sormi", count: 0 },
+	    finger : { en: "finger", fi: "sormi", count: 0 , random_feedback: true },
 	    hair : { en: "hair", fi: "hiukset", count: 0 },
 	    hand : { en: "hand", fi: "käsi", count: 0 },
 	    neck : { en: "neck", fi: "kaula", count: 0 },
@@ -281,7 +284,9 @@ module.exports = {
 	    knee : { en: "knee", fi: "polvi", count: 0 },
 	    toe : { en: "toe", fi: "varvas", count: 0 },
 	    run  : { en: "run ", fi: "juosta", count: 0 },
-	    jump  : { en: "jump ", fi: "hypätä", count: 0 },
+	    //jump  : { en: "jump ", fi: "hypätä", count: 0 },
+	    give : { en: "give", fi: "antaa" , random_feedback: true },
+	    take : { en: "take", fi: "ottaa" }
 	},
 
 
@@ -289,7 +294,7 @@ module.exports = {
 	    cheese : { en: "cheese", fi: "juusto", count: 0 },
 	    cherry : { en: "cherry", fi: "kirsikka", count: 0 },
 	    chew : { en: "chew", fi: "pureskella", count: 0 },
-	    chip : { en: "chip", fi: "hippu", count: 0 },
+	    chip : { en: "chip", fi: "hippu", count: 0 , random_feedback: true},
 	    chocolate : { en: "chocolate", fi: "suklaa", count: 0 },
 	    cucumber : { en: "cucumber", fi: "kurkku", count: 0 },
 	    lemon : { en: "lemon", fi: "sitruuna", count: 0 },
@@ -302,66 +307,31 @@ module.exports = {
 	    toast : { en: "toast", fi: "paahtoleipä", count: 0 },
 	    tomato : { en: "tomato", fi: "tomaatti", count: 0 },
 	    strawberry : { en: "strawberry", fi: "mansikka", count: 0 },
-	    jam : { en: "jam", fi: "hillo", count: 0 },
-	    juice : { en: "juice", fi: "mehu", count: 0 },
+	    //jam : { en: "jam", fi: "hillo", count: 0 },
+	    //juice : { en: "juice", fi: "mehu", count: 0 },
 	},
 
 
 	L13: {
-	    I : { en: "I", fi: "minä", count: 0 },
-	    you : { en: "you", fi: "sinä", count: 0 },
-	    he : { en: "he", fi: "hän, sanotaan pojasta tai miehestä", count: 0 },
-	    she : { en: "she", fi: "hän, sanotaan tytöstä tai naisesta", count: 0 },
-	    we : { en: "we", fi: "me", count: 0 },
-	    you  : { en: "you ", fi: "te", count: 0 },
-	    it : { en: "#it", fi: "se", count: 0 },
-	    don_t : { en: "don't", fi: "älä", count: 0 },
-	    come : { en: "come", fi: "tulla", count: 0 },
-	    go : { en: "go", fi: "mennä", count: 0 },
-	    want : { en: "want", fi: "haluta", count: 0 },
-	    like : { en: "like", fi: "tykätä", count: 0 },
-	    give : { en: "give", fi: "antaa", count: 0 },
-	    take : { en: "take", fi: "ottaa", count: 0 },
-	    learn : { en: "learn", fi: "oppia", count: 0 },
+	    i_am: { en: "I am", fi: "minä olen", count: 0 },
+	    you_are : { en: "you are", fi: "sinä olet", count: 0 },
+	    she_is : { en: "she is", fi: "hän on", count: 0,  random_feedback: true },
+	    i_was: { en: "I was", fi: "minä olin", count: 0 },
+	    you_were : { en: "you were", fi: "sinä olit", count: 0 },	
+	    we_were : { en: "we were", fi: "me olimme/me oltiin", count: 0 },
+	    i_go: { en: "I go", fi: "minä menen", count: 0 },
+	    you_go: { en: "you go", fi: "sinä menet", count: 0 },
+	    he_goes: { en: "he goes", fi: "hän menee", count: 0 },
+	    we_go: { en: "we go", fi: "me menemme", count: 0 },
+	    lets_go: { en: "let's go", fi: "mennään", count: 0 },
+	    i_like: { en: "I like", fi: "minä tykkään", count: 0 },
+	    she_likes: { en: "she likes", fi: "hän tykkää", count: 0 },
+	    hurry_up: { en: "hurry up", fi: "kiirehdi/vauhtia!", count: 0 },
+	    it : { en: "it", fi: "se", count: 7 },
+	    don_t : { en: "don't", fi: "älä", count: 0 },	
 	},
 
 	L14: {
-	    i_am : { en: "I am", fi: "minä olen", count: 0 },
-	    you_are : { en: "you are", fi: "sinä olet", count: 0 },
-	    she_is : { en: "she is", fi: "hän on", count: 0 },
-	    i_was : { en: "I was", fi: "minä olin", count: 0 },
-	    you_were : { en: "you were", fi: "sinä olit", count: 0 },
-	    we_were : { en: "we were", fi: "me olimme/me oltiin", count: 0 },
-	    i_go : { en: "I go", fi: "minä menen", count: 0 },
-	    you_go  : { en: "you go ", fi: "sinä menet", count: 0 },
-	    he_goes : { en: "he goes", fi: "hän menee", count: 0 },
-	    we_go : { en: "we go", fi: "me menemme/me mennään", count: 0 },
-	    let_s_go  : { en: "Let's go ", fi: "mennään", count: 0 },
-	    i_like : { en: "I like", fi: "minä tykkään", count: 0 },
-	    she_likes : { en: "she likes", fi: "hän tykkää", count: 0 },
-	    hurry_up : { en: "hurry up", fi: "kiirehdi/vauhtia!", count: 0 },
-	},
-
-
-	L15: {
-	    one : { en: "one", fi: "yksi", count: 0 },
-	    two : { en: "two", fi: "kaksi", count: 0 },
-	    four : { en: "four", fi: "neljä", count: 0 },
-	    five : { en: "five", fi: "viisi", count: 0 },
-	    six : { en: "six", fi: "kuusi", count: 0 },
-	    seven : { en: "seven", fi: "seitsemän", count: 0 },
-	    eight : { en: "eight", fi: "kahdeksan", count: 0 },
-	    nine : { en: "nine", fi: "yhdeksän", count: 0 },
-	    ten : { en: "ten", fi: "kymmenen", count: 0 },
-	    Hundred : { en: "Hundred", fi: "sata", count: 0 },
-	    four_cars : { en: "four cars", fi: "neljä autoa", count: 0 },
-	    five_cups : { en: "five cups", fi: "viisi kuppia", count: 0 },
-	    two_cats : { en: "two cats", fi: "kaksi kissaa", count: 0 },
-	    eight_balls : { en: "eight balls", fi: "kahdeksan palloa", count: 0 }
-	},
-
-
-	L16: {
 	    bear : { en: "bear", fi: "karhu", count: 0 },
 	    bee : { en: "bee", fi: "mehiläinen", count: 0 },
 	    bird : { en: "bird", fi: "lintu", count: 0 },
@@ -370,35 +340,90 @@ module.exports = {
 	    dolphin : { en: "dolphin", fi: "delfiini", count: 0 },
 	    hare : { en: "hare", fi: "jänis", count: 0 },
 	    elephant : { en: "elephant", fi: "norsu", count: 0 },
-	    fish : { en: "fish", fi: "kala", count: 0 },
+	    fish : { en: "fish", fi: "kala", count: 0 ,  random_feedback: true },
 	    fox : { en: "fox", fi: "kettu", count: 0 },
 	    hedgehog : { en: "hedgehog", fi: "siili", count: 0 },
 	    lion : { en: "lion", fi: "leijona", count: 0 },
 	    monkey : { en: "monkey", fi: "apina", count: 0 },
 	    owl : { en: "owl", fi: "pöllö", count: 0 },
-	    snake : {en: "snake", fi: "käärme", count: 0 }
+	    snake : {en: "snake", fi: "käärme", count: 0 }	
 	},
 
-	L17: {
-	    ice  : { en: "ice ", fi: "jää", count: 0 },
-	    eyes : { en: "eyes", fi: "silmät", count: 0 },
-	    once : { en: "once", fi: "kerran", count: 0 },
-	    ones : { en: "ones", fi: "yhdet", count: 0 },
-	    peace : { en: "peace", fi: "rauha", count: 0 },
-	    peas : { en: "peas", fi: "herneet", count: 0 },
-	    place : { en: "place", fi: "paikka", count: 0 },
-	    plays : { en: "plays", fi: "leikkii/pelaa", count: 0 },
-	    rice : { en: "rice", fi: "riisi", count: 0 },
-	    rise : { en: "rise", fi: "nousta", count: 0 },
-	    sauce : { en: "sauce", fi: "kastike", count: 0 },
-	    saws : { en: "saws", fi: "sahat", count: 0 },
-	    Zoo : { en: "Zoo", fi: "eläintarha", count: 0 },
-	    zoos : { en: "zoos", fi: "eläintarhat", count: 0 },
-	    see : { en: "see", fi: "nähdä", count: 0 },
-	    sees : {en: "sees", fi: "näkee", count: 0 }
+	L15: {
+	    jet : { en : "jet", fi : "suihkukone", count: 9 },
+	    yet : { en : "yet", fi : "vielä", count: 9 },
+	    juice : { en : "juice", fi : "mehu", count: 0 },
+	    use : { en : "use", fi : "käyttää", count: 0 },
+	    your : { en : "your", fi : "sinun", count: 0 },
+	    jaw : { en : "jaw", fi : "leuka", count: 0 },
+	    jump : { en : "jump", fi : "hypätä", count: 0 },
+	    jam : { en : "jam", fi : "hillo", count: 0 },
+	    age: { en : "age", fi : "ikä", count: 0 },
+	    orange: { en : "orange", fi : "oranssi", count: 0 },
+	},
+	L19: {
+	    jet : { en : "jet", fi : "suihkukone", count: 9 },
+	    yet : { en : "yet", fi : "vielä", count: 9 },
+	    juice : { en : "juice", fi : "mehu", count: 0 },
+	    use : { en : "use", fi : "käyttää", count: 0 },
+	    your : { en : "your", fi : "sinun", count: 0 },
+	    jaw : { en : "jaw", fi : "leuka", count: 0 },
+	    jump : { en : "jump", fi : "hypätä", count: 0 },
+	    jam : { en : "jam", fi : "hillo", count: 0 },
+	    age: { en : "age", fi : "ikä", count: 0 },
+	    orange: { en : "orange", fi : "oranssi", count: 0 },
+	},
+	L24: {
+	    jet : { en : "jet", fi : "suihkukone", count: 9 },
+	    yet : { en : "yet", fi : "vielä", count: 9 },
+	    juice : { en : "juice", fi : "mehu", count: 0 },
+	    use : { en : "use", fi : "käyttää", count: 0 },
+	    your : { en : "your", fi : "sinun", count: 0 },
+	    jaw : { en : "jaw", fi : "leuka", count: 0 },
+	    jump : { en : "jump", fi : "hypätä", count: 0 },
+	    jam : { en : "jam", fi : "hillo", count: 0 },
+	    age: { en : "age", fi : "ikä", count: 0 },
+	    orange: { en : "orange", fi : "oranssi", count: 0 },
 	},
 
-	L18: {
+	L16: {
+	    healthy: { en : "healthy", fi : "terveellinen", count: 9 },
+	    thick : { en: "thick", fi: "paksu", count: 0 },
+	    thin : { en: "thin", fi: "ohut", count: 0 },
+	    thing : { en: "thing", fi: "juttu", count: 0 },
+	    think : { en: "think", fi: "ajatella", count: 0 },
+	    teeth : { en: "teeth", fi: "hammas, hampaat", count: 0 },
+	    mouth : { en: "#mouth", fi: "suu", count: 0 },
+	    north : { en: "north", fi: "pohjoinen", count: 0 },
+	    theatre : { en: "theatre", fi: "teatteri", count: 0 },
+	    month : { en: "month", fi: "kuukausi", count: 0 },
+	    three : { en: "three", fi: "kolme", count: 0 },
+	    thank_you : { en: "thank you", fi: "kiitos", count: 0 },
+	    thirsty : { en: "thirsty", fi: "janoinen", count: 0 },
+	    throw : { en: "throw", fi: "heittää", count: 0 },
+	    bath : { en: "bath", fi: "kylpy", count: 0 },
+	    maths : { en: "maths", fi: "matematiikka", count: 0 }  
+	},
+	L20: {
+	    healthy: { en : "healthy", fi : "terveellinen", count: 9 },
+	    thick : { en: "thick", fi: "paksu", count: 0 },
+	    thin : { en: "thin", fi: "ohut", count: 0 },
+	    thing : { en: "thing", fi: "juttu", count: 0 },
+	    think : { en: "think", fi: "ajatella", count: 0 },
+	    teeth : { en: "teeth", fi: "hammas, hampaat", count: 0 },
+	    mouth : { en: "#mouth", fi: "suu", count: 0 },
+	    north : { en: "north", fi: "pohjoinen", count: 0 },
+	    theatre : { en: "theatre", fi: "teatteri", count: 0 },
+	    month : { en: "month", fi: "kuukausi", count: 0 },
+	    three : { en: "three", fi: "kolme", count: 0 },
+	    thank_you : { en: "thank you", fi: "kiitos", count: 0 },
+	    thirsty : { en: "thirsty", fi: "janoinen", count: 0 },
+	    throw : { en: "throw", fi: "heittää", count: 0 },
+	    bath : { en: "bath", fi: "kylpy", count: 0 },
+	    maths : { en: "maths", fi: "matematiikka", count: 0 }  
+	},
+	L25: {
+	    healthy: { en : "healthy", fi : "terveellinen", count: 9 },
 	    thick : { en: "thick", fi: "paksu", count: 0 },
 	    thin : { en: "thin", fi: "ohut", count: 0 },
 	    thing : { en: "thing", fi: "juttu", count: 0 },
@@ -416,8 +441,8 @@ module.exports = {
 	    maths : { en: "maths", fi: "matematiikka", count: 0 }  
 	},
 
-
-	L19: {
+	L17: {
+	    feather: { en : "feather", fi : "höyhen", count: 9 },
 	    brother : { en: "brother", fi: "veli", count: 0 },
 	    father : { en: "father", fi: "isä", count: 0 },
 	    mother  : { en: "mother ", fi: "äiti", count: 0 },
@@ -428,15 +453,50 @@ module.exports = {
 	    there : { en: "there", fi: "tuolla", count: 0 },
 	    this : { en: "this", fi: "tämä", count: 0 },
 	    that : { en: "that", fi: "tuo, että", count: 0 },
-	    theese : { en: "theese", fi: "nämä", count: 0 },
+	    these : { en: "these", fi: "nämä", count: 0 },
+	    those : { en: "those", fi: "nuo", count: 0 },
+	    than : { en: "than", fi: "kuin", count: 0 },
+	    the : {en: "the", fi: "(määräinen artikkeli)", count: 0},
+	    with : { en: "with", fi: "kanssa", count: 0 },
+	},
+	L21: {
+	    feather: { en : "feather", fi : "höyhen", count: 9 },
+	    brother : { en: "brother", fi: "veli", count: 0 },
+	    father : { en: "father", fi: "isä", count: 0 },
+	    mother  : { en: "mother ", fi: "äiti", count: 0 },
+	    clothes : { en: "#clothes", fi: "vaatteet", count: 0 },
+	    their : { en: "their", fi: "heidän", count: 0 },
+	    they : { en: "they", fi: "he", count: 0 },
+	    then : { en: "then", fi: "sitten", count: 0 },
+	    there : { en: "there", fi: "tuolla", count: 0 },
+	    this : { en: "this", fi: "tämä", count: 0 },
+	    that : { en: "that", fi: "tuo, että", count: 0 },
+	    these : { en: "these", fi: "nämä", count: 0 },
 	    those : { en: "those", fi: "nuo", count: 0 },
 	    than : { en: "than", fi: "kuin", count: 0 },
 	    the : {en: "the", fi: "(määräinen artikkeli)", count: 0},
 	    with : { en: "with", fi: "kanssa", count: 0 },
 	},
 
-
-	L20: {
+	L26: {
+	    feather: { en : "feather", fi : "höyhen", count: 9 },
+	    brother : { en: "brother", fi: "veli", count: 0 },
+	    father : { en: "father", fi: "isä", count: 0 },
+	    mother  : { en: "mother ", fi: "äiti", count: 0 },
+	    clothes : { en: "#clothes", fi: "vaatteet", count: 0 },
+	    their : { en: "their", fi: "heidän", count: 0 },
+	    they : { en: "they", fi: "he", count: 0 },
+	    then : { en: "then", fi: "sitten", count: 0 },
+	    there : { en: "there", fi: "tuolla", count: 0 },
+	    this : { en: "this", fi: "tämä", count: 0 },
+	    that : { en: "that", fi: "tuo, että", count: 0 },
+	    these : { en: "these", fi: "nämä", count: 0 },
+	    those : { en: "those", fi: "nuo", count: 0 },
+	    than : { en: "than", fi: "kuin", count: 0 },
+	    the : {en: "the", fi: "(määräinen artikkeli)", count: 0},
+	    with : { en: "with", fi: "kanssa", count: 0 },
+	},
+	L18 : {
 	    bedroom : { en: "bedroom", fi: "makuuhuone", count: 0 },
 	    carpet : { en: "carpet", fi: "matto", count: 0 },
 	    bed : { en: "bed", fi: "sänky", count: 0 },
@@ -444,96 +504,22 @@ module.exports = {
 	    dream : { en: "dream", fi: "uneksia/uni", count: 0 },
 	    garage : { en: "garage", fi: "autotalli", count: 0 },
 	    house : { en: "house", fi: "talo", count: 0 },
-	    kitchen : { en: "kitchen", fi: "keittiö", count: 0 },
+	    kitchen : { en: "kitchen", fi: "keittiö", count: 0,  random_feedback: true  },
 	    lamp : { en: "lamp", fi: "lamppu", count: 0 },
-	    living_room : { en: "living room", fi: "olohuone", count: 0 },
+	    living_room : { en: "living room", fi: "olohuone", count: 0,  random_feedback: true  },
 	    lock : { en: "lock", fi: "lukita/lukko", count: 0 },
 	    phone : { en: "phone", fi: "puhelin", count: 0 },
 	    room : { en: "room", fi: "huone", count: 0 },
 	    shower : { en: "shower", fi: "suihku", count: 0 },
 	    table : { en: "table", fi: "pöytä", count: 0 },
 	    toilet : { en: "toilet", fi: "vessa", count: 0 },
-	    window : { en: "window", fi: "ikkuna", count: 0 },
+	    window : { en: "window", fi: "ikkuna", count: 0,  random_feedback: true  },
 	    door : {en: "door", fi: "ovi", count: 0 }
+
 	},
 
-	L21: {
-	    black : { en: "black", fi: "musta", count: 0 },
-	    blue : { en: "blue", fi: "sininen", count: 0 },
-	    brown : { en: "brown", fi: "ruskea", count: 0 },
-	    green : { en: "green", fi: "vihreä", count: 0 },
-	    grey : { en: "grey", fi: "harmaa", count: 0 },
-	    orange : { en: "orange", fi: "oranssi", count: 0 },
-	    pink : { en: "pink", fi: "vaaleanpunainen", count: 0 },
-	    purple : { en: "purple", fi: "violetti", count: 0 },
-	    red : { en: "red", fi: "punainen", count: 0 },
-	    white : { en: "white", fi: "valkoinen", count: 0 },
-	    yellow : { en: "yellow", fi: "keltainen", count: 0 },
-	    colour : { en: "colour", fi: "väri", count: 0 },
-	    paint : { en: "paint", fi: "maali", count: 0 },
-	    art : { en: "art", fi: "taide", count: 0 },
-	    draw : {en: "draw", fi: "piirtää", count: 0 }
-	},
-
-
+	
 	L22: {
-	    ice  : { en: "ice ", fi: "jää", count: 0 },
-	    eyes : { en: "eyes", fi: "silmät", count: 0 },
-	    once : { en: "once", fi: "kerran", count: 0 },
-	    ones : { en: "ones", fi: "yhdet", count: 0 },
-	    peace : { en: "peace", fi: "rauha", count: 0 },
-	    peas : { en: "peas", fi: "herneet", count: 0 },
-	    place : { en: "place", fi: "paikka", count: 0 },
-	    plays : { en: "plays", fi: "leikkii/pelaa", count: 0 },
-	    rice : { en: "rice", fi: "riisi", count: 0 },
-	    rise : { en: "rise", fi: "nousta", count: 0 },
-	    sauce : { en: "sauce", fi: "kastike", count: 0 },
-	    saws : { en: "saws", fi: "sahat", count: 0 },
-	    Zoo : { en: "Zoo", fi: "eläintarha", count: 0 },
-	    zoos : { en: "zoos", fi: "eläintarhat", count: 0 },
-	    see : { en: "see", fi: "nähdä", count: 0 },
-	    sees : {en: "sees", fi: "näkee", count: 0 }
-	},
-
-	L23: {
-	    thick : { en: "thick", fi: "paksu", count: 0 },
-	    thin : { en: "thin", fi: "ohut", count: 0 },
-	    thing : { en: "thing", fi: "juttu", count: 0 },
-	    think : { en: "think", fi: "ajatella", count: 0 },
-	    teeth : { en: "teeth", fi: "hammas, hampaat", count: 0 },
-	    mouth : { en: "#mouth", fi: "suu", count: 0 },
-	    north : { en: "north", fi: "pohjoinen", count: 0 },
-	    theatre : { en: "theatre", fi: "teatteri", count: 0 },
-	    month : { en: "month", fi: "kuukausi", count: 0 },
-	    three : { en: "three", fi: "kolme", count: 0 },
-	    thank_you : { en: "thank you", fi: "kiitos", count: 0 },
-	    thirsty : { en: "thirsty", fi: "janoinen", count: 0 },
-	    throw : { en: "throw", fi: "heittää", count: 0 },
-	    bath : { en: "bath", fi: "kylpy", count: 0 },
-	    maths : { en: "maths", fi: "matematiikka", count: 0 }  
-	},
-
-
-	L24: {
-	    brother : { en: "brother", fi: "veli", count: 0 },
-	    father : { en: "father", fi: "isä", count: 0 },
-	    mother  : { en: "mother ", fi: "äiti", count: 0 },
-	    clothes : { en: "#clothes", fi: "vaatteet", count: 0 },
-	    their : { en: "their", fi: "heidän", count: 0 },
-	    they : { en: "they", fi: "he", count: 0 },
-	    then : { en: "then", fi: "sitten", count: 0 },
-	    there : { en: "there", fi: "tuolla", count: 0 },
-	    this : { en: "this", fi: "tämä", count: 0 },
-	    that : { en: "that", fi: "tuo, että", count: 0 },
-	    theese : { en: "theese", fi: "nämä", count: 0 },
-	    those : { en: "those", fi: "nuo", count: 0 },
-	    than : { en: "than", fi: "kuin", count: 0 },
-	    the : {en: "the", fi: "(määräinen artikkeli)", count: 0},
-	    with : { en: "with", fi: "kanssa", count: 0 },
-	},
-
-
-	L25: {
 	    here : { en: "here", fi: "täällä/tässä", count: 0 },
 	    where : { en: "where", fi: "missä", count: 0 },
 	    who : { en: "who", fi: "kuka", count: 0 },
@@ -545,90 +531,28 @@ module.exports = {
 	    tomorrow : { en: "tomorrow", fi: "huomenna", count: 0 },
 	    time : { en: "time", fi: "aika", count: 0 },
 	    day : { en: "day", fi: "päivä", count: 0 },
-	    evening	 : { en: "evening	", fi: "ilta", count: 0 },
-	    morning : { en: "morning", fi: "aamu", count: 0 },
+	    evening	 : { en: "evening	", fi: "ilta", count: 0 ,  random_feedback: true },
+	    morning : { en: "morning", fi: "aamu", count: 0 ,  random_feedback: true },
 	    night : { en: "night	", fi: "yö", count: 0 },
 	    week : { en: "week	", fi: "viikko", count: 0 },
 	    year : { en: "year	", fi: "vuosi", count: 0 },
 	},
 
-
-	L26: {
+	L23: {
 	    language : { en: "language", fi: "kieli", count: 0 },
-	    english : { en: "English", fi: "englannin kieli", count: 0 },
-	    finnish : {en: "Finnish", fi: "suomen kieli", count: 0 },
-	    swedish : { en: "Swedish", fi: "ruotsin kieli", count: 0 },
-	    finland : { en: "Finland", fi: "Suomi ", count: 0 },
-	    finn : { en: "Finn", fi: "suomalainen, sanotaan ihmisestä", count: 0 },
-	    england : { en: "England", fi: "Englanti", count: 0 },
+	    english : { en: "English", fi: "englannin kieli", count: 0 ,  random_feedback: true},
+	    finnish : {en: "Finnish", fi: "suomen kieli", count: 0 ,  random_feedback: true},
+	    swedish : { en: "Swedish", fi: "ruotsin kieli", count: 0 ,  random_feedback: true},
+	    finland : { en: "Finland", fi: "Suomi ", count: 0 ,  random_feedback: true},
+	    finn : { en: "Finn", fi: "suomalainen, sanotaan ihmisestä", count: 0 ,  random_feedback: true},
+	    england : { en: "England", fi: "Englanti", count: 0 ,  random_feedback: true},
 	    europe : { en: "Europe", fi: "Eurooppa", count: 0 },
 	    live : { en: "live", fi: "elää", count: 0 },
-	    city : { en: "city", fi: "kaupunki/suurkaupunki", count: 0 },
+	    city : { en: "city", fi: "kaupunki/suurkaupunki", count: 0,  random_feedback: true },
 	    town : { en: "town", fi: "kaupunki/pikkukaupunki", count: 0 },
-	    village : { en: "village", fi: "kylä", count: 0 },
-	    age : { en: "age", fi: "ikä", count: 0 },
-	    
-	},
-
-
+	    village : { en: "village", fi: "kylä", count: 0 ,  random_feedback: true},
+	}	,
 	L27: {
-	    ice  : { en: "ice ", fi: "jää", count: 0 },
-	    eyes : { en: "eyes", fi: "silmät", count: 0 },
-	    once : { en: "once", fi: "kerran", count: 0 },
-	    ones : { en: "ones", fi: "yhdet", count: 0 },
-	    peace : { en: "peace", fi: "rauha", count: 0 },
-	    peas : { en: "peas", fi: "herneet", count: 0 },
-	    place : { en: "place", fi: "paikka", count: 0 },
-	    plays : { en: "plays", fi: "leikkii/pelaa", count: 0 },
-	    rice : { en: "rice", fi: "riisi", count: 0 },
-	    rise : { en: "rise", fi: "nousta", count: 0 },
-	    sauce : { en: "sauce", fi: "kastike", count: 0 },
-	    saws : { en: "saws", fi: "sahat", count: 0 },
-	    Zoo : { en: "Zoo", fi: "eläintarha", count: 0 },
-	    zoos : { en: "zoos", fi: "eläintarhat", count: 0 },
-	    see : { en: "see", fi: "nähdä", count: 0 },
-	    sees : {en: "sees", fi: "näkee", count: 0 }
-	},
-
-	L28: {
-	    thick : { en: "thick", fi: "paksu", count: 0 },
-	    thin : { en: "thin", fi: "ohut", count: 0 },
-	    thing : { en: "thing", fi: "juttu", count: 0 },
-	    think : { en: "think", fi: "ajatella", count: 0 },
-	    teeth : { en: "teeth", fi: "hammas, hampaat", count: 0 },
-	    mouth : { en: "#mouth", fi: "suu", count: 0 },
-	    north : { en: "north", fi: "pohjoinen", count: 0 },
-	    theatre : { en: "theatre", fi: "teatteri", count: 0 },
-	    month : { en: "month", fi: "kuukausi", count: 0 },
-	    three : { en: "three", fi: "kolme", count: 0 },
-	    thank_you : { en: "thank you", fi: "kiitos", count: 0 },
-	    thirsty : { en: "thirsty", fi: "janoinen", count: 0 },
-	    throw : { en: "throw", fi: "heittää", count: 0 },
-	    bath : { en: "bath", fi: "kylpy", count: 0 },
-	    maths : { en: "maths", fi: "matematiikka", count: 0 }  
-	},
-
-
-	L29: {
-	    brother : { en: "brother", fi: "veli", count: 0 },
-	    father : { en: "father", fi: "isä", count: 0 },
-	    mother  : { en: "mother ", fi: "äiti", count: 0 },
-	    clothes : { en: "#clothes", fi: "vaatteet", count: 0 },
-	    their : { en: "their", fi: "heidän", count: 0 },
-	    they : { en: "they", fi: "he", count: 0 },
-	    then : { en: "then", fi: "sitten", count: 0 },
-	    there : { en: "there", fi: "tuolla", count: 0 },
-	    this : { en: "this", fi: "tämä", count: 0 },
-	    that : { en: "that", fi: "tuo, että", count: 0 },
-	    theese : { en: "theese", fi: "nämä", count: 0 },
-	    those : { en: "those", fi: "nuo", count: 0 },
-	    than : { en: "than", fi: "kuin", count: 0 },
-	    the : {en: "the", fi: "(määräinen artikkeli)", count: 0},
-	    with : { en: "with", fi: "kanssa", count: 0 },
-	},
-
-
-	L30: {
 	    would_you_like_some_juice : { en: "Would you like some juice?", fi: "Haluaisitko mehua?", count: 0 },
 	    would_you_like_some_more : { en: "Would you like some more?", fi: "Haluaisitko lisää?", count: 0 },
 	    yes_please	 : { en: "Yes, please	", fi: "Kyllä, kiitos.", count: 0 },
@@ -647,5 +571,6 @@ module.exports = {
 	    good_night : { en: "good night", fi: "hyvää yötä", count: 0 },
 	    do_you_want_to_play_with_us : { en: "Do you want to play with us?", fi: "Haluatko leikkiä kanssamme?", count: 0 }
 	}
+	
     }
 }

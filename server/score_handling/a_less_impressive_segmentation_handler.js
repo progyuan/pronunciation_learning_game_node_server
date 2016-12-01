@@ -46,7 +46,7 @@ function SegmentationHandler(user) {
 
     this.state = "waitforacc";
 
-    debugout(this.user, "New segmentation handler started for user "+user);
+    debugout("New segmentation handler started for user "+user, 0, this.user);
 
 
     this.sizebuffer = new Buffer(4);
@@ -137,9 +137,14 @@ function SegmentationHandler(user) {
 	    });
 
 
-	    debugout(this.user + ": Setting the classification array length to: "+segmentation_array.length)
-	    this.classifications = new Array(segmentation_array.length);
 
+	    debugout("Setting the classification array length to: "+segmentation_array.length, 0, this.user);
+
+	    this.classifications = new Array(segmentation_array.length);
+	    
+
+
+	    
 	    return segmentation_array;
 	}
 
@@ -194,10 +199,12 @@ function SegmentationHandler(user) {
 	    });
 
 
-	    debugout(this.user + ": Setting the classification array length to: "+segmentation_array.length)
+	    debugout("Setting the classification array length to: "+segmentation_array.length, 0, this.user);
 	    this.classifications = new Array(segmentation_array.length);
 
+
 	    return segmentation_array;
+
 	}
 
 	else return [];
@@ -218,7 +225,7 @@ function SegmentationHandler(user) {
 
 	// Sanity check:
 	if (segmentation.length < 1) {
-	    debugout(this.user, "Something funny about the segmentation (length zero)" )
+	    debugout("Something funny about the segmentation (length zero)", 0, this.user)
 	    process.emit('user_event', 
 			 this.user, 
 			 this.word_id,
@@ -253,7 +260,7 @@ function SegmentationHandler(user) {
 
 	    //debugout(this.user, "And end at Math.min("+segmentendpoint+", "+segmentstartpoint+" + "+this.datadim +" * "+ this.timesteps + " * " +this.datasize +" ) --> " + (Math.min(segmentendpoint, segmentstartpoint + this.datadim * this.timesteps * this.datasize  ) ) );
 
-	    debugout(this.user, "payloadstartpoint: "+payloadstartpoint + "  segmentstartpoint: "+ segmentstartpoint + " important thing: "+ Math.min(segmentendpoint, segmentstartpoint + this.datadim * this.timesteps * this.datasize ) );
+	    debugout( "payloadstartpoint: "+payloadstartpoint + "  segmentstartpoint: "+ segmentstartpoint + " important thing: "+ Math.min(segmentendpoint, segmentstartpoint + this.datadim * this.timesteps * this.datasize ) , 0, this.user);
 
 	    features.copy(payloadbuffer, 			 
 			  payloadstartpoint,
@@ -287,13 +294,13 @@ function SegmentationHandler(user) {
 	fs.readFile(conf.dnnconf.port_number_file, function(err, port) {
 	    
 
-	    debugout( user, "Connecting to port >"+port+"<");
+	    debugout(  "Connecting to port >"+port+"<", 0, this.user);
 
 	    process.emit('user_event', that.user, that.word_id, 'timestamp',{name: 'dnn_start' }); 			
 
 	    var client = net.connect({port: ""+port},
 				     function() { //'connect' listener
-					 debugout(this.user, 'connected to server!');
+					 debugout('connected to server!', 0, this.user);
 					 client.write( sizebuffer );
 					 state ="waitforacc";
 				     });
@@ -303,17 +310,17 @@ function SegmentationHandler(user) {
 	    
 	    client.on('data', function(data) {
 
-		debugout(that.user, "Got "+Object.prototype.toString.call(data)+" of length "+ data.length+" in state "+state);
+		debugout("Got "+Object.prototype.toString.call(data)+" of length "+ data.length+" in state "+state, 0, that.user);
 		
 		if (state == "waitforacc") {
-		    debugout(that.user, "Got ack: "+data.readInt32LE(0));
+		    debugout("Got ack: "+data.readInt32LE(0), 0, that.user);
 		    client.write( payloadbuffer );
 		    state = "waitforreturnlen";
 		}
 		
 		else if (state == "waitforreturnlen") {
 		    var returnsizebuffer = new Buffer( new Int8Array(data) );
-		    debugout(that.user, "Got data length: "+ returnsizebuffer.readInt32LE(0,4));
+		    debugout( "Got data length: "+ returnsizebuffer.readInt32LE(0,4), 0, that.user);
 		    client.write( ackbuffer );
 		    state = "waitforreturndata";
 		}
@@ -323,7 +330,7 @@ function SegmentationHandler(user) {
 		    var returneddata = new Buffer( new Int8Array(data) );
 		    var classes=[]
 
-		    debugout(that.user, "Got returned data: ");
+		    debugout("Got returned data: ", 0, that.user);
 		    for (var i =0; i< returneddata.length; i+=4) {
 			classes.push(returneddata.readFloatLE(i))
 		    }
@@ -343,7 +350,7 @@ function SegmentationHandler(user) {
 
 	    client.on('end', function() {
 		client.destroy();
-		debugout(that.user, 'disconnected from classification server');
+		debugout('disconnected from classification server', 0, that.user);
 	    });
 	    
 	    client.on('timeout', function() {
@@ -378,9 +385,9 @@ function debugout( text , priority, user, word_id ) {
 	message: text,
     }
     if (typeof(priority) != 'undefined') 
-	printdata.priority = priority;
+	printdata.priority = 0;//priority;
     else
-	printdata.priority = 0;
+	printdata.priority = priority;
 
     if (typeof(user) != 'undefined') 
 	printdata.user = user;
