@@ -75,8 +75,14 @@ def get_likelihood(f_name):
 				line_splitted=line_splitted.split('-')
 				nu_frames=float(line_splitted[1])
 	
-	likelihood=likelihood/nu_frames
-	return likelihood
+        try:
+                likelihood=likelihood/nu_frames
+        except UnboundLocalError:                 
+                sys.stderr.write("\nCould not get likelihood from "+f_name+"\n")
+                raise
+
+        return likelihood                
+
 
 
 
@@ -95,7 +101,11 @@ def compute_cross_likelihood(word_name, lex_name, wav_name, flag_use_adaptation,
 	if flag_verbose >= 2:
 		sys.stderr.write(cmd_test + '\n')
 	os.system(cmd_test)
-	likelihood=get_likelihood(align_output)
+        try:
+                likelihood=get_likelihood(align_output)
+        except UnboundLocalError:
+                sys.stderr.write("\nCould not get likelihood for word "+word_name+"\n")
+                raise
 	return likelihood
 
 
