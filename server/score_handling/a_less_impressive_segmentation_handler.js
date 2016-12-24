@@ -23,8 +23,9 @@ var here_comes_answer = -500;
 var conf = require('../config.js');
 
 
+// Redundant as we're using tcp sockets?
+//var classifier_command = "./score_handling/keras_classifier_server.py";
 
-var classifier_command = "./score_handling/keras_classifier_server.py";
 
 // constructor
 
@@ -223,8 +224,8 @@ function SegmentationHandler(user) {
     SegmentationHandler.prototype.get_classification = function(segmentation, features) {
 
 
-	// Sanity check:
-	if (segmentation.length < 1) {
+	// Sanity checks:
+	if ( !segmentation ||  segmentation.length < 1) {
 	    debugout("Something funny about the segmentation (length zero)", 0, this.user)
 	    process.emit('user_event', 
 			 this.user, 

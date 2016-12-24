@@ -47,7 +47,7 @@ var vad = require('./audio_handling/vad_stolen_from_sphinx');
 var segmentation_handler  = new require('./score_handling/a_less_impressive_segmentation_handler.js');
 
 var scorer =  require('./score_handling/magicians_hat_scorer.js');
-var fur_hat_scorer =  require('./score_handling/fur_hat_scorer.js');
+//var fur_hat_scorer =  require('./score_handling/fur_hat_scorer.js');
 
 var audioconf = conf.audioconf;
 var recogconf = conf.recogconf;
@@ -107,7 +107,7 @@ http.createServer(function (req, res) {
 				  if (err) {
 				      debugout(username +": user "+username + " password NOT ok!");
 				      res.statusCode = 401;
-				      res.end( err.msg );			 
+				      res.end( err.msg );
 				  }
 				  else {
 				      //debugout(username + ": user "+username + " password ok!");
@@ -181,6 +181,10 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 	userdata[user].timestamps[eventdata.name] =   new Date().getTime();
     }
 
+    else if (eventname == 'new_word_id') {
+	word_select_reply(user);
+    }
+
     /*if (eventname == 'segmenter_loaded') {
       userdata[user].segmenter_loaded = true;
       userdata[user].currentword.reference = eventdata.word;
@@ -196,7 +200,7 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
     else 
     {
 	if (wordid != get_current_word_id(user)) {
-	    debugout(colorcodes.event, user + ": this event is for a word that we are not processing at this time (which would be "+get_current_word_id(user)+")");
+	    debugout(colorcodes.event, user + ": this event ("+ eventname +") is for a word (#"+wordid+")that we are not processing at this time (which would be "+get_current_word_id(user)+")");
 	}
 	else
 	{		    
@@ -265,11 +269,11 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 	    }
 	    else if (eventname == 'kalle_dbg') {
 
-		fur_hat_scorer.fur_hat_scorer(user, 
-					      userdata[user].currentword.reference, 
-					      wordid, 
-					      userdata[user].currentword,
-					      eventdata);
+		//fur_hat_scorer.fur_hat_scorer(user, 
+		//			      userdata[user].currentword.reference, 
+		//			      wordid, 
+		//			      userdata[user].currentword,
+		//			      eventdata);
 		
 	    }
 	    else if (eventname == 'segmentation_error') {
@@ -334,16 +338,16 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 	    else if (eventname == 'dnn_scoring_done') {
 		userdata[user].currentword.dnn_score = eventdata;
 		
-		if (userdata[user].currentword.kalles_score) {
+		//if (userdata[user].currentword.kalles_score) {
 		    send_score(user);		
-		}
-		else {
-		    dummy = 1;
-		    //debugout(colorcodes.event, user + ": Waiting for Kalle's score event!"+
-		    //	     " Kalles score: "+ userdata[user].currentword.kalles_score +
-		    //	     " DNN score: " +  userdata[user].currentword.dnn_score
-		    //	    );
-		}
+		//}
+		//else {
+		//    dummy = 1;
+		//    //debugout(colorcodes.event, user + ": Waiting for Kalle's score event!"+
+		//    //	     " Kalles score: "+ userdata[user].currentword.kalles_score +
+		//    //	     " DNN score: " +  userdata[user].currentword.dnn_score
+		//    //	    );
+		//}
 	    }
 	    else  {
 		debugout(colorcodes.event, user + ": Don't know what to do with this event! ("+ eventname +")");
@@ -423,12 +427,12 @@ function audio_packet_reply(user,res, packetnr, usevad) {
 function send_score(user) {
 
     var score_object = userdata[user].currentword.dnn_score;
-    score_object.dnn_score = score_object.total_score
-    score_object.kalles_score = userdata[user].currentword.kalles_score.total_score;
+    score_object.dnn_score = score_object.total_score;
+    score_object.kalles_score = -1; //userdata[user].currentword.kalles_score.total_score;
 
-    score_object.total_score = Math.ceil( (0.75 * score_object.dnn_score + 0.25 * score_object.kalles_score) );
-
-    send_score_and_clear(user, score_object)
+    score_object.total_score = score_object.dnn_score; //Math.ceil( (0.75 * score_object.dnn_score + 0.25 * score_object.kalles_score) );
+    
+    send_score_and_clear(user, score_object);
 
 }
 
@@ -478,8 +482,8 @@ function send_score_and_clear(user, score_object) {
 			     //classification: userdata[user].currentword.phoneme_classes 
 			    });
 
-	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Clearing user: "+user);
-	clearUpload(user)
+	//debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Clearing user: "+user);
+	//clearUpload(user)
     }    
 }
 
@@ -498,6 +502,8 @@ var operate_recognition = function (req,res) {
     packetnr = req.headers['x-siak-packetnr'];
 
     finalpacket = req.headers['x-siak-final-packet'];
+
+    new_word = false;
 
     //debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Got packet nr "+  packetnr +" for "+user + " word: "+ userdata[user].currentword.reference );
 
@@ -544,14 +550,11 @@ var operate_recognition = function (req,res) {
 
     /* Packet nr -1 is used to set the word: */
     else if (packetnr == -1) {
-
-	userdata[user].currentword.reference = req.headers['x-siak-current-word'];	
-	logging.log_event({user: user, 
-			   event: "set_word", 
-			   word: userdata[user].currentword.reference, 
-			   word_id: userdata[user].currentword.id,
-			   level: userdata[user].currentlevel
-			  });
+	// Connections breaking before word is complete have been causing problems.
+	// Let's clear the user data when we receive indication of new upload starting:
+	
+	new_word = req.headers['x-siak-current-word'];
+	console.log("New word for user",user,"is", new_word);
 
     }	
 
@@ -605,7 +608,10 @@ var operate_recognition = function (req,res) {
 	}
 	else if (packetnr == -1) {		
 	    userdata[user].readyreply = res;
-	    set_word_and_init_recogniser(user, userdata[user].currentword.reference,userdata[user].currentword.id );	
+	    console.log("New word is", new_word);
+	    clearUpload(user, new_word);
+
+	    //set_word_and_init_recogniser(user, userdata[user].currentword.reference,userdata[user].currentword.id );	
 
 	}	    
 	else {
@@ -733,11 +739,11 @@ function init_userdata(user, level) {
 
 	userdata[user].currentlevel=level;
     }
-    clearUpload(user);
+    //clearUpload(user);
 }
 
 
-function clearUpload(user) {
+function clearUpload(user, new_word) {
 
     userdata[user].lastPacketReply = false;
     userdata[user].allzeros = true;
@@ -750,7 +756,11 @@ function clearUpload(user) {
 
     word.id = -1;
 
-    word.reference = null;
+    if (new_word)
+	word.reference = new_word;
+    else
+	word.reference = null;
+    
     word.recresult = false;
 
     word.packetset=[];
@@ -797,14 +807,27 @@ function clearUpload(user) {
 	    userdata[user].currentword.id = 0;
 	}
 	else  {
-	    if (res.length<1) 
+	    if (res.length<1) { 
 		userdata[user].currentword.id = 0;
-	    else {
-		if (typeof(res[0].word_id) === 'undefined' ) 
-		    userdata[user].currentword.id = 0;
-		else
-		    userdata[user].currentword.id = res[0].word_id + 1 ;
 	    }
+	    else {
+		if (typeof(res[0].word_id) === 'undefined' ) { 
+		    userdata[user].currentword.id = 0;
+		}
+		else {
+		    userdata[user].currentword.id = res[0].word_id + 1 ;
+		}
+		set_word_and_init_recogniser(user, userdata[user].currentword.reference,userdata[user].currentword.id );	
+		process.emit('user_event', user, userdata[user].currentword.id, 'new_word_id', {});
+	    }
+
+	    logging.log_event({user: user, 
+			       event: "set_word", 
+			       word: userdata[user].currentword.reference, 
+			       word_id: userdata[user].currentword.id,
+			       level: userdata[user].currentlevel
+			      });
+
 	}
     });
 
@@ -827,7 +850,7 @@ function set_word_and_init_recogniser(user, word, word_id) {
 
     // Kludging to continue; it really isn't necessary to use events here but
     // I want to experiment quickly
-    process.emit('user_event', user, word_id, 'segmenter_ready',{word:word});
+    //process.emit('user_event', user, word_id, 'segmenter_ready',{word:word});
 
 }
 
@@ -1166,25 +1189,22 @@ var start_level = function (req,res) {
 
     debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Received packet level up! user: "+user + " level "+ level);
     
-    game_data_handler.get_and_somehow_order_words_for_level(user, 
-							    level, 
-							    req, 
-							    res, function(e, 
-									  req, 
-									  res, 
-									  user, 
-									  level, 
-									  words) { 
-								if (!userdata.hasOwnProperty(user)) {	
-								    debugout("Init userdata!");
-								    init_userdata(user);
-								}
-
-								userdata[user].currentlevel = level;
-								userdata[user].levelwordstack = words;
-								res.end( JSON.stringify( words));
-							    } );
-
+    game_data_handler.get_and_somehow_order_words_for_level( user, level, req, res, 
+	function(e,req,res,user, level,words) { 
+	    if (!userdata.hasOwnProperty(user)) {	
+		debugout("Init userdata!");
+		init_userdata(user, function() {
+		    userdata[user].currentlevel = level;
+		    userdata[user].levelwordstack = words;
+		    res.end( JSON.stringify( words));
+		});
+	    }
+	    else {
+		userdata[user].currentlevel = level;
+		userdata[user].levelwordstack = words;
+		res.end( JSON.stringify( words));
+	    }
+	});
 }
 
 
@@ -1212,27 +1232,24 @@ var get_next_word = function(req,res) {
 	
     }
     else {
-	game_data_handler.get_and_somehow_order_words_for_level(user, 
-								level, 
-								req, 
-								res, function(e, 
-									      req, 
-									      res, 
-									      user, 
-									      level, 
-									      words) { 
-								    if (!userdata.hasOwnProperty(user)) {	
-									debugout("Init userdata!");
-									init_userdata(user);
-								    }
-								    
-								    userdata[user].currentlevel = level;
-
-
-								    nextword=words[0];
-								    userdata[user].levelwordstack = words.slice(1);
-								    res.end( JSON.stringify( nextword));
-								} );
+	game_data_handler.get_and_somehow_order_words_for_level( user, level, req, res, 
+	    function(e,req,res,user, level,words) { 
+		if (!userdata.hasOwnProperty(user)) {	
+		    debugout("Init userdata!");
+		    init_userdata(user, function() {
+			userdata[user].currentlevel = level;
+			nextword=words[0];
+			userdata[user].levelwordstack = words.slice(1);
+			res.end( JSON.stringify( nextword));
+		    });
+		}
+		else {
+		    userdata[user].currentlevel = level;
+		    nextword=words[0];
+		    userdata[user].levelwordstack = words.slice(1);
+		    res.end( JSON.stringify( nextword));
+		}
+	    });
     }
 }
 

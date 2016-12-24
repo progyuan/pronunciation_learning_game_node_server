@@ -241,7 +241,7 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
 	}
 
 
-
+	
 
 	debugout(user, "user: "+user);
 	debugout(user, "word: "+word);
@@ -250,6 +250,9 @@ var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, l
 	debugout(user, "Total score: "+ total_score + " --> " + Math.ceil( total_score   / 20.0 / segmentation.length  ));
 
 	total_score =  Math.ceil(total_score  / 20.0 / segmentation.length );
+
+	if (total_score == 0)
+	    total_score = -2;
 
 	// Here some processing could be made
 

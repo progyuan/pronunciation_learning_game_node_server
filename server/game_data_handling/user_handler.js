@@ -57,19 +57,37 @@ function authenticate(req, res, callback) {
 	
     //debugout("Authenticating >"+username + "< >" + password +"<!");       
 
-    var tS = cookie.parse(req.headers.cookie)['connect.sid'];
+    var tS;
+    if ( typeof(req.headers.cookie) == 'string') {
+	try {
+	    tS = cookie.parse(req.headers.cookie)['connect.sid'];
+	}
+	catch (err) {
+	    console.log("Caught error:");
+	    console.log(err)
+	    tS = false;
+	}
+    }
+    else {
+	tS = false;
+    }
 
     if (tS) {
 	var sessionID = tS.split(".")[0].split(":")[1];
 	mongoStore.get(sessionID,function(err,session){
-	    if (err || session.user.user != username) 
+	    if (err || (session.user && ( session.user.user != username))) 
 		AM.gamedataLogin(username, password, req, res, callback );    	
 	    else 
 		callback(null, username, req, res);
 	});	
     }
     else {
-	callback("Session expired", null, req, res);
+	if (username && password) {
+	    AM.gamedataLogin(username, password, req, res, callback ); 
+	}
+	else {   	
+	    callback("Session expired", null, req, res);
+	}
     }
 
 }

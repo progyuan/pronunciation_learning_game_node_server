@@ -71,8 +71,8 @@ exports.manualLogin = function(user, pass, callback)
 exports.gamedataLogin = function(user, pass, req, resp, callback)
 {
 
-    console.log("Cookie:");
-    console.log(req.headers.cookie);
+    //console.log("Cookie:");
+    //console.log(req.headers.cookie);
     
     
 

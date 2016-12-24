@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <style>
+      .logpart {
+      border : 1pt solid;
+      width : 250px;
+      padding: 4px;
+      margin: 5px;
+      font-size: 0.6em;
+      display: inline-block;
+      vertical-align: top;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="logpart">
+	Server address:<br>
+	<input type=text id='server_address'>
+	<br>
+	Number of players:<br>
+	<select id="num_players">
+	  <option value="1">1</option>
+	  <option value="2">2</option>
+	  <option value="3">3</option>
+	  <option value="4">4</option>
+	  <option value="5">5</option>
+	  <option value="6">6</option>
+	  <option value="7">7</option>
+	  <option value="8">8</option>
+	  <option value="9">9</option>
+	  <option value="10">10</option>
+	</select> 
+      </div>
+      <div class="logpart">
+	Username:<br>
+	<input type=text id='username'>
+	<br>
+	Password:<br>
+	<input type=text id='password'>
+      </div>
+      <div class="logpart">
+	Choose test files: (1 channel, 16k Hz in 32-bit floats, file name must be transcription of word!)
+	<br>
+
+	<input type=file id="test_file2" multiple="true"> <br>
+
+	<input type=button id="start_test" onClick='startTest()' value="Start test">
+      </div>
+      <div class="logpart" id="stats">
+	Statistics
+      </div>
+    </div>
+
+    <canvas id="myCanvas" width="1200" height="250" style="border:1px solid #000000;"></canvas>
+    <div id="logging">
+      <div id="log0">
+	Logging:
+      </div>
+    </div>
+    </div>
+    <script src='random_sequences.js'></script>
+  </body>
+
+</html>

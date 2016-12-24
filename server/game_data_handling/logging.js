@@ -52,5 +52,6 @@ var get_date_time = function( ) {
 module.exports = { log_event : log_event, 
 		   log_scoring: log_scoring , 
 		   get_date_time: get_date_time,
-		   log_phoneme: log_phoneme
+		   log_phoneme: log_phoneme,
+		   log_error: log_error
 };
