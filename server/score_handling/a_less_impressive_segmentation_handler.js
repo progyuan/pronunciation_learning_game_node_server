@@ -53,8 +53,8 @@ function SegmentationHandler(user) {
     this.sizebuffer = new Buffer(4);
     this.sizebuffer.writeInt32LE(payload_length);
 
-    this.data_to_send = null;
-
+    //this.data_to_send = null;
+    this.payloadbuffer = null;
     
     
 
@@ -221,7 +221,7 @@ function SegmentationHandler(user) {
 
 
 
-    SegmentationHandler.prototype.get_classification = function(segmentation, features) {
+    SegmentationHandler.prototype.get_classifiable_thing = function(segmentation, features) {
 
 
 	// Sanity checks:
@@ -281,8 +281,11 @@ function SegmentationHandler(user) {
 	    
 	} 
 
-	
+	this.payloadbuffer = payloadbuffer;
 
+	return this;
+
+	/*
 	var sizebuffer = new Buffer(4);
 	sizebuffer.writeInt32LE(payloadbuffer.length/4); // 'Cause this the bad programming is! We'll send the number of data points,
  	                                                 // not the number of bytes we're sending!
@@ -368,7 +371,7 @@ function SegmentationHandler(user) {
 		client.end();
 		client.destroy();
 	    });
-	});
+	}); */
     }
 }
 

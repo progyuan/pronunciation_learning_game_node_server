@@ -16,6 +16,7 @@ var error_codes = { "0" : { en : 'package_received'},
 		    "-6" : { boring : 'No mic activity',
 			     en: 'Your micropone does not seem to be on!',
 			     fi: 'Mikrofonisi ei kuulu olevan päällä!'}
+		    
 		  };
 
 var testnr = 0;
@@ -765,14 +766,9 @@ function send_file_part(leftaudio, n, callback) {
 	
     }
 
-    //reader.readAsDataURL(left); 
-
 
     reader.readAsDataURL(leftaudio);     
-    //reader.readAsBinaryString(blob);
-    //reader.readAsArrayBuffer(blob);
     reader.onloadend = function() {
-    //if (1==1)
     
 	var startbyte = Math.floor(n * bufferSize*fs/sampleRate );
 	var endbyte = Math.floor((n+1) * bufferSize*fs/sampleRate );
@@ -794,7 +790,6 @@ function send_file_part(leftaudio, n, callback) {
 	xhr.setRequestHeader("x-siak-user", username);
 	xhr.setRequestHeader("x-siak-password", password);
 	xhr.setRequestHeader("x-siak-packetnr", n);
-	//xhr.setRequestHeader("x-siak-current-word", transcr);
 	
 	xhr.setRequestHeader("x-siak-packet-arraystart", startbyte);
 	xhr.setRequestHeader("x-siak-packet-arrayend", endbyte);
@@ -810,7 +805,7 @@ function send_file_part(leftaudio, n, callback) {
 	    if (xhr.status === 200) {
 		console.log("Got reply to packet nr ",n, xhr.responseText);
 		logging.innerHTML += "<br>" + timestamp() + " Server says ok!";	
-		if (lastpacketnr == n) {
+		if (lastpacketnr == n || typeof(JSON.parse(xhr.responseText).total_score) != 'undefined' ) {
 		    console.log("Last packet reply packetnr");
 		    time_it_took = timestamp()-lastpacketsenttime;
 
@@ -912,6 +907,14 @@ function send_file_part(leftaudio, n, callback) {
 			                     + "Server says to stop recording!";
 			time_to_send_the_final_packet = true;
 		    }
+                    if (xhr.responseText == -7) {
+                        logging.innerHTML += "<br>" + timestamp()
+                                             + "Server says the reply was already sent!";
+			if (recording)
+			    stopRecording();
+                        //time_to_send_the_final_packet = true;
+                    }
+
 		    
 		    logging.innerHTML += "<br> Foo! server returns <b>" + xhr.responseText.toString().replace(/,/g, ',<br>') +"</b>";
 		    

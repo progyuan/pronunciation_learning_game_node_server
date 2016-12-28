@@ -236,7 +236,7 @@ var init_and_send_data = function(ind) {
 	}
 	
 	
-	logging.innerHTML += "<br>" + timestamp() + "  Sending packet "+n+last+", bytes "+startbyte+"-"+endbyte;
+	logging.innerHTML += "<br>" + timestamp() + "  Sending packet "+n+last; //+", bytes "+startbyte+"-"+endbyte;
 	
 	var blob = f.slice(startbyte, endbyte);
 
@@ -272,7 +272,7 @@ var init_and_send_data = function(ind) {
 	    xhr.onload = function (reply) {
 	        if (xhr.status === 200) {
 		    draw_happening(ind, false, "received_ok");
-		    logging.innerHTML += "<br>" + timestamp() + " Server says ok!";
+		    //logging.innerHTML += "<br>" + timestamp() + " Server says ok!";
 		    if (lastpacket) {
 			gotresults = true;
 			successes ++;
@@ -284,11 +284,11 @@ var init_and_send_data = function(ind) {
 		    }
 		    else {
 			if (xhr.responseText == -1) {
-			    logging.innerHTML += "<br>" + timestamp() + "Server says to stop recording!";
+			    //logging.innerHTML += "<br>" + timestamp() + "Server says to stop recording!";
 			    time_to_send_the_final_packet = true;
 			}
 			
-			logging.innerHTML += "<br> Foo! server returns <b>" + xhr.responseText +"</b>";
+			logging.innerHTML += "<br> Server reply to packet <b>"+n+"</b> is " + xhr.responseText +"</b>";
 		    }
 		    // File(s) uploaded.
 		} else if (xhr.status === 502) {
@@ -326,8 +326,10 @@ var init_and_send_data = function(ind) {
 
     if (testusers[ind].status != 'playing') {
 	annoying_failures ++;
-    }
-    init_and_start_sending(ind);
+        draw_happening( ind, false, 'annoying_failures' );
+	set_next_happening(ind);
+    } else
+	init_and_start_sending(ind);
 }
 
 
