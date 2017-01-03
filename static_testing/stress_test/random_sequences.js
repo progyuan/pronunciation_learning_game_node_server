@@ -26,7 +26,7 @@ var sample_from_gmm = function() {
 
 var get_next_game_move_time = function( sample) {
     // Scale to out 10*log10 -distribution in ms:
-    return 1000 * Math.pow(10, sample/10)
+    return 1000 * Math.max( Math.pow(10, sample/10) - 7 , 0.2)
 }
 
 
@@ -94,6 +94,9 @@ function get_new_logdiv() {
 
 var init_and_send_data = function(ind) {
 
+    if (game_time > test_len_seconds * 1000)
+	return 0;
+
     var user = testusers[ind].username;
     var pass = testusers[ind].password;
     var word = "look";
@@ -101,9 +104,11 @@ var init_and_send_data = function(ind) {
     
     
     
-    var time_to_send_the_final_packet = 0;
-    var finalpacketsent = false;
-    var gotresults = false;
+    //var time_to_send_the_final_packet = 0;
+    //var finalpacketsent = false;
+    //var gotresults = false;
+
+    var word_id = "-1";
 
     var server_ok = false;
 
@@ -133,6 +138,7 @@ var init_and_send_data = function(ind) {
 	sessionstart.setRequestHeader("x-siak-password", password);
 	sessionstart.setRequestHeader("x-siak-packetnr", "-1");
 	sessionstart.setRequestHeader("x-siak-current-word", transcr);
+	sessionstart.setRequestHeader("x-siak-current-word-id", word_id);
 	
 	// Set up a handler for when the request finishes.
 	//sessionstart.onload = function () {
@@ -144,7 +150,9 @@ var init_and_send_data = function(ind) {
 		    draw_happening(ind, false, 'received_ok');
 		    server_ok = true;
 
-		    logging.innerHTML += "<br>" + timestamp() + " Server ready to receive!";
+		    word_id = sessionstart.responseText;
+
+		    logging.innerHTML += "<br>" + timestamp() + " <b>user " + username+ " wid "+word_id+"</b> Server ready!";
 		    // Check for the various File API support.
 		    if (window.File && window.FileReader && window.FileList && window.Blob) {
 			// Great success! All the File APIs are supported.
@@ -153,8 +161,8 @@ var init_and_send_data = function(ind) {
 		    }
 		    
 		    if (test) {
-			logging.innerHTML += "<br>" + timestamp() + " Starting file upload!";
-			send_file(word_to_send, logging);
+			logging.innerHTML += "<br>" + timestamp() + " Starting file upload in one second!";
+			setTimeout(function() {send_file(word_to_send, logging); }, 1000);
 		    }
 		    
 		} else if (sessionstart.status === 502) {
@@ -162,11 +170,14 @@ var init_and_send_data = function(ind) {
 		    server_ok=false;
 		    failures++;
 		    logging.innerHTML += "<br>-1 Problem: Server down!";
+		    set_next_happening( ind );
 
 		} else {
 		    draw_happening(ind, false, 'received_error');
 		    failures++;
 		    logging.innerHTML += '<br>-1 Problem: Server responded '+sessionstart.status;
+		    set_next_happening( ind );
+		    
 		}
 	    }
 	    else {
@@ -186,28 +197,32 @@ var init_and_send_data = function(ind) {
 	//var files = document.getElementById("test_file2").files;		   
 	//var f = files[0];
 	file = files[f];
-	logging.innerHTML += '<br>' +timestamp() + ' Starting upload of '+file.name+' ('+file.size+' bytes) in chunks of ' +packetsize;
-	for (n=0;n<=10;n++) {
-	    send_file_in_parts(file, n, logging);
-	}
+	logging.innerHTML += '<br>' +timestamp() + ' Starting upload of '+file.name+' ('+file.size+' bytes) in chunks of ' +packetsize;	
+	[0,2,1,3,4,5,7,6,8,9,10].forEach( function(n, lag) {//for (n=0;n<=10;n++) {
+	    send_file_in_parts(file, n, lag,  logging);
+	});
     }
 
-    function send_file_in_parts(f, n, logging) {
+    function send_file_in_parts(f, n, lag, logging) {
 	
 	setTimeout( function() {
-	    send_file_part(f,n,logging);
-	}, n * packetinterval);
+	    send_file_part(f,n,logging, 0);
+	}, lag * packetinterval);
     }
     
     var reader = new FileReader(); 
 
-    function send_file_part(f, n, logging) {
+    function send_file_part(f, n, logging, resend) {
 
-	if (finalpacketsent)
+	if (n > finalpacketsent) {
+	    logging.innerHTML += '<br>' +timestamp() + ' final packet ('+finalpacketsent+') already sent';
 	    return;
+	}
+	if (gotresults) {
+	    logging.innerHTML += '<br>' +timestamp() + ' already got results';
+	    return;
+	}
 
-	if (gotresults)
-	    return;
 
 	//console.log(files);
 	//console.log(f);
@@ -225,10 +240,11 @@ var init_and_send_data = function(ind) {
 	
 	var lastpacket = false;
 	var last = ""
-	if ((endbyte == f.size) || (time_to_send_the_final_packet) ) {
+	if ((endbyte == f.size) || n== 10 || time_to_send_the_final_packet ) {
 	    lastpacket = true;
 	    logging.innerHTML += "<br>" + timestamp() + " It's the last packet!";
-	    finalpacketsent = true;
+	    finalpacketsent = n;
+	    time_to_send_the_final_packet = false;
 	}
 
 	if (lastpacket) {
@@ -266,28 +282,51 @@ var init_and_send_data = function(ind) {
 	    xhr.setRequestHeader("x-siak-packet-arraylength", (endbyte-startbyte));
 	    
 	    xhr.setRequestHeader("x-siak-final-packet", lastpacket);
+	    xhr.setRequestHeader("x-siak-current-word-id", word_id);
 	    
 	    
 	    // Set up a handler for when the request finishes.
 	    xhr.onload = function (reply) {
 	        if (xhr.status === 200) {
-		    draw_happening(ind, false, "received_ok");
 		    //logging.innerHTML += "<br>" + timestamp() + " Server says ok!";
-		    if (lastpacket) {
-			gotresults = true;
-			successes ++;
-			testusers[ind].status="playing";
-			
-			//logging.innerHTML += "<br><b>Last packet sent:</b> Server returns <b>" + xhr.responseText +"</b>";
-			var parent = document.getElementById("logging");
-			parent.removeChild(logging);
+		    if (lastpacket || typeof(JSON.parse(xhr.responseText).total_score) != 'undefined') {
+
+			if (typeof(JSON.parse(xhr.responseText).total_score) != 'undefined')
+			    got_score = JSON.parse(xhr.responseText).total_score;
+			else
+			    got_score = xhr.responseText; 
+
+			draw_happening(ind, false, "response"+got_score);
+
+			if (got_score != -7) {
+
+			    reply_counts[ got_score ]++;
+			    testusers[ind].status="playing";
+			    
+			    //logging.innerHTML += "<br><b>Last packet sent:</b> Server returns <b>" + xhr.responseText +"</b>";
+			    if (got_score > 0 && num_users > 1) {
+				var parent = document.getElementById("logging");
+				parent.removeChild(logging);
+			    }
+			    else {
+				logging.innerHTML += "<br> Server reply to packet <b>"+n+"</b> is " + xhr.responseText +"</b>";
+			    }
+
+			    if (got_score > 0)
+				successes ++;
+			    else
+				failures++;
+
+			    set_next_happening( ind );
+			}
 		    }
-		    else {
-			if (xhr.responseText == -1) {
-			    //logging.innerHTML += "<br>" + timestamp() + "Server says to stop recording!";
+		    else {			
+		    draw_happening(ind, false, "received_ok");
+			if (xhr.responseText == "-1") {
+			    logging.innerHTML += "<br>" + timestamp() + "Server says to stop recording!";
 			    time_to_send_the_final_packet = true;
 			}
-			
+
 			logging.innerHTML += "<br> Server reply to packet <b>"+n+"</b> is " + xhr.responseText +"</b>";
 		    }
 		    // File(s) uploaded.
@@ -298,12 +337,13 @@ var init_and_send_data = function(ind) {
 		    draw_happening(ind, false, "received_error");
 		    server_ok=false;
 		    logging.innerHTML += "<br>" + timestamp() + " Problem: Server down!";
-
+		    
 		} else {
 		    gotresults = true;
 		    testusers[ind].status="playing";
 		    failures++;
 		    draw_happening(ind, false, "received_error");
+		    reply_counts[ JSON.parse(xhr.responseText).total_score ]++;
 		    logging.innerHTML += "<br>" + timestamp() + " Problem: Server responded "+ xhr.status;
 		}
 	    };
@@ -312,6 +352,33 @@ var init_and_send_data = function(ind) {
 	    draw_happening(ind, false, "sending_data");
 	    testusers[ind].status="waiting";
 	    
+	    if (lastpacket) 
+		xhr.timeout = 6000; // time in milliseconds
+	    
+	    else
+		xhr.timeout = 3000; // time in milliseconds
+
+	    xhr.ontimeout = function (e) {
+
+		// XMLHttpRequest timed out. Try resending!
+		if (lastpacket)
+		    draw_happening(ind, false, "timeout_lastpacket");
+		else
+		    draw_happening(ind, false, "timeout");
+		
+		logging.innerHTML += "<br>" + timestamp() + " Server timed out on packet <b>"+n+"</b>  - <b>Resending ("+(resend+1)+")!</b>";
+		//finalpacketsent = ;
+		if (resend < 2) {
+		    timeout_resends++;
+		    send_file_part(f, n, logging, resend+1);
+		}
+		else if (lastpacket)
+		    annoying_failures ++;
+		    //set_next_happening( ind );
+		
+	    };
+	   
+
 	    xhr.send(base64data);
 	}
     }
@@ -321,15 +388,19 @@ var init_and_send_data = function(ind) {
     var lastpacket = false;
     var time_to_send_the_final_packet = false;
     var lastpacketnr = -1;
+    var finalpacketsent = Math.Infinity;
+    var gotresults = false;
 
     var test=true;
 
+    /*
     if (testusers[ind].status != 'playing') {
 	annoying_failures ++;
         draw_happening( ind, false, 'annoying_failures' );
 	set_next_happening(ind);
-    } else
-	init_and_start_sending(ind);
+    } else*/
+
+    init_and_start_sending(ind);
 }
 
 
@@ -354,6 +425,24 @@ successes = 0;
 failures = 0;
 annoying_failures = 0;
 
+reply_counts = {
+"-100" : 0,
+"-8" : 0,
+"-7" : 0,
+"-6" : 0,
+"-5" : 0,
+"-4" : 0,
+"-3" : 0,
+"-2" : 0,
+"-1" : 0,
+"0" : 0,
+"1" : 0,
+"2" : 0,
+"3" : 0,
+"4" : 0,
+"5" : 0,
+};
+
 var c = document.getElementById("myCanvas");
 var ctx = c.getContext("2d");
 
@@ -373,7 +462,24 @@ var status_colors = {
     'future' : 'white',
     'received_ok' : 'lightgreen',
     'received_error' : 'red',
-    'annoying_failures' : 'orange'
+    'annoying_failures' : 'darkred',
+    'timeout' : 'orange',
+    'timeout_lastpacket' : 'yellow',
+    'response-9' : 'red',
+    'response-8' : 'red',
+    'response-7' : 'blue',
+    'response-6' : 'yellow',
+    'response-5' : 'yellow',
+    'response-4' : 'pink',
+    'response-3' : 'pink',
+    'response-2' : 'pink',
+    'response-1' : 'red',
+    'response0' : 'black',
+    'response1' : 'darkgreen',
+    'response2' : 'darkgreen',
+    'response3' : 'darkgreen',
+    'response4' : 'darkgreen',
+    'response5' : 'darkgreen'
 
 }
 
@@ -383,7 +489,26 @@ var event_yoffsets = {
     'sending_data' : -4,
     'future' : -4,
     'received_ok': 4,
-    'received_error': 4
+    'received_error': 6,
+    'annoying_failures' : 4,
+    'timeout' : 4,
+    'timeout_lastpacket' : 4,
+    'response-9' : 4,
+    'response-8' : 4,
+    'response-7' : 4,
+    'response-6' : 4,
+    'response-5' : 4,
+    'response-4' : 4,
+    'response-3' : 4,
+    'response-2' : 4,
+    'response-1' : 4,
+    'response0' : 4,
+    'response1' : 4,
+    'response2' : 4,
+    'response3' : 4,
+    'response4' : 4,
+    'response5' : 4
+
 }
 
 var draw_happening = function ( user, time, status) {
@@ -408,7 +533,6 @@ var set_first_happening = function(ind) {
     setTimeout( function() {
 	init_and_send_data(ind); 
 	draw_happening( ind, false, 'get_word' );
-	set_next_happening( ind )
     }, ( testusers[ind].total_time + game_start_time ) - Date.now() );
 
 }
@@ -417,14 +541,14 @@ var set_first_happening = function(ind) {
 var set_next_happening = function(ind) {
     next_time = get_next_game_move_time( sample_from_gmm());
     testusers[ind].total_time += next_time
-    if (testusers[ind].total_time < test_len_seconds * 1000) {
-	draw_happening( ind, testusers[ind].total_time, 'future' );
+ //   if (testusers[ind].total_time < test_len_seconds * 1000) {
+   if (game_time + next_time < test_len_seconds * 1000) {
+	draw_happening( ind, game_time + next_time, 'future' );
 	setTimeout( function() {
 	    draw_happening( ind, false, 'get_word' );
 	    init_and_send_data(ind); 
 	    //console.log(ind, testusers);
-	    set_next_happening( ind );
-	}, ( testusers[ind].total_time + game_start_time ) - Date.now() );	
+	}, next_time ); //( testusers[ind].total_time + game_start_time ) - Date.now() );	
     }
 }
 
@@ -451,11 +575,13 @@ var startTest = function() {
 
 
     num_users = document.getElementById("num_players").value;
+    test_len_seconds = document.getElementById("test_len_seconds").value;
+
 
     successes = 0;
     failures = 0;
     annoying_failures = 0;
-
+    timeout_resends = 0;
 
     files = [];
     filenames = [];
@@ -499,11 +625,18 @@ var startTest = function() {
 		ctx.strokeStyle = status_colors[user.status];
 		ctx.stroke();
 	    });
+	    //console.log("Reply counts: ", reply_counts);
+	    reply_count_string = "";
+	    Object.keys(reply_counts).forEach( function (key) {
+		if (reply_counts[key] > 0)
+		    reply_count_string += " <b>"+key+":</b> "+ reply_counts[key];
+	    });
 	    document.getElementById("stats").innerHTML = 
 		"<br>Success: " + successes +
 		"<br>Instant failures: " + failures +
-		"<br>Freezes " + annoying_failures +
-		"<br>Success rate: " + (successes ) * 1.0 / (successes + failures + annoying_failures);
+		"<br>Timeouts/ resends " + annoying_failures +" / "+ timeout_resends +
+		"<br>Success rate: " + (successes ) * 1.0 / (successes + failures + annoying_failures)+
+		"<br>Replies: "+reply_count_string;
 	    
 	    
 	}, 500-(Date.now()-game_start_time) % 500 );

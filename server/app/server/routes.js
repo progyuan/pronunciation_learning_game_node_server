@@ -62,9 +62,9 @@ module.exports = function(app) {
 	    AM.get_word_and_phoneme_counts(req.session.user, function(e, phoneme_counts,word_counts) {
 		//console.log("Rendering:");
 		if (e) console.log(e);
-		res.render('fysiak-010', { 
-		    title: 'fySIAK on-line v. 0.10',
-		    fysiak_version: '010',
+		res.render('fysiak-011', { 
+		    title: 'fySIAK on-line v. 0.11',
+		    fysiak_version: '011',
                     udata : req.session.user,
 		    word_list : word_list,
 		    game_word_list : game_word_list,

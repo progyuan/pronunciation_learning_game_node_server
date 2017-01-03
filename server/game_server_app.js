@@ -29,7 +29,8 @@ var reply_codes = { 'package_received' : 0,
 		    'mic_off' : -6,
 		    'late_arrival': -7,
 		    'duplicate' : -8,
-		    'software_error': -100 }
+		    'network_lag_error' : -9,
+		    'generic_server_error': -100 }
 
 var spawn = require('child_process').spawn;
 
@@ -92,6 +93,8 @@ cpmodels.stderr.on('close',  function(exit_code)  { console.log("models copied w
 } );
 
 */
+
+
 
 
 /*
@@ -186,27 +189,13 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
     if (eventname == 'timestamp') {
 	userdata[user].timestamps[eventdata.name] =   new Date().getTime();
     }
-
     else if (eventname == 'new_word_id') {
 	word_select_reply(user);
-    }
-
-    /*if (eventname == 'segmenter_loaded') {
-      userdata[user].segmenter_loaded = true;
-      userdata[user].currentword.reference = eventdata.word;
-      initialisation_reply(user);
-      }*/
-    else  if (eventname == 'segmenter_ready') 
-    {
-	userdata[user].segmenter_ready = true;
-	userdata[user].currentword.reference = eventdata.word;	    
-	word_select_reply(user);
-	
     }
     else 
     {
 	if (wordid != get_current_word_id(user)) {
-	    debugout(colorcodes.event, user + ": this event ("+ eventname +") is for a word (#"+wordid+")that we are not processing at this time (which would be "+get_current_word_id(user)+")");
+	    debugout(colorcodes.event, user + " wid " + userdata[user].currentword.id + ": this event ("+ eventname +") is for a word (#"+wordid+")that we are not processing at this time (which would be "+get_current_word_id(user)+")");
 	    console.log(eventdata);
 	}
 	else
@@ -218,25 +207,20 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 		asyncAudioAnalysis(user);	    
 	    }
 	    else if (eventname == 'wav_file_written' ) {
-		//console.log("Got event with filename "+ eventdata.wavfilename);
 		userdata[user].currentword.wavfilename2 = eventdata.wavfilename;
 	    }
 	    else if (eventname ==  'features_done') {
-
-		// This is old stuff, remove the following lines if the "new" way of a single, quick extract works well enough:
-		//userdata[user].currentword.featureprogress [eventdata.packetcode] = eventdata.maxpoint;
-		//userdata[user].currentword.featuresdone = userdata[user].currentword.featureprogress [0]
-		//for (var n = 1; n < userdata[user].currentword.featureprogress.length; n++) {
-		//  if (userdata[user].currentword.featuresdone !== 0 && userdata[user].currentword.featureprogress[n] > 0) {
-		//	userdata[user].currentword.featuresdone = userdata[user].currentword.featureprogress[n]
-		//    }
-		//}
-		// //check_feature_progress(user);
 		userdata[user].currentword.featuresdone = true;
 
-		if (userdata[user].currentword.segmentation_complete == true && userdata[user].currentword.featuresdone == true ) {
-		    segmentation_queue.send_to_queue(
-			userdata[user].segmentation_handler.get_classifiable_thing( userdata[user].currentword.segmentation, userdata[user].featuredata ));
+		// If also segmentation is complete, send the features to classification queue:
+		if (userdata[user].currentword.segmentation_complete == true  && userdata[user].currentword.sent_to_classification_queue == false) {
+		    userdata[user].currentword.sent_to_queue = true;
+		    if (! segmentation_queue.send_to_queue(
+			userdata[user].segmentation_handler.get_classifiable_thing( 
+			    userdata[user].currentword.segmentation, userdata[user].featuredata ))) {
+			send_score_object(user, {"total_score" : reply_codes.classification_error, 
+						 "error" : "Classifier operation error"});
+		    }
 		}
 
 	    }
@@ -249,26 +233,27 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 
 		    userdata[user].currentword.segmentation_complete = true;
 
+		    if ( userdata[user].currentword.featuresdone == true && userdata[user].currentword.sent_to_classification_queue == false)  {
+			if (!segmentation_queue.send_to_queue(
+			    userdata[user].segmentation_handler.get_classifiable_thing( 
+				userdata[user].currentword.segmentation, userdata[user].featuredata  ))) {
+			    send_score_object(user, {"total_score" : reply_codes.classification_error, 
+						     "error" : "Classifier operation error"});
 
-		    if (userdata[user].currentword.segmentation_complete == true && 
-			userdata[user].currentword.featuresdone == true ) 
-		    {			
-			segmentation_queue.send_to_queue(
-			    userdata[user].segmentation_handler.get_classifiable_thing( userdata[user].currentword.segmentation, 
-										    userdata[user].featuredata  ));
+			}
 		    }
-
+		    
 		}
 		else 
 		{
-		    debugout(colorcodes.event, user + ": SEGMENTATION FAILED(1)!");
+		    debugout(colorcodes.event, user + " wid " + userdata[user].currentword.id + ": SEGMENTATION FAILED(1)! Give score of "+reply_codes.segmentation_failure);
 		    userdata[user].currentword.segmentation = null;	
 		    userdata[user].currentword.segmentation_complete = true;
 
 		    // Segmentation failed, let's send a zero score to the client:
-		    send_score_and_clear(user, 
+		    send_score_object(user, 
 					 {
-					     "total_score" :  reply_codes.segmentation_failure, 
+					     "total_score" : reply_codes.segmentation_failure, 
 					     "error" : "Segmentation failed"
 					 });
 		}
@@ -290,23 +275,22 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 		userdata[user].currentword.segmentation_complete = true;
 		
 		debugout(colorcodes.event, user +": SEGMENTATION FAILED(2)!");
-		send_score_and_clear(user, 
+		send_score_object(user, 
 				     {
 					 "total_score" : reply_codes.segmentation_error, 
 					 "error" : "Segmentation error"
 				     });
 		
-		//check_feature_progress(user);
 	    }
 	    else if (eventname == 'no_audio_activity') {
-		send_score_and_clear(user, 
+		send_score_object(user, 
 				     {
 					 "total_score" : reply_codes.no_audio_activity,
 					 "error" : "No audio activity"
 				     });
 	    }
 	    else if (eventname == 'mic_off') {
-		send_score_and_clear(user, 
+		send_score_object(user, 
 				     {
 					 "total_score" : reply_codes.mic_off,
 					 "error" : "No audio activity"
@@ -316,9 +300,6 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 	    else if (eventname == 'classification_done') {
 		userdata[user].currentword.guessed_classes = eventdata.guessed_classes
 		
-		// While debugging with Aleks we don't want to rely on the ASR component
-		// calc_score_and_send_reply(user);				
-
 		scorer.magicians_hat_scorer(user, 
 					    userdata[user].currentword.reference, 
 					    wordid, 
@@ -327,17 +308,17 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 		
 	    }
 	    else if (eventname == 'classification_error') {
-		send_score_and_clear(user, {"total_score" : reply_codes.classification_error, 
+		send_score_object(user, {"total_score" : reply_codes.classification_error, 
 					    "error" : "Classifier operation error"});
 	    }
 	    else if (eventname == 'kalles_scoring_done') {
 		userdata[user].currentword.kalles_score = eventdata;
-		if (userdata[user].currentword.dnn_score > -100) {
+		if (userdata[user].currentword.dnn_score) {
 		    send_score(user);		
 		}
 		else {
 		    dummy = 1;
-		    //debugout(colorcodes.event, user + ": Waiting for DNN score event! "+
+		    //debugout(colorcodes.event, user + " wid " + userdata[user].currentword.id + ": Waiting for DNN score event! "+
 		    //"Kalles score: "+ userdata[user].currentword.kalles_score +
 		    //"DNN score: " +  userdata[user].currentword.dnn_score
 		    //);
@@ -345,20 +326,12 @@ process.on('user_event', function(user, wordid, eventname, eventdata) {
 
 	    }
 	    else if (eventname == 'dnn_scoring_done') {
+		debugout(colorcodes.event, user + " wid " + userdata[user].currentword.id + ": dnn scoring done! Can we send reply in packet "+userdata[user].currentword.lastpacketnr + "? Our choices of packets is "+ userdata[user].currentword.analysedpackets.toString() );
 		userdata[user].currentword.dnn_score = eventdata;
-		//if (userdata[user].currentword.kalles_score) {
-		    send_score(user);		
-		//}
-		//else {
-		//    dummy = 1;
-		//    //debugout(colorcodes.event, user + ": Waiting for Kalle's score event!"+
-		//    //	     " Kalles score: "+ userdata[user].currentword.kalles_score +
-		//    //	     " DNN score: " +  userdata[user].currentword.dnn_score
-		//    //	    );
-		//}
+		send_score(user);		
 	    }
 	    else  {
-		debugout(colorcodes.event, user + ": Don't know what to do with this event! ("+ eventname +")");
+		debugout(colorcodes.event, user + " wid " + userdata[user].currentword.id + ": Don't know what to do with this event! ("+ eventname +")");
 	    }
 	}
     }
@@ -404,7 +377,7 @@ function initialisation_reply(user) {
 // Reply to word selection call:
 function word_select_reply(user) {
     //debugout("Replying: "+ userdata[user].currentword.reference);
-    userdata[user].readyreply.end( userdata[user].currentword.reference );
+    userdata[user].readyreply.end( ""+userdata[user].currentword.id ); // userdata[user].currentword.reference );
 }
 
 
@@ -415,54 +388,54 @@ function audio_packet_reply(user,res, packetnr, usevad) {
     //   0:  ok, continue
     //   -1: ok, that's enought, stop recording
     //   or something else  - The reply codes are at the top of this file!
-
+/*
     if (userdata[user].currentword.resultsent) {
 	res.end( ""+reply_codes.late_arrival );
     }
-    else if (userdata[user].currentword.dnn_score > -100) {
-	userdata[user].lastPacketnr = packetnr;
+    else if (userdata[user].currentword.dnn_score) {
+	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + userdata[user].currentword.id + ": audio packet reply ready for user: "+user + " word: "+ userdata[user].currentword.reference );
+	userdata[user].currentword.lastPacketnr = packetnr;
 	userdata[user].lastPacketRes = res;
 	send_score(user);
     }
+    else */
+    if (packetnr == userdata[user].currentword.lastpacketnr) {
+	// Retain the last packet for later reply:
+	dummy = 1; 
+    }
     else if ( (userdata[user].currentword.vad.speechend > 0 ) ||
  	 (packetnr == conf.audioconf.packets_per_second * conf.temp_devel_stuff.good_utterance_length_s ) ) {
-	//debugout('\x1b[33m\x1b[1mserver %s\x1b[0m', user + ":" +" Packet nr "+packetnr+": Replying -1")
+	//debugout('\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + userdata[user].currentword.id + ":" +" Packet nr "+packetnr+": Replying -1")
 	res.end( ""+reply_codes.audio_end  );
     }
     else if (packetnr > -1) {
-	//debugout('\x1b[33m\x1b[1mserver %s\x1b[0m', user + ":" +" Packet nr "+packetnr+": Replying 0")
+	//debugout('\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + userdata[user].currentword.id + ":" +" Packet nr "+packetnr+": Replying 0")
 	res.end( ""+reply_codes.package_received  );
     } 
-    else res.end( ""+reply_codes.software_error  );
+    else res.end( ""+reply_codes.generic_server_error  );
 }
 
 // Reply to the last packer call:
 function send_score(user) {
 
-    console.log("send_score called for user",user);
     var score_object = userdata[user].currentword.dnn_score; 
 	
     score_object.dnn_score = userdata[user].currentword.dnn_score.total_score;
     score_object.total_score = userdata[user].currentword.dnn_score.total_score;
     score_object.kalles_score = -1,
     
-    //score_object.dnn_score = score_object.total_score;
-    //score_object.kalles_score = -1; //userdata[user].currentword.kalles_score.total_score;
-    //score_object.total_score = score_object.dnn_score; //Math.ceil( (0.75 * score_object.dnn_score + 0.25 * score_object.kalles_score) );
-    
-    send_score_and_clear(user, score_object);
+    send_score_object(user, score_object);
 
 }
 
 
 // Reply to the last packer call:
-function send_score_and_clear(user, score_object) {
+function send_score_object(user, score_object) {
 
-    console.log("send_score_and_clear called for user",user);
+    userdata[user].lastPacketReply = score_object;
 
-
-    if ( ! userdata[user].lastPacketRes ) {
-	userdata[user].lastPacketReply = score_object;
+    if ( userdata[user].currentword.lastpacketnr < 0 ) {
+	debugout(colorcodes.event, user + " wid " + userdata[user].currentword.id + ": Last packet not yet in!" );
 	
     } else {
 
@@ -487,7 +460,7 @@ function send_score_and_clear(user, score_object) {
 	    userdata[user].currentword.resultsent = true;
 	    userdata[user].lastPacketRes.end( "" + score_object.total_score );
 	}
-	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Sending score for user: "+user + " word: "+ userdata[user].currentword.reference + " score: "+  score_object.total_score + " in packet #"+ userdata[user].currentword.lastpacketnr);
+	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + userdata[user].currentword.id + ": Sending score for user: "+user + " word: "+ userdata[user].currentword.reference + " score: "+  score_object.total_score + " in packet #"+ userdata[user].currentword.lastpacketnr);
 	logging.log_scoring({user: user,
 			     packetcount: userdata[user].currentword.lastpacketnr,
 			     word_id : userdata[user].currentword.id,
@@ -505,8 +478,6 @@ function send_score_and_clear(user, score_object) {
 			     //classification: userdata[user].currentword.phoneme_classes 
 			    });
 
-	//debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Clearing user: "+user);
-	//clearUpload(user)
     }    
 }
 
@@ -526,18 +497,44 @@ var operate_recognition = function (req,res) {
 
     finalpacket = req.headers['x-siak-final-packet'];
 
+    if (finalpacket == "true") {
+	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + userdata[user].currentword.id + ": "+packetnr +" is the last packet for user: "+user + " word "+ userdata[user].currentword.reference);
+	
+	userdata[user].currentword.lastpacketnr=packetnr;
+	userdata[user].lastPacketRes=res;
+    }	    
+
+
+    packet_word_id = req.headers['x-siak-current-word-id'];
+
     new_word = false;
 
-    //debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Got packet nr "+  packetnr +" for "+user + " word: "+ userdata[user].currentword.reference );
+    if (packetnr < 0) 
+	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + packet_word_id + ": Got packet nr "+  packetnr +" for "+user );
+    else {
+	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + packet_word_id + ": Got packet nr "+  packetnr +" for word: "+ userdata[user].currentword.reference + " copied packets: "+ userdata[user].currentword.analysedpackets.sort(function(a, b) { return a - b; }).toString() );
+	if (packet_word_id != userdata[user].currentword.id) {
+	    debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + packet_word_id + ' != current word_id ' + userdata[user].currentword.id + ' - Replying ' + reply_codes.network_lag_error);
+	    res.end( ""+reply_codes.network_lag_error);	    
+	    return 0;
+	}
+	
+    }
 
     if (packetnr == 0) {
-	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Starting ASR for user: "+user + " word: "+ userdata[user].currentword.reference );
+	debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + packet_word_id + ": Starting to receive audio for user: "+user + " word: "+ userdata[user].currentword.reference );
+	/* With first packet write the beginning to a log */
+	logging.log_event( { user: user, 
+			     event: "start_audio", 
+			     word_id: userdata[user].currentword.id, 
+			     word: userdata[user].currentword.reference,
+			     level:  userdata[user].currentlevel } );		
+	
     }
 
     
     // If recovering from a server crash or otherwise lost:
     if (!userdata.hasOwnProperty(user)) {	
-	debugout("Init userdata!");
 	init_userdata(user);
     }
 
@@ -550,22 +547,23 @@ var operate_recognition = function (req,res) {
     }
 
     if (req.headers.hasOwnProperty('x-siak-profiler')) {
-	//debugout(user + ": Setting profiler to " + req.headers['x-siak-profiler'] );
 	userdata[user].profiling = req.headers['x-siak-profiler'];
     }
     else
 	userdata[user].profiling = false;
     
 
-    /* Packet nr -2 is used to initialise the recogniser */
+    /* Packet nr -2 is used to initialise the recogniser ie. to check if login works... */
     if (packetnr == -2) {
 	logging.log_event({user: user, 
 			   event: "initialise",
 			   level: level });
 
-	//debugout("Time for init reply");
-	//initialisation_reply(user);
-    } 
+	debugout("Time for init reply");
+	userdata[user].initreply = res;
+	initialisation_reply(user);
+	return 0;
+    }
 
     /* Packet nr -1 is used to set the word: */
     else if (packetnr == -1) {
@@ -573,128 +571,123 @@ var operate_recognition = function (req,res) {
 	// Let's clear the user data when we receive indication of new upload starting:
 	
 	new_word = req.headers['x-siak-current-word'];
-	console.log("New word for user",user,"is", new_word);
+	userdata[user].readyreply = res;
+
+	// Clear old upload and find a new id for the new word: 
+	// Once that is done, send a reply to the client via event emitter
+	clearUpload(user, new_word);
+	return 0;
 
     }	
 
     /* Packets from 0 onward carry chunked audio data. Last packet has 'x-siak-final-packet' header set to true. */
     else {
-	/* With first packet write the beginning to a log */
-	if (packetnr == 0 ) {
-	    logging.log_event( { user: user, 
-				 event: "start_audio", 
-				 word_id: userdata[user].currentword.id, 
-				 word: userdata[user].currentword.reference,
-				 level:  userdata[user].currentlevel } );		
-	} 
 
-	finalpacket = req.headers['x-siak-final-packet'];
-
-	if (finalpacket == "true") {
-	    debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": "+packetnr +" is the last packet for user: "+user + " word "+ userdata[user].currentword.reference);
-
-	    userdata[user].currentword.lastpacketnr=packetnr;
-	}	    
-	
-	/* As the audio buffer from the game is transferred in chunks, the following
-	   headers tell where to place the data in our buffer (as there is a chance that
-	   the HTTP packets arrive in a mixed-up order. Length is redundant as start and
-           end are defined. */
-
-	arraystart = parseInt(req.headers['x-siak-packet-arraystart']);
-	arrayend = parseInt(req.headers['x-siak-packet-arrayend']);
-	arraylength = parseInt(req.headers['x-siak-packet-arraylength']);
-	
-	var postdata = ''; // collect the datachunks here and on 'end' copy the data to a reusable buffer
-    }
-
-    req.on('data', function (chunk, encoding) {
-	/* HTTP data transfer happens in chunks; Node makes sure the data arrives in a proper
-	   order so we can just simply append to the end: */
-	postdata += chunk;
-
-    });
-    
-    req.on('end', function () {
-	/* As the HTTP call ends (no more data chunks) it would be time to reply.
-	   But as some of the things we want to do take time, we'll store the reply objects 
-	   in out great central userdata object for later processing: */
-	//debugout(user, "Req end! "+packetnr);
-	if (packetnr == -2) {
-	    debugout("Time for init reply");
-	    userdata[user].initreply = res;
-	    initialisation_reply(user);
-	    return 0;
+	if (packet_word_id != userdata[user].currentword.id) {
+	    res.end( ""+reply_codes.network_lag_error);	    
 	}
-	else if (packetnr == -1) {		
-	    userdata[user].readyreply = res;
-	    console.log("New word is", new_word);
-	    // Clear old upload and find a new id for the new word: 
-	    // Once that is done, send a reply to the client via event emitter
-	    clearUpload(user, new_word);
-	    return 0;
-	}	    
-	else {
-	    // If result for this word has already been sent:
+	//else if (userdata[user].currentword.resultsent) {
+	//    res.end( ""+reply_codes.late_arrival);
+	//}
+	// If we already have the reply, let's send it:
+	else if (userdata[user].lastPacketReply ) { // && userdata[user].currentword.dnn_score) {
 	    if (userdata[user].currentword.resultsent) {
-		res.end( ""+reply_codes.late_arrival);
-		return 0;
+		debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + userdata[user].currentword.id + ": Score already sent but let's resend!");
 	    }
-	    // If we already have the reply, let's send it:
-	    if (userdata[user].lastPacketReply && userdata[user].currentword.dnn_score > -100) {
-		userdata[user].lastPacketnr = packetnr;
-		userdata[user].lastPacketRes = res;
-		send_score(user);
-		return 0;
-	    }
-	    else  if (array_contains(userdata[user].currentword.analysedpackets, packetnr))
-	    {
-		/* Sometimes we fail to reply, and some nosy clients try to resend their call.
-		   That would mess up our careful data processing system, so let's ignore those
-		   recalls. */
-		debugout(user + ": Packet "+packetnr +" already processed - The client tried resending?");
-		res.end( ""+reply_codes.duplicate);
-		return 0;
-	    }
-	    else 
-	    {
-		/* Process the audio data: Decode, copy to our user buffer and send for
-		   processing, together with the reply object */
-		
-		// For debug let's write the received data in the debug dir:
-		if (debug) { fs.writeFile("upload_data/debug/"+user+"_packet_"+packetnr, postdata); }
-	    	
+	    debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + userdata[user].currentword.id + ": Score ready so lets send it for user: "+user + " word: "+ userdata[user].currentword.reference );	    
+	    userdata[user].currentword.lastPacketnr = packetnr;
+	    userdata[user].lastPacketRes = res;
+	    send_score(user, userdata[user].lastPacketReply);
+	}
+	else  if (array_contains(userdata[user].currentword.analysedpackets, packetnr))
+	{
+	    /* Sometimes we fail to reply, and some nosy clients try to resend their call.
+	       That would mess up our careful data processing system, so let's ignore those
+	       recalls. */
+	    debugout(user + " wid " + userdata[user].currentword.id +  ": Packet "+packetnr +" already processed - The client tried resending?");
+	    res.end( ""+reply_codes.duplicate);
+	}
+	else {
+	    
+	    /* As the audio buffer from the game is transferred in chunks, the following
+	       headers tell where to place the data in our buffer (as there is a chance that
+	       the HTTP packets arrive in a mixed-up order. Length is redundant as start and
+               end are defined. */
 
-		// Decode the received data (base64 encoded binary)
-		decodedchunks=new Buffer(postdata, 'base64');
-		
-		// Check that we have some reasonable data (other than zeros) in the audio bits:
-		
-		if (userdata[user].allzeros == true) {
-		    for (i=0; i < decodedchunks.length; i+=4) {
-			if (decodedchunks.readFloatLE(i) != 0) {
-			    userdata[user].allzeros = false;
-			    break;
+	    arraystart = parseInt(req.headers['x-siak-packet-arraystart']);
+	    arrayend = parseInt(req.headers['x-siak-packet-arrayend']);
+	    arraylength = parseInt(req.headers['x-siak-packet-arraylength']);
+	    
+	    var postdata = ''; // collect the datachunks here and on 'end' copy the data to a reusable buffer
+
+	    req.on('data', function (chunk, encoding) {
+		/* HTTP data transfer happens in chunks; Node makes sure the data arrives in a proper
+		   order so we can just simply append to the end: */
+		postdata += chunk;
+
+	    });
+	    
+	    req.on('end', function () {
+		/* As the HTTP call ends (no more data chunks) it would be time to reply.
+		   But as some of the things we want to do take time, we'll store the reply objects 
+		   in out great central userdata object for later processing: */
+		//debugout(user, "Req end! "+packetnr);
+
+		// If result for this word has already been sent:
+		{
+		    /* Process the audio data: Decode, copy to our user buffer and send for
+		       processing, together with the reply object */
+		    
+		    // For debug let's write the received data in the debug dir:
+		    if (debug) { fs.writeFile("upload_data/debug/"+user+"_packet_"+packetnr, postdata); }
+	    	    
+
+		    // Decode the received data (base64 encoded binary)
+		    decodedchunks=new Buffer(postdata, 'base64');
+		    
+		    // Check that we have some reasonable data (other than zeros) in the audio bits:		    
+		    if (userdata[user].allzeros == true) {
+			for (i=0; i < decodedchunks.length; i+=4) {
+			    if (decodedchunks.readFloatLE(i) != 0) {
+				userdata[user].allzeros = false;
+				break;
+			    }
 			}
 		    }
+		    
+		    decodedchunks.copy( // src buffer
+			userdata[user].audiobinarydata, // targetbuffer
+			arraystart*audioconf.datatype_length, // targetstart
+			0, // sourcestart
+			decodedchunks.length); //source-length	 	    
+		    
+
+		    userdata[user].currentword.analysedpackets.push(packetnr);
+		    userdata[user].currentword.packetends[""+packetnr] = Math.max( (arrayend)*audioconf.datatype_length, 
+								     userdata[user].currentword.bufferend);
+
+
+		    var bufferend = 0;
+		    for (i=0; i< userdata[user].currentword.analysedpackets.length; i++) {
+			if (array_contains(userdata[user].currentword.analysedpackets, ""+i)) {	    
+			    bufferend = userdata[user].currentword.packetends[""+i];
+			}
+			else
+			    break;
+		    }			
+		    if (bufferend != userdata[user].currentword.bufferend) {
+			userdata[user].currentword.bufferend = bufferend;
+			process.emit('user_event', user, packet_word_id,'send_audio_for_analysis', null);
+		    }
+		    debugout(user + " wid " +userdata[user].currentword.id+ ": Packet "+packetnr +" copied, bufferend at " + userdata[user].currentword.bufferend);
+		    //processDataChunks(user, userdata[user].currentword.id, res, packetnr);	
+		    audio_packet_reply(user,res,packetnr, true);
+		    
 		}
-		
-		decodedchunks.copy( // src buffer
-		    userdata[user].audiobinarydata, // targetbuffer
-		    arraystart*audioconf.datatype_length, // targetstart
-		    0, // sourcestart
-		    decodedchunks.length); //source-length	 	    
-		
-
-		userdata[user].currentword.bufferend = Math.max( (arrayend)*audioconf.datatype_length, 
-								 userdata[user].currentword.bufferend);		
-
-		processDataChunks(user, userdata[user].currentword.id, res, packetnr);		
-	    }
+	    });    
 	}
-    });    
+    }
 }
-
 
 
 /*
@@ -760,11 +753,12 @@ function init_userdata(user, level) {
 
 	userdata[user].currentlevel=level;
     }
-    //clearUpload(user);
 }
 
 
 function clearUpload(user, new_word) {
+
+    console.log("Clearing for user",user," new word is:",new_word);
 
     userdata[user].lastPacketReply = false;
     userdata[user].allzeros = true;
@@ -772,6 +766,10 @@ function clearUpload(user, new_word) {
     userdata[user].chunkeddata.fill(0);	   
     userdata[user].audiobinarydata.fill(0);
     userdata[user].featuredata.fill(0);
+
+    userdata[user].vadding = false;
+    userdata[user].vad_queue = false;
+
 
     word = {};
 
@@ -785,16 +783,17 @@ function clearUpload(user, new_word) {
     word.recresult = false;
 
     word.packetset=[];
-    word.lastpacketnr=-2;
+    word.lastpacketnr=-3;
     word.analysedpackets=[];
+    word.packetends = {};
 
     word.speechstart=-1;
     word.speechend=-1;
 
     word.bufferend=0;
-    word.sent_to_analysis=0;
-    word.sent_to_recogniser = 0;
-    
+    word.vadded=0;
+    word.sent_to_classification_queue = false;
+
     word.featuresdone= 0;
     word.featureprogress = [];
     word.analysed = 0;
@@ -867,6 +866,7 @@ function clearUpload(user, new_word) {
 
 
 function set_word_and_init_recogniser(user, word, word_id) {
+    debugout(user + " wid " + word_id + ": New word id set for "+word);
 
     // init segmenter / recogniser:
     userdata[user].segmentation_handler.init_classification(word, word_id);
@@ -885,76 +885,13 @@ function set_word_and_init_recogniser(user, word, word_id) {
  */
 
 
-
-function processDataChunks(user, wordid, res, packetnr) {
-
-    if (wordid != userdata[user].currentword.id) {
-	debugout(user +": A very troubling occasion, word ids don't match ("+wordid+"!="+userdata[user].currentword.id);
-    }
-    else 
-    {
-	if (array_contains(userdata[user].currentword.analysedpackets, packetnr))
-	{
-	    debugout(user + ": Packet "+packetnr +" already processed - Where did the request come from?");
-	    return;
-	}
-
-	// Add the current packetnr to the list of processed packets:
-	userdata[user].currentword.analysedpackets.push(packetnr);
-	//debugout(user + ': Processing packet '+packetnr);
-
-	if ( userdata[user].currentword.vad.speechend < 0 )
-	// Call the asyncAudioAnalysis function (asynchronous processing of new audio data)
-	    process.emit('user_event', user, wordid,'send_audio_for_analysis', null);
-
-
-	if (packetnr == userdata[user].currentword.lastpacketnr) {
-	    userdata[user].lastPacketnr = packetnr;
-            userdata[user].lastPacketRes=res;
-	}
-	else if (packetnr > -1)
-	    audio_packet_reply(user,res,packetnr, true);
-
-	process.emit('user_event', user, wordid,'last_packet_check', null);
-	
-
-	/*
-	if (userdata[user].currentword.lastpacketnr < 0) {
-	    // We do not know yet what is the last packet.
-	    audio_packet_reply(user,res,packetnr, true);
-	}
-	else {
-	    // We know what the last packet is;
-	    // If it's not this one, we might have received it earlier and
-	    // it's waiting to for the data to be complete:
-
-	    if (packetnr != userdata[user].currentword.lastpacketnr) {
-		// We know this is not the last packet, so reply to it quickly:
-		audio_packet_reply(user,res,packetnr, false);
-	    }
-	    else {
-		// We're dealing with the last packet;		
-		// store the reply object in a safe place
-		userdata[user].lastPacketRes=res;
-	    }
-	    // Let's see if we have received all packets:
-	    // Send an event to count packets and proceed
-
-	    process.emit('user_event', user, wordid,'last_packet_check', null);
-	}
-	*/
-    }
-}
-
-
-
 // A somewhat overcomplicated method for checking if all data has been received:
 // (But what can you do? We're in a hurry to process the data and there is no 
 //  guarantee of the packets arriving in right order.)
 
 function check_last_packet(user) {
 
-    if (!userdata[user].currentword.finishing_segmenter) {
+    if (userdata[user].currentword.finishing_segmenter == false) {
 
 	// Check if we have all the packets in already:    
 	var chunkcount = -1;    
@@ -963,14 +900,12 @@ function check_last_packet(user) {
 	});
 	
 	// Also, if the VAD has a speech end value, finish audio processing:
-	if ((chunkcount == userdata[user].currentword.lastpacketnr)|| (userdata[user].currentword.vad.speechend > -1)) {		
-	    // Send a null packet to recogniser as sign of finishing:
-
+	if ((chunkcount == userdata[user].currentword.lastpacketnr) || (userdata[user].currentword.vad.speechend > -1)) {		
+	    
 	    if (userdata[user].currentword.vad.speechend > -1 && userdata[user].currentword.vad.speechend <= userdata[user].currentword.bufferend )
-		dummy =1;
-	    //debugout(user + ": check_last_packet all good - VAD says we're done : Calling Finish_audio");
+		debugout(user + " wid " + userdata[user].currentword.id + ": check_last_packet all good - VAD says we're done");
 	    else if (chunkcount == userdata[user].currentword.lastpacketnr) {
-		//debugout(user + ": check_last_packet all good - All chunks in : Let's tell our VAD that!");
+		debugout(user + " wid " + userdata[user].currentword.id + ": check_last_packet all good - All chunks in : Let's tell our VAD that!");
 		userdata[user].currentword.vad.speechend = userdata[user].currentword.bufferend;
 	    }
 	    userdata[user].currentword.finishing_segmenter = true;
@@ -997,7 +932,7 @@ function check_last_packet(user) {
 				 userdata[user].audiobinarydata); 			 
 		}
 		
-		/* Kalle commented out the audio analyzer */
+		// Kalle commented out the audio analyzer 
 
 		var sh_feat_ext = require('./audio_handling/audio_analyser');
 
@@ -1014,19 +949,14 @@ function check_last_packet(user) {
 	    }
 	    else {
 		if (userdata[user].allzeros) {
-		    debugout(user + ": No mic signal detected. Reply with error code ");
+		    debugout(user + " wid " + userdata[user].currentword.id + ": No mic signal detected. Reply with error code ");
 		    process.emit('user_event', user, userdata[user].currentword.id, 'mic_off',{});		    
 		}
 		else {		    
-		    debugout(user + ": No audio activity detected. Reply with error code ");
+		    debugout(user + " wid " + userdata[user].currentword.id + ": No audio activity detected. Reply with error code ");
 		    process.emit('user_event', user, userdata[user].currentword.id, 'no_audio_activity',{});
 		}
 	    }
-	}
-	else {
-	    debugout(user + ": check_last_packet something missing: chunkcount "+ 
-		     chunkcount +" !=  userdata[user].currentword.lastpacketnr "+  
-		     userdata[user].currentword.lastpacketnr );
 	}
     }
 }
@@ -1035,152 +965,71 @@ function check_last_packet(user) {
 
 function asyncAudioAnalysis(user) {
 
-    // Which part of the buffer can be already analysed?
-
-    // Let's suppose for now that the packets arrive in order and so
-    // I can send data in in an orderly manner:
-
-    var already_sent_to_analysis = userdata[user].currentword.sent_to_analysis;    
-    var already_sent_to_recogniser = userdata[user].currentword.sent_to_recogniser;    
-
-    var analysis_range_start=already_sent_to_analysis;
-    var recog_range_start =already_sent_to_recogniser;
-
-    if ( (userdata[user].currentword.vad.speechend > 0)  && ( analysis_range_start > userdata[user].currentword.vad.speechend) ) {
+    if ( (userdata[user].currentword.vad.speechend > 0)  && ( userdata[user].currentword.vadded > userdata[user].currentword.vad.speechend) ) {
 	debugout(user +": Whole package after VAD says we're finished!");	
     }
     else {
-
-	// Are we in speech segments?
-	
 	/*
 	 * OPERATING VOICE ACTIVITY DETECTION
 	 */
 
-	// Too many lines here; Move to another file whenever there's time for such luxuries!
-
 	var vadp = { level: userdata[user].currentword.vad.level, 
 		     background: userdata[user].currentword.vad.background  };
 
-	for (i=already_sent_to_analysis; i < userdata[user].currentword.bufferend+conf.vad.window; i+= conf.vad.window ) {
-	    vadp = vad.classify_frame( userdata[user].audiobinarydata.slice(i, i+conf.vad.window), vadp);
-	    
-	    if (vadp.is_speech) { 
-		userdata[user].currentword.vad.numsil = 0;  
-		userdata[user].currentword.vad.numsp += 1;  
-	    }
-	    else {
-		userdata[user].currentword.vad.numsil += 1;  
-		userdata[user].currentword.vad.numsp   = 0;  		
-	    }
-
-	    if ((userdata[user].currentword.vad.speechstart < 0 ) && 
-		(userdata[user].currentword.vad.numsp >= conf.vad.speech_frame_thr)) 
-	    {
-		userdata[user].currentword.vad.speechstart = Math.max(0, i - (conf.vad.speech_frame_thr * conf.vad.window));		
-		//debugout(user +": Starting speech at bit "+ userdata[user].currentword.vad.speechstart);
-		//debugout(user +": But we are merciful; let's give it another " + conf.vad.extra_start_sil/400/16.000 + " extra ms time if possible");
-		userdata[user].currentword.vad.speechstart = Math.max(0, userdata[user].currentword.vad.speechstart - conf.vad.extra_start_sil);
-		//debugout(user +": VAD says we're starting speech at bit "+ userdata[user].currentword.vad.speechstart);
-
-	    }
-	    else if ((userdata[user].currentword.vad.speechstart > -1 ) && 
-		     ( userdata[user].currentword.vad.speechend < 0 ) && 
-		     (userdata[user].currentword.vad.numsil >= conf.vad.sil_frame_thr)) 
-	    {
-		userdata[user].currentword.vad.speechend = i - (conf.vad.sil_frame_thr * conf.vad.window) ;
-		//debugout(user +": Ending speech at bit "+ userdata[user].currentword.vad.speechend);
-		//debugout(user +": But we are merciful; let's give it another " + conf.vad.extra_end_sil/400/16.000 + " extra ms time if possible");
-		userdata[user].currentword.vad.speechend += conf.vad.extra_end_sil ;
-		//debugout(user +": VAD says we're ending speech at bit "+ userdata[user].currentword.vad.speechend);
-	    }
-	}
-	userdata[user].currentword.vad.level = vadp.level;	
-	userdata[user].currentword.vad.background = vadp.background;	
-
-
-	// There's overlap in the frames; Windows are by default 
-	// 400 samples with a step of 128
-	// so for this hypothetical audio data:
-	// -------------------------------------------------...
-	// |--frame1----|  |--frame5----|  |--frame9----|   ... 
-	//     |--frame2----|  |--frame6----|  |--frame10   ...
-	//         |--frame3----|  |--frame7----|  |--frame1...
-	//             |--frame4----|  |--frame8----|  |--fr...
-
-	// And thus for an arbitrary piece of audio data, we need to 
-	// find the previous frame start point (essentially flooring to
-	// the closest multiple of framestep (default 128) and
-
-	
-
-	if (analysis_range_start > audioconf.frame_length_samples - audioconf.frame_step_samples) 
-	{
-	    // if we are not dealing with the first bits of the file, 
-	    // take into account the frame overlap (ie. include a bit 
-	    // from previous package):
-	    
-	    analysis_range_start -= 
-		Math.floor( audioconf.frame_length_samples / 
-			    audioconf.frame_step_samples ) * audioconf.frame_step_samples; 
+	if (userdata[user].vadding == true) {
+	    userdata[user].vad_queue = true;
 	}
 
-	// and floor the end to the closesti multiple of framestep:
-	// Except if we are dealing with the last packet, we should instead extend the
-	// buffer so the last bits of audio signal will be analysed and 
-	// fill the buffer with tiny noise for that; Well, we don't seem to be doing it here now.
-	
-	if (userdata[user].currentword.vad.speechend > -1) {
-	    var analysis_range_end = Math.max(userdata[user].currentword.vad.speechend, userdata[user].currentword.bufferend);
-	    var recog_range_end= Math.max(userdata[user].currentword.vad.speechend, userdata[user].currentword.bufferend);
-	}
-	else {
-	    var analysis_range_end= (userdata[user].currentword.bufferend);
-	    var recog_range_end= userdata[user].currentword.bufferend;
-	}
-	
-	analysis_range_end -= (userdata[user].currentword.bufferend % audioconf.frame_step_samples);	
+	if (userdata[user].vadding == false) {
 
-	// Immediately update the range ends so things don't get called twice!
-	
-	userdata[user].currentword.sent_to_analysis=analysis_range_end;
-	userdata[user].currentword.sent_to_recogniser = recog_range_end;
+	    userdata[user].vad_queue = false;
 
-	if ( (userdata[user].currentword.vad.speechstart > -1) && (analysis_range_end > userdata[user].currentword.vad.speechstart )) {
+	    for (i=userdata[user].currentword.vadded; i < userdata[user].currentword.bufferend+conf.vad.window; i+= conf.vad.window ) {
+		vadp = vad.classify_frame( userdata[user].audiobinarydata.slice(i, i+conf.vad.window), vadp);
+		
+		if (vadp.is_speech) { 
+		    userdata[user].currentword.vad.numsil = 0;  
+		    userdata[user].currentword.vad.numsp += 1;  
+		}
+		else {
+		    userdata[user].currentword.vad.numsil += 1;  
+		    userdata[user].currentword.vad.numsp   = 0;  		
+		}
+		
+		if ((userdata[user].currentword.vad.speechstart < 0 ) && 
+		    (userdata[user].currentword.vad.numsp >= conf.vad.speech_frame_thr)) 
+		{
+		    userdata[user].currentword.vad.speechstart = Math.max(0, i - (conf.vad.speech_frame_thr * conf.vad.window));		
+		    userdata[user].currentword.vad.speechstart = Math.max(0, userdata[user].currentword.vad.speechstart - conf.vad.extra_start_sil);
+		    
+		}
+		else if ((userdata[user].currentword.vad.speechstart > -1 ) && 
+			 ( userdata[user].currentword.vad.speechend < 0 ) && 
+			 (userdata[user].currentword.vad.numsil >= conf.vad.sil_frame_thr)) 
+		{
+		    userdata[user].currentword.vad.speechend = i - (conf.vad.sil_frame_thr * conf.vad.window) ;
+		    userdata[user].currentword.vad.speechend += conf.vad.extra_end_sil ;
+		    
+		    process.emit('user_event', user, userdata[user].currentword.id,'last_packet_check', null);
 
-	    //analysis_range_start = Math.max( analysis_range_start, (userdata[user].currentword.vad.speechstart));
-	    //recog_range_start =  Math.max( recog_range_start, (userdata[user].currentword.vad.speechstart));
+		}
 
-	    //var analysis_range_length = analysis_range_end - analysis_range_start;
+		userdata[user].currentword.vadded = i+conf.vad.window;
 
-	    //var analysis_start_frame =  (analysis_range_start/ audioconf.frame_step_samples);
-
-	    var analysis_end_frame = (analysis_range_end/ audioconf.frame_step_samples);
-
-	    //var analysis_frame_length = (analysis_range_length / audioconf.frame_step_samples);	    
-	    //var result_range_length = analysis_range_length - Math.floor(audioconf.frame_length_samples/
-	    //								 audioconf.frame_step_samples) * audioconf.frame_step_samples;
+	    }
 	    
-	    //var overlap_frames = Math.ceil((audioconf.frame_length_samples - audioconf.frame_step_samples)/ audioconf.frame_step_samples );
+	    userdata[user].currentword.vad.level = vadp.level;	
+	    userdata[user].currentword.vad.background = vadp.background;	   
 	    
-	    userdata[user].currentword.featureend = analysis_end_frame;
+	    userdata[user].vadding = false;
 
-	    /* If the VAD just informed us that the end is near, finish the recognition: */
-	    if (userdata[user].currentword.vad.speechend > -1 &&  userdata[user].currentword.vad.speechend <= userdata[user].currentword.bufferend )  {
-		//debugout(user + ": Finishing recognition as VAD says signal ends at "+userdata[user].currentword.vad.speechend +" and we have buffer of " +  userdata[user].currentword.bufferend);
+	    if (userdata[user].vad_queue == true)
+		process.emit('user_event', user, packet_word_id,'send_audio_for_analysis', null);
+	    else
 		process.emit('user_event', user, userdata[user].currentword.id,'last_packet_check', null);
-	    }
-
-	}
-	else {
-	    dummy = 1;
-	    //debugout(user +": VAD says audio has not started yet!");
 	}
     }
 }
-
-
-
 
 
 function send_to_recogniser(user, datastart, dataend) {
@@ -1207,7 +1056,7 @@ function send_to_recogniser(user, datastart, dataend) {
 	}
     }
     if (debug && notokcount > 0) {
-	debugout(user + ": ERRRRROOOOORRRRRSSSS!!!!!!!!  Bad floats in "+notokcount+" of "+(okcount+notokcount)+" values");
+	debugout(user + " wid " + userdata[user].currentword.id + ": ERRRRROOOOORRRRRSSSS!!!!!!!!  Bad floats in "+notokcount+" of "+(okcount+notokcount)+" values");
     }
 
     // Send the 16-bit buffer to recogniser and segmenter processses:
@@ -1310,7 +1159,7 @@ var finish_level = function (req,res) {
     if (typeof(score) == 'undefined') 
 	score = 0;
 
-    debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + ": Received packet level up! user: "+user + " level "+ level);
+    debugout( '\x1b[33m\x1b[1mserver %s\x1b[0m', user + " wid " + userdata[user].currentword.id + ": Received packet level up! user: "+user + " level "+ level);
 
     logging.finish_level(user, level, score);
     logging.log_event({user: user, 

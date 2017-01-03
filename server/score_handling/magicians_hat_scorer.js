@@ -97,12 +97,23 @@ var class_definitions = require('./phone_classes.js');
 var magicians_hat_scorer = function(user, word, wordid, guesses, segmentation, likelihood) {
 
 
+
     scores=[];
 
     reference_phones=[];
     guess_phones=[];
     
-    if (Math.min.apply(Math, guess_phones) < 0 ) {
+    if (typeof(segmentation) == 'undefined') {
+	score_event_object = { 'total_score' :  -4,
+			       'phoneme_scores' : [-1],
+			       'reference_phones' : reference_phones,
+			       'guess_phones' : [-1],
+			       'error': 'DNN classifier error' };
+	process.emit('user_event', user, wordid,'classification_error', score_event_object );
+	return false;
+    }
+
+    else if (Math.min.apply(Math, guess_phones) < 0 ) {
 	score_event_object = { 'total_score' :  -2,
 			       'phoneme_scores' : [-2],
 			       'reference_phones' : reference_phones,
